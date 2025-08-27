@@ -6,9 +6,11 @@ import {
   AuditLog,
   SearchFilters,
   EmployeeStats,
-  EmployeeAlert
+  EmployeeAlert,
+  EmployeeUpdateData
 } from '../types/EmployeeTypes';
 import { employeeManager } from '../utils/employeeManager';
+import { EmployeeEditModal } from './EmployeeEditModal';
 
 const Container = styled.div`
   padding: 20px;
@@ -320,6 +322,8 @@ const EmployeeManagement: React.FC<Props> = ({ onEmployeeSelect }) => {
   const [alerts, setAlerts] = useState<EmployeeAlert[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeProfile | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<EmployeeProfile | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
@@ -386,6 +390,18 @@ const EmployeeManagement: React.FC<Props> = ({ onEmployeeSelect }) => {
 
   const acknowledgeAlert = (alertId: string) => {
     employeeManager.acknowledgeAlert(alertId);
+    loadData();
+  };
+
+  const handleEditEmployee = (employee: EmployeeProfile) => {
+    setEditingEmployee(employee);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEmployee = (employeeId: string, updates: EmployeeUpdateData) => {
+    employeeManager.updateEmployee(employeeId, updates);
+    setShowEditModal(false);
+    setEditingEmployee(null);
     loadData();
   };
 
@@ -474,7 +490,6 @@ const EmployeeManagement: React.FC<Props> = ({ onEmployeeSelect }) => {
         {paginatedEmployees.map(employee => (
           <EmployeeCard
             key={employee.id}
-            onClick={() => handleEmployeeClick(employee)}
           >
             <StatusBadge status={employee.employment.status}>
               {employee.employment.status.toUpperCase()}
@@ -488,6 +503,70 @@ const EmployeeManagement: React.FC<Props> = ({ onEmployeeSelect }) => {
               <div><strong>Salary:</strong> ${employee.compensation.baseSalary.toLocaleString()}</div>
               <div><strong>Hire Date:</strong> {new Date(employee.employment.hireDate).toLocaleDateString()}</div>
             </EmployeeInfo>
+            <div style={{ 
+              display: 'flex', 
+              gap: '8px', 
+              marginTop: '15px', 
+              justifyContent: 'space-between' 
+            }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEmployeeClick(employee);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  backgroundColor: '#1565c0',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}
+              >
+                👁️ View
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditEmployee(employee);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  backgroundColor: '#4caf50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}
+              >
+                ✏️ Edit
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onEmployeeSelect) onEmployeeSelect(employee);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  backgroundColor: '#ff9800',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}
+              >
+                📋 Use
+              </button>
+            </div>
           </EmployeeCard>
         ))}
       </EmployeeGrid>
@@ -798,6 +877,17 @@ const EmployeeManagement: React.FC<Props> = ({ onEmployeeSelect }) => {
           )}
         </ModalContent>
       </Modal>
+
+      {/* Employee Edit Modal */}
+      <EmployeeEditModal
+        employee={editingEmployee}
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingEmployee(null);
+        }}
+        onSave={handleSaveEmployee}
+      />
     </Container>
   );
 };

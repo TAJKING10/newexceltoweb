@@ -252,6 +252,27 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
         name: 'New Template',
         version: '1.0',
         description: '',
+        type: 'custom',
+        header: {
+          id: 'header-' + Date.now(),
+          title: 'PAYSLIP',
+          subtitle: 'Monthly Salary Statement',
+          companyInfo: {
+            name: 'Your Company Name',
+            address: '123 Business St, City, State 12345',
+            phone: '+1 (555) 123-4567',
+            email: 'hr@company.com',
+            website: 'www.company.com'
+          },
+          styling: {
+            titleColor: '#1565c0',
+            subtitleColor: '#666',
+            backgroundColor: '#f8f9fa',
+            fontSize: { title: 28, subtitle: 16, info: 12 },
+            alignment: 'center'
+          }
+        },
+        subHeaders: [],
         sections: [],
         tables: [],
         globalFormulas: {},
@@ -266,7 +287,10 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
           columnsPerRow: 2,
           sectionSpacing: 20,
           printOrientation: 'portrait',
-        }
+        },
+        isEditable: true,
+        createdDate: new Date(),
+        lastModified: new Date()
       });
     }
   }, [templateId]);

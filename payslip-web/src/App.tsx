@@ -3,6 +3,7 @@ import ExcelAnalyzer from './components/ExcelAnalyzer';
 import PayslipGenerator from './components/PayslipGenerator';
 import EnhancedPayslipGenerator from './components/EnhancedPayslipGenerator';
 import TemplateBuilder from './components/TemplateBuilder';
+import EnhancedTemplateBuilder from './components/EnhancedTemplateBuilder';
 import AdvancedPayslipGenerator from './components/AdvancedPayslipGenerator';
 import EmployeeManagement from './components/EmployeeManagement';
 import './App.css';
@@ -122,7 +123,7 @@ function App() {
         )}
         
         {currentView === 'template' && (
-          <TemplateBuilder />
+          <EnhancedTemplateBuilder />
         )}
         
         {currentView === 'advanced' && (

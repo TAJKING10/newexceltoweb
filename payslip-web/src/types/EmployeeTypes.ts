@@ -9,11 +9,46 @@ export type EmployeeCreationData = {
   documents?: EmployeeProfile['documents'];
 };
 
-// Utility type for employee updates
+// Utility type for employee updates with deep partial
 export type EmployeeUpdateData = {
-  personalInfo?: Partial<EmployeeProfile['personalInfo']>;
+  personalInfo?: {
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      zipCode?: string;
+      country?: string;
+    };
+    dateOfBirth?: Date;
+    nationalId?: string;
+    emergencyContact?: {
+      name?: string;
+      relationship?: string;
+      phone?: string;
+    };
+  };
   employment?: Partial<EmployeeProfile['employment']>;
-  compensation?: Partial<EmployeeProfile['compensation']>;
+  compensation?: {
+    baseSalary?: number;
+    currency?: string;
+    payFrequency?: 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'annually';
+    salaryType?: 'hourly' | 'salary' | 'commission';
+    bankAccount?: {
+      accountNumber?: string;
+      routingNumber?: string;
+      bankName?: string;
+    };
+    taxInfo?: {
+      taxId?: string;
+      filingStatus?: string;
+      allowances?: number;
+    };
+  };
   benefits?: Partial<EmployeeProfile['benefits']>;
   documents?: EmployeeProfile['documents'];
 };

@@ -1,5 +1,46 @@
 // Advanced Payslip Template Types
 
+export interface TemplateHeader {
+  id: string;
+  title: string;
+  subtitle?: string;
+  logo?: string;
+  companyInfo: {
+    name: string;
+    address: string;
+    phone: string;
+    email: string;
+    website?: string;
+  };
+  styling?: {
+    titleColor?: string;
+    subtitleColor?: string;
+    backgroundColor?: string;
+    fontSize?: {
+      title?: number;
+      subtitle?: number;
+      info?: number;
+    };
+    alignment?: 'left' | 'center' | 'right';
+  };
+}
+
+export interface TemplateSubHeader {
+  id: string;
+  sections: Array<{
+    id: string;
+    label: string;
+    value: string;
+    type: 'text' | 'date' | 'number';
+    editable: boolean;
+  }>;
+  styling?: {
+    backgroundColor?: string;
+    textColor?: string;
+    borderStyle?: string;
+  };
+}
+
 export interface FieldDefinition {
   id: string;
   label: string;
@@ -58,6 +99,9 @@ export interface PayslipTemplate {
   name: string;
   version: string;
   description?: string;
+  type: 'basic' | 'custom';
+  header: TemplateHeader;
+  subHeaders: TemplateSubHeader[];
   sections: SectionDefinition[];
   tables: DynamicTable[];
   globalFormulas: { [key: string]: string };
@@ -73,6 +117,9 @@ export interface PayslipTemplate {
     sectionSpacing: number;
     printOrientation: 'portrait' | 'landscape';
   };
+  isEditable: boolean;
+  createdDate: Date;
+  lastModified: Date;
 }
 
 export interface EmployeePayslip {
@@ -137,6 +184,41 @@ export const DEFAULT_TEMPLATE: PayslipTemplate = {
   name: 'Standard Payslip',
   version: '1.0',
   description: 'Standard payslip template with common sections',
+  type: 'basic',
+  header: {
+    id: 'default-header',
+    title: 'PAYSLIP',
+    subtitle: 'Monthly Salary Statement',
+    companyInfo: {
+      name: 'Your Company Name',
+      address: '123 Business St, City, State 12345',
+      phone: '+1 (555) 123-4567',
+      email: 'hr@company.com',
+      website: 'www.company.com'
+    },
+    styling: {
+      titleColor: '#1565c0',
+      subtitleColor: '#666',
+      backgroundColor: '#f8f9fa',
+      fontSize: { title: 28, subtitle: 16, info: 12 },
+      alignment: 'center'
+    }
+  },
+  subHeaders: [
+    {
+      id: 'pay-period-info',
+      sections: [
+        { id: 'pay-date', label: 'Pay Date', value: '{current_date}', type: 'date', editable: true },
+        { id: 'pay-period', label: 'Pay Period', value: '{pay_period}', type: 'text', editable: true },
+        { id: 'pay-method', label: 'Payment Method', value: 'Direct Deposit', type: 'text', editable: true }
+      ],
+      styling: {
+        backgroundColor: '#e3f2fd',
+        textColor: '#1565c0',
+        borderStyle: '1px solid #1565c0'
+      }
+    }
+  ],
   sections: [
     {
       id: 'employee-info',
@@ -208,7 +290,10 @@ export const DEFAULT_TEMPLATE: PayslipTemplate = {
     columnsPerRow: 2,
     sectionSpacing: 20,
     printOrientation: 'portrait',
-  }
+  },
+  isEditable: true,
+  createdDate: new Date(),
+  lastModified: new Date()
 };
 
 export type TemplateAction = 
