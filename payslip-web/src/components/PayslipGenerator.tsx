@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { templateManager } from '../utils/templateManager';
+import { employeeManager } from '../utils/employeeManager';
+import { PayslipTemplate } from '../types/PayslipTypes';
+import { EmployeeProfile } from '../types/EmployeeTypes';
 
 const Container = styled.div`
   padding: 20px;
@@ -86,6 +90,41 @@ const Title = styled.h2`
   margin-bottom: 30px;
 `;
 
+const ControlPanel = styled.div`
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+`;
+
+const Select = styled.select`
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  font-size: 14px;
+  
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+  }
+`;
+
+const DateInput = styled.input`
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  font-size: 14px;
+  
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+  }
+`;
+
 interface PayslipData {
   // Employee Information
   employeeName: string;
@@ -125,6 +164,17 @@ interface Props {
 }
 
 const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
+  const [selectedTemplate, setSelectedTemplate] = useState<PayslipTemplate | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeProfile | null>(null);
+  const [payPeriod, setPayPeriod] = useState({
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+    startDate: new Date().toISOString().substr(0, 10),
+    endDate: new Date().toISOString().substr(0, 10)
+  });
+  const [templates, setTemplates] = useState<PayslipTemplate[]>([]);
+  const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
+  
   const [payslipData, setPayslipData] = useState<PayslipData>({
     employeeName: 'John Doe',
     employeeId: 'EMP001',
@@ -153,6 +203,30 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     netSalary: 0,
     overtimePay: 0
   });
+
+  // Load templates and employees
+  useEffect(() => {
+    const loadedTemplates = templateManager.getAllTemplates();
+    const loadedEmployees = employeeManager.getAllEmployees();
+    setTemplates(loadedTemplates);
+    setEmployees(loadedEmployees);
+    
+    if (loadedTemplates.length > 0) {
+      setSelectedTemplate(loadedTemplates[0]);
+    }
+    if (loadedEmployees.length > 0) {
+      setSelectedEmployee(loadedEmployees[0]);
+      // Auto-fill employee data
+      const emp = loadedEmployees[0];
+      setPayslipData(prev => ({
+        ...prev,
+        employeeName: emp.personalInfo.fullName,
+        employeeId: emp.employment.employeeId,
+        department: emp.employment.department,
+        position: emp.employment.position
+      }));
+    }
+  }, []);
 
   // Calculate derived values whenever input data changes
   useEffect(() => {
@@ -204,9 +278,108 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     }));
   };
 
+  const handleEmployeeChange = (employeeId: string) => {
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (employee) {
+      setSelectedEmployee(employee);
+      setPayslipData(prev => ({
+        ...prev,
+        employeeName: employee.personalInfo.fullName,
+        employeeId: employee.employment.employeeId,
+        department: employee.employment.department,
+        position: employee.employment.position
+      }));
+    }
+  };
+
+  const handleTemplateChange = (templateId: string) => {
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+    }
+  };
+
   return (
     <Container>
       <Title>Employee Payslip Generator</Title>
+      
+      <ControlPanel>
+        <InputGroup>
+          <Label>Select Employee:</Label>
+          <Select 
+            value={selectedEmployee?.id || ''} 
+            onChange={(e) => handleEmployeeChange(e.target.value)}
+          >
+            <option value="">Choose Employee...</option>
+            {employees.map(emp => (
+              <option key={emp.id} value={emp.id}>
+                {emp.personalInfo.fullName} - {emp.employment.employeeId}
+              </option>
+            ))}
+          </Select>
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>Select Template:</Label>
+          <Select 
+            value={selectedTemplate?.id || ''} 
+            onChange={(e) => handleTemplateChange(e.target.value)}
+          >
+            <option value="">Choose Template...</option>
+            {templates.map(template => (
+              <option key={template.id} value={template.id}>
+                {template.name} ({template.type})
+              </option>
+            ))}
+          </Select>
+        </InputGroup>
+
+        <InputGroup>
+          <Label>Pay Period Month:</Label>
+          <Select 
+            value={payPeriod.month} 
+            onChange={(e) => setPayPeriod(prev => ({ ...prev, month: parseInt(e.target.value) }))}
+          >
+            {Array.from({length: 12}, (_, i) => (
+              <option key={i + 1} value={i + 1}>
+                {new Date(2024, i, 1).toLocaleString('default', { month: 'long' })}
+              </option>
+            ))}
+          </Select>
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>Year:</Label>
+          <Select 
+            value={payPeriod.year} 
+            onChange={(e) => setPayPeriod(prev => ({ ...prev, year: parseInt(e.target.value) }))}
+          >
+            {Array.from({length: 10}, (_, i) => (
+              <option key={2020 + i} value={2020 + i}>
+                {2020 + i}
+              </option>
+            ))}
+          </Select>
+        </InputGroup>
+
+        <InputGroup>
+          <Label>Period Start Date:</Label>
+          <DateInput 
+            type="date" 
+            value={payPeriod.startDate} 
+            onChange={(e) => setPayPeriod(prev => ({ ...prev, startDate: e.target.value }))}
+          />
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>Period End Date:</Label>
+          <DateInput 
+            type="date" 
+            value={payPeriod.endDate} 
+            onChange={(e) => setPayPeriod(prev => ({ ...prev, endDate: e.target.value }))}
+          />
+        </InputGroup>
+      </ControlPanel>
       
       <PayslipContainer>
         <Section>
