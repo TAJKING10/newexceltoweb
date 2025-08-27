@@ -4,11 +4,12 @@ import PayslipGenerator from './components/PayslipGenerator';
 import EnhancedPayslipGenerator from './components/EnhancedPayslipGenerator';
 import TemplateBuilder from './components/TemplateBuilder';
 import AdvancedPayslipGenerator from './components/AdvancedPayslipGenerator';
+import EmployeeManagement from './components/EmployeeManagement';
 import './App.css';
 
 function App() {
   const [analysisData, setAnalysisData] = useState<any>(null);
-  const [currentView, setCurrentView] = useState<'analysis' | 'basic' | 'excel' | 'template' | 'advanced'>('analysis');
+  const [currentView, setCurrentView] = useState<'analysis' | 'basic' | 'excel' | 'template' | 'advanced' | 'employees'>('employees');
 
   const handleAnalysisComplete = (data: any) => {
     setAnalysisData(data);
@@ -45,11 +46,19 @@ function App() {
         </h1>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
           <button 
+            onClick={() => setCurrentView('employees')}
+            style={buttonStyle(currentView === 'employees')}
+            title="Comprehensive employee database with search and history"
+          >
+            👥 Employee Management
+          </button>
+          
+          <button 
             onClick={() => setCurrentView('analysis')}
             style={buttonStyle(currentView === 'analysis')}
             title="Analyze your Excel file structure and formulas"
           >
-            📊 Analysis
+            📊 Excel Analysis
           </button>
           
           <button 
@@ -93,16 +102,21 @@ function App() {
           fontSize: '14px',
           color: '#1565c0'
         }}>
-          <strong>✨ New Features:</strong> 
-          {currentView === 'template' && ' Expandable sections • Custom fields • Dynamic tables'}
-          {currentView === 'advanced' && ' Multi-employee • Repeating sections • Bulk operations'}
-          {currentView === 'excel' && ' Formula calculations • Real-time updates • Print ready'}
-          {currentView === 'basic' && ' Simple interface • Quick setup • Easy editing'}
+          <strong>✨ Key Features:</strong> 
+          {currentView === 'employees' && ' Employee database • Search & filter • History tracking • Analytics • Alerts'}
+          {currentView === 'template' && ' Expandable sections • Custom fields • Dynamic tables • Drag & drop'}
+          {currentView === 'advanced' && ' Multi-employee • Repeating sections • Bulk operations • Templates'}
+          {currentView === 'excel' && ' Formula calculations • Real-time updates • Print ready • Excel-like'}
+          {currentView === 'basic' && ' Simple interface • Quick setup • Easy editing • Form-based'}
           {currentView === 'analysis' && ' Excel structure analysis • Formula parsing • Data extraction'}
         </div>
       </header>
       
       <div>
+        {currentView === 'employees' && (
+          <EmployeeManagement />
+        )}
+        
         {currentView === 'analysis' && (
           <ExcelAnalyzer onAnalysisComplete={handleAnalysisComplete} />
         )}
