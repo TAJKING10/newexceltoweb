@@ -1,0 +1,89 @@
+/* Print styles for payslip */
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Calibri', Arial, sans-serif;
+    font-size: 12px;
+    background: white !important;
+  }
+
+  /* Hide non-essential elements when printing */
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure the payslip takes full page */
+  .payslip-container {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: white !important;
+  }
+
+  /* Grid adjustments for print */
+  .excel-grid {
+    page-break-inside: avoid;
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  /* Cell adjustments */
+  .cell {
+    border: 1px solid #000 !important;
+    padding: 5px !important;
+    background: white !important;
+    color: #000 !important;
+    font-size: 11px !important;
+  }
+
+  .cell-header {
+    background: #f0f0f0 !important;
+    font-weight: bold !important;
+    text-align: center !important;
+  }
+
+  .cell-calculated {
+    background: #f8f8f8 !important;
+    font-weight: bold !important;
+  }
+
+  /* Avoid page breaks in important sections */
+  .section {
+    page-break-inside: avoid;
+    margin-bottom: 10px;
+  }
+
+  /* Title styling */
+  h1, h2 {
+    margin: 10px 0 !important;
+    font-size: 16px !important;
+    text-align: center !important;
+  }
+
+  /* Footer styling */
+  .footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    font-size: 10px;
+    text-align: center;
+    color: #666;
+  }
+
+  /* Page break controls */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .no-page-break {
+    page-break-inside: avoid;
+  }
+}
