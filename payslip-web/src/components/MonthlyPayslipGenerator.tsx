@@ -653,6 +653,114 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     }));
   };
 
+  // Add row to specific group
+  const addRowToGroup = (groupId: string) => {
+    const groupName = payslipData.groups.find(g => g.id === groupId)?.name || 'Group';
+    const newRowName = `${groupName} Field ${Date.now()}`;
+    
+    setPayslipData(prev => {
+      // Add row to customRows if not already there
+      const newCustomRows = prev.customRows.includes(newRowName) 
+        ? prev.customRows 
+        : [...prev.customRows, newRowName];
+      
+      // Initialize monthly data for new row
+      const newMonths = { ...prev.months };
+      const newTotals = { ...prev.totals };
+      
+      for (let i = 0; i < 12; i++) {
+        newMonths[i] = { ...newMonths[i], [newRowName]: 0 };
+      }
+      newTotals[newRowName] = 0;
+      
+      // Add row to specific group
+      const newGroups = prev.groups.map(group => 
+        group.id === groupId 
+          ? { ...group, rows: [...group.rows, newRowName] }
+          : group
+      );
+      
+      return {
+        ...prev,
+        customRows: newCustomRows,
+        months: newMonths,
+        totals: newTotals,
+        groups: newGroups
+      };
+    });
+  };
+
+  // Remove row from group
+  const removeRowFromGroup = (groupId: string, rowName: string) => {
+    if (window.confirm(`Remove "${rowName}" from this group? The row data will be preserved but moved to ungrouped rows.`)) {
+      setPayslipData(prev => ({
+        ...prev,
+        groups: prev.groups.map(group => 
+          group.id === groupId 
+            ? { ...group, rows: group.rows.filter(row => row !== rowName) }
+            : group
+        )
+      }));
+    }
+  };
+
+  // Delete row completely
+  const deleteRowCompletely = (rowName: string) => {
+    if (window.confirm(`Permanently delete "${rowName}"? This will remove all data for this row and cannot be undone.`)) {
+      setPayslipData(prev => {
+        // Remove from customRows
+        const newCustomRows = prev.customRows.filter(row => row !== rowName);
+        
+        // Remove from all monthly data
+        const newMonths = { ...prev.months };
+        for (let i = 0; i < 12; i++) {
+          const monthData = { ...newMonths[i] };
+          delete monthData[rowName];
+          newMonths[i] = monthData;
+        }
+        
+        // Remove from totals
+        const newTotals = { ...prev.totals };
+        delete newTotals[rowName];
+        
+        // Remove from all groups
+        const newGroups = prev.groups.map(group => ({
+          ...group,
+          rows: group.rows.filter(row => row !== rowName)
+        }));
+        
+        return {
+          ...prev,
+          customRows: newCustomRows,
+          months: newMonths,
+          totals: newTotals,
+          groups: newGroups
+        };
+      });
+    }
+  };
+
+  // Move row to different group
+  const moveRowToGroup = (rowName: string, fromGroupId: string | null, toGroupId: string) => {
+    if (fromGroupId === toGroupId) return;
+    
+    setPayslipData(prev => {
+      const newGroups = prev.groups.map(group => {
+        // Remove from source group
+        if (group.id === fromGroupId) {
+          return { ...group, rows: group.rows.filter(row => row !== rowName) };
+        }
+        // Add to target group (only if not ungrouped)
+        if (group.id === toGroupId && toGroupId !== 'ungrouped') {
+          return { ...group, rows: [...group.rows, rowName] };
+        }
+        return group;
+      });
+      
+      return { ...prev, groups: newGroups };
+    });
+  };
+
   // Update group
   const updateGroup = (groupId: string, updates: Partial<PayslipGroup>) => {
     setPayslipData(prev => ({
@@ -923,17 +1031,97 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                     type="text"
                     value={group.name}
                     onChange={(e) => updateGroup(group.id, { name: e.target.value })}
-                    style={{ padding: '6px', border: '1px solid #ddd', borderRadius: '3px', fontWeight: 'bold' }}
+                    style={{ padding: '6px', border: '1px solid #ddd', borderRadius: '3px', fontWeight: 'bold', flex: 1 }}
                   />
                   <Button 
+                    onClick={() => addRowToGroup(group.id)}
+                    style={{ backgroundColor: '#2196f3', fontSize: '12px', padding: '6px 12px' }}
+                  >
+                    + Add Row
+                  </Button>
+                  <Button 
                     onClick={() => updateGroup(group.id, { isCollapsed: !group.isCollapsed })}
-                    style={{ backgroundColor: group.isCollapsed ? '#ff9800' : '#4caf50' }}
+                    style={{ backgroundColor: group.isCollapsed ? '#ff9800' : '#4caf50', fontSize: '12px', padding: '6px 12px' }}
                   >
                     {group.isCollapsed ? 'Expand' : 'Collapse'}
                   </Button>
                 </div>
-                <div style={{ fontSize: '12px', color: '#666' }}>
-                  Rows: {safeArray(group.rows).join(', ')}
+                <div style={{ marginBottom: '10px' }}>
+                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>
+                    Rows in this group ({safeArray(group.rows).length}):
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                    {safeArray(group.rows).map(row => (
+                      <div key={row} style={{
+                        padding: '4px 8px',
+                        backgroundColor: 'white',
+                        border: '1px solid #ddd',
+                        borderRadius: '3px',
+                        fontSize: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}>
+                        <span style={{ flex: 1 }}>{row}</span>
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              moveRowToGroup(row, group.id, e.target.value);
+                              e.target.value = ''; // Reset selection
+                            }
+                          }}
+                          style={{
+                            fontSize: '9px',
+                            padding: '1px 2px',
+                            border: '1px solid #ccc',
+                            borderRadius: '2px'
+                          }}
+                          title={`Move "${row}" to another group`}
+                        >
+                          <option value="">Move to...</option>
+                          {payslipData.groups
+                            .filter(g => g.id !== group.id)
+                            .map(targetGroup => (
+                              <option key={targetGroup.id} value={targetGroup.id}>
+                                {targetGroup.name}
+                              </option>
+                            ))}
+                          <option value="ungrouped">Ungrouped</option>
+                        </select>
+                        <button
+                          onClick={() => removeRowFromGroup(group.id, row)}
+                          style={{
+                            background: '#ff5722',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '2px',
+                            padding: '2px 4px',
+                            fontSize: '10px',
+                            cursor: 'pointer'
+                          }}
+                          title={`Remove "${row}" from ${group.name}`}
+                        >
+                          ×
+                        </button>
+                        <button
+                          onClick={() => deleteRowCompletely(row)}
+                          style={{
+                            background: '#f44336',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '2px',
+                            padding: '2px 4px',
+                            fontSize: '10px',
+                            cursor: 'pointer'
+                          }}
+                          title={`Delete "${row}" completely`}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </GroupEditor>
             ))}
@@ -1115,10 +1303,31 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           {/* Data Rows organized by Groups */}
           {safeArray(payslipData.groups).map(group => (
             <React.Fragment key={group.id}>
-              {/* Group Header */}
-              <Cell isGroupHeader colSpan={14}>
+              {/* Group Header with Add Row Button */}
+              <Cell isGroupHeader colSpan={13}>
                 {group.name}
               </Cell>
+              {editMode && (
+                <Cell isGroupHeader>
+                  <button
+                    onClick={() => addRowToGroup(group.id)}
+                    style={{
+                      background: '#4caf50',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '3px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold'
+                    }}
+                    title={`Add new row to ${group.name}`}
+                  >
+                    + Row
+                  </button>
+                </Cell>
+              )}
+              {!editMode && <Cell isGroupHeader></Cell>}
               
               {/* Group Rows */}
               {!group.isCollapsed && safeArray(group.rows).map(row => (
@@ -1138,15 +1347,104 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                   </Cell>
                 </React.Fragment>
               ))}
+              
+              {/* Add Row Button for expanded groups */}
+              {!group.isCollapsed && editMode && (
+                <React.Fragment>
+                  <Cell style={{ backgroundColor: '#e8f5e8', border: '1px dashed #4caf50' }}>
+                    <button
+                      onClick={() => addRowToGroup(group.id)}
+                      style={{
+                        background: 'transparent',
+                        color: '#4caf50',
+                        border: '1px dashed #4caf50',
+                        borderRadius: '3px',
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        width: '100%'
+                      }}
+                    >
+                      + Add Row to {group.name}
+                    </button>
+                  </Cell>
+                  {monthNames.map((_, monthIndex) => (
+                    <Cell key={monthIndex} style={{ backgroundColor: '#f0f8f0', border: '1px dashed #4caf50' }}>
+                      <span style={{ color: '#999', fontSize: '11px' }}>0</span>
+                    </Cell>
+                  ))}
+                  <Cell style={{ backgroundColor: '#f0f8f0', border: '1px dashed #4caf50' }}>
+                    <span style={{ color: '#999', fontSize: '11px' }}>0</span>
+                  </Cell>
+                </React.Fragment>
+              )}
             </React.Fragment>
           ))}
 
           {/* Ungrouped Rows */}
           {payslipData.customRows
             .filter(row => !payslipData.groups.some(group => group.rows.includes(row)))
+            .length > 0 && (
+            <>
+              <Cell isGroupHeader colSpan={13}>
+                UNGROUPED ROWS
+              </Cell>
+              <Cell isGroupHeader></Cell>
+            </>
+          )}
+          
+          {payslipData.customRows
+            .filter(row => !payslipData.groups.some(group => group.rows.includes(row)))
             .map(row => (
               <React.Fragment key={row}>
-                <Cell>{row}</Cell>
+                <Cell>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ flex: 1 }}>{row}</span>
+                    {editMode && (
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            moveRowToGroup(row, null, e.target.value);
+                            e.target.value = '';
+                          }
+                        }}
+                        style={{
+                          fontSize: '9px',
+                          padding: '1px 2px',
+                          border: '1px solid #ccc',
+                          borderRadius: '2px'
+                        }}
+                        title={`Move "${row}" to a group`}
+                      >
+                        <option value="">Move to...</option>
+                        {payslipData.groups.map(group => (
+                          <option key={group.id} value={group.id}>
+                            {group.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {editMode && (
+                      <button
+                        onClick={() => deleteRowCompletely(row)}
+                        style={{
+                          background: '#f44336',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '2px',
+                          padding: '2px 4px',
+                          fontSize: '10px',
+                          cursor: 'pointer'
+                        }}
+                        title={`Delete "${row}" completely`}
+                      >
+                        🗑️
+                      </button>
+                    )}
+                  </div>
+                </Cell>
                 {monthNames.map((_, monthIndex) => (
                   <Cell key={monthIndex} isEditable>
                     <CellInput
