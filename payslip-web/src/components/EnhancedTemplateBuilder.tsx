@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PayslipTemplate, TemplateHeader, TemplateSubHeader, SectionDefinition, FieldDefinition, DynamicTable, COMMON_FIELDS } from '../types/PayslipTypes';
+import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
+import { personManager } from '../utils/personManager';
 
 interface EnhancedTemplateBuilderProps {
   onTemplateSelect?: (template: PayslipTemplate) => void;
@@ -8,25 +10,45 @@ interface EnhancedTemplateBuilderProps {
 export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = ({ onTemplateSelect }) => {
   const [templates, setTemplates] = useState<PayslipTemplate[]>([]);
   const [currentTemplate, setCurrentTemplate] = useState<PayslipTemplate | null>(null);
-  const [activeTab, setActiveTab] = useState<'templates' | 'header' | 'sections' | 'styling' | 'preview'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'header' | 'sections' | 'styling' | 'preview' | 'persons'>('templates');
   const [isEditing, setIsEditing] = useState(false);
+  const [persons, setPersons] = useState<PersonProfile[]>([]);
+  const [selectedPerson, setSelectedPerson] = useState<PersonProfile | null>(null);
+  const [selectedPersonType, setSelectedPersonType] = useState<'all' | 'employee' | 'customer' | 'contractor' | 'freelancer' | 'vendor' | 'consultant' | 'other'>('all');
+
+  const loadPersons = () => {
+    const loadedPersons = personManager.getAllPersons();
+    setPersons(loadedPersons);
+    if (loadedPersons.length > 0) {
+      setSelectedPerson(loadedPersons[0]);
+    }
+  };
+
+  const loadTemplates = () => {
+    try {
+      const savedTemplates = localStorage.getItem('payslip-templates');
+      if (savedTemplates) {
+        const parsed = JSON.parse(savedTemplates);
+        setTemplates(Array.isArray(parsed) ? parsed : []);
+      } else {
+        // Create default templates if none exist
+        const basicTemplate = createBasicTemplate();
+        const customTemplate = createCustomTemplate();
+        const defaultTemplates = [basicTemplate, customTemplate];
+        setTemplates(defaultTemplates);
+        localStorage.setItem('payslip-templates', JSON.stringify(defaultTemplates));
+      }
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      // Fallback to empty array to prevent crash
+      setTemplates([]);
+    }
+  };
 
   useEffect(() => {
     loadTemplates();
+    loadPersons();
   }, []);
-
-  const loadTemplates = () => {
-    const savedTemplates = localStorage.getItem('payslip-templates');
-    if (savedTemplates) {
-      setTemplates(JSON.parse(savedTemplates));
-    } else {
-      // Create default templates
-      const basicTemplate = createBasicTemplate();
-      const customTemplate = createCustomTemplate();
-      setTemplates([basicTemplate, customTemplate]);
-      localStorage.setItem('payslip-templates', JSON.stringify([basicTemplate, customTemplate]));
-    }
-  };
 
   const createBasicTemplate = (): PayslipTemplate => ({
     id: 'basic-template',
@@ -248,9 +270,15 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
   });
 
   const saveTemplate = (template: PayslipTemplate) => {
-    const updatedTemplates = templates.map(t => t.id === template.id ? template : t);
-    setTemplates(updatedTemplates);
-    localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+    try {
+      // Direct update since templateManager's updateTemplate uses actions
+      // We'll just update our local state and localStorage for now
+      const updatedTemplates = templates.map(t => t.id === template.id ? template : t);
+      setTemplates(updatedTemplates);
+      localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+    } catch (error) {
+      console.error('Error saving template:', error);
+    }
   };
 
   const createNewTemplate = () => {
@@ -262,11 +290,15 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
       description: 'Custom payslip template'
     };
     
-    const updatedTemplates = [...templates, newTemplate];
-    setTemplates(updatedTemplates);
-    setCurrentTemplate(newTemplate);
-    setIsEditing(true);
-    localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+    try {
+      const updatedTemplates = [...templates, newTemplate];
+      setTemplates(updatedTemplates);
+      setCurrentTemplate(newTemplate);
+      setIsEditing(true);
+      localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+    } catch (error) {
+      console.error('Error creating template:', error);
+    }
   };
 
   const updateHeader = (field: string, value: any) => {
@@ -339,7 +371,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     
     const updatedTemplate = {
       ...currentTemplate,
-      subHeaders: currentTemplate.subHeaders.map(sh => 
+      subHeaders: (currentTemplate.subHeaders || []).map(sh => 
         sh.id === subHeaderId 
           ? {
               ...sh,
@@ -361,7 +393,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     
     const updatedTemplate = {
       ...currentTemplate,
-      subHeaders: currentTemplate.subHeaders.map(sh =>
+      subHeaders: (currentTemplate.subHeaders || []).map(sh =>
         sh.id === subHeaderId
           ? {
               ...sh,
@@ -416,7 +448,42 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     
     const updatedTemplate = {
       ...currentTemplate,
-      sections: currentTemplate.sections.map(section =>
+      sections: (currentTemplate.sections || []).map(section =>
+        section.id === sectionId
+          ? { ...section, fields: [...section.fields, newField] }
+          : section
+      ),
+      lastModified: new Date()
+    };
+    
+    setCurrentTemplate(updatedTemplate);
+    saveTemplate(updatedTemplate);
+  };
+
+  const addPersonField = (sectionId: string, fieldType: 'name' | 'email' | 'id' | 'department' | 'position' | 'salary' | 'phone') => {
+    if (!currentTemplate) return;
+    
+    const fieldConfigs = {
+      name: { label: 'Full Name', type: 'text' as const },
+      email: { label: 'Email Address', type: 'text' as const },
+      id: { label: 'Employee ID', type: 'text' as const },
+      department: { label: 'Department', type: 'text' as const },
+      position: { label: 'Position', type: 'text' as const },
+      salary: { label: 'Basic Salary', type: 'number' as const },
+      phone: { label: 'Phone Number', type: 'text' as const }
+    };
+    
+    const config = fieldConfigs[fieldType];
+    const newField: FieldDefinition = {
+      id: `field-${fieldType}-${Date.now()}`,
+      label: config.label,
+      type: config.type,
+      required: false
+    };
+    
+    const updatedTemplate = {
+      ...currentTemplate,
+      sections: (currentTemplate.sections || []).map(section =>
         section.id === sectionId
           ? { ...section, fields: [...section.fields, newField] }
           : section
@@ -433,11 +500,11 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     
     const updatedTemplate = {
       ...currentTemplate,
-      sections: currentTemplate.sections.map(section =>
+      sections: (currentTemplate.sections || []).map(section =>
         section.id === sectionId
           ? {
               ...section,
-              fields: section.fields.map(field =>
+              fields: (section.fields || []).map(field =>
                 field.id === fieldId ? { ...field, ...updates } : field
               )
             }
@@ -455,7 +522,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     
     const updatedTemplate = {
       ...currentTemplate,
-      sections: currentTemplate.sections.map(section =>
+      sections: (currentTemplate.sections || []).map(section =>
         section.id === sectionId
           ? { ...section, fields: section.fields.filter(field => field.id !== fieldId) }
           : section
@@ -465,6 +532,43 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     
     setCurrentTemplate(updatedTemplate);
     saveTemplate(updatedTemplate);
+  };
+
+  const handlePersonChange = (personId: string) => {
+    const person = persons.find(p => p.id === personId);
+    if (person) {
+      setSelectedPerson(person);
+    }
+  };
+
+  const filteredPersons = selectedPersonType === 'all' 
+    ? persons 
+    : persons.filter(person => person.type === selectedPersonType);
+
+  const getFieldValue = (field: FieldDefinition): string => {
+    if (!selectedPerson) return field.value || `[${field.type}]`;
+    
+    // Map field labels to person data
+    const fieldLower = field.label.toLowerCase();
+    const fieldIdLower = field.id.toLowerCase();
+    
+    if (fieldLower.includes('name') || fieldIdLower.includes('name')) {
+      return selectedPerson.personalInfo.fullName;
+    } else if (fieldLower.includes('email') || fieldIdLower.includes('email')) {
+      return selectedPerson.personalInfo.email;
+    } else if (fieldLower.includes('employee') && (fieldLower.includes('id') || fieldLower.includes('number'))) {
+      return selectedPerson.workInfo.personId;
+    } else if (fieldLower.includes('department')) {
+      return selectedPerson.workInfo.department || 'N/A';
+    } else if (fieldLower.includes('position') || fieldLower.includes('title') || fieldLower.includes('job')) {
+      return selectedPerson.workInfo.position || selectedPerson.workInfo.title || 'N/A';
+    } else if (fieldLower.includes('salary') || fieldLower.includes('basic')) {
+      return selectedPerson.compensation.baseSalary?.toLocaleString() || 'N/A';
+    } else if (fieldLower.includes('phone')) {
+      return selectedPerson.personalInfo.phone || 'N/A';
+    }
+    
+    return field.value || `[${field.type}]`;
   };
 
   const fieldStyle = {
@@ -519,6 +623,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
         <div style={{ display: 'flex', gap: '2px', marginBottom: '20px' }}>
           {[
             { key: 'templates', label: '📋 Templates' },
+            { key: 'persons', label: '👥 Select Person' },
             { key: 'header', label: '🏷️ Header & Info' },
             { key: 'sections', label: '📝 Sections & Fields' },
             { key: 'styling', label: '🎨 Styling' },
@@ -557,7 +662,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-            {templates.map(template => (
+            {templates && templates.length > 0 ? templates.map(template => (
               <div key={template.id} style={{
                 border: '2px solid #e0e0e0',
                 borderRadius: '12px',
@@ -629,7 +734,130 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                   </button>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div style={{ 
+                gridColumn: '1 / -1', 
+                textAlign: 'center', 
+                padding: '40px', 
+                color: '#666',
+                fontSize: '16px'
+              }}>
+                No templates available. Create your first template!
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'persons' && (
+        <div>
+          <h2>👥 Select Person for Template Testing</h2>
+          <p style={{ color: '#666', marginBottom: '20px' }}>
+            Choose a person to populate template fields with their information and preview how the template will look.
+          </p>
+          
+          <div style={sectionStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h3>Person Filter & Selection</h3>
+              <button
+                onClick={loadPersons}
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#2196f3',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                🔄 Refresh
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+              <div>
+                <label style={labelStyle}>Person Type Filter:</label>
+                <select 
+                  value={selectedPersonType} 
+                  onChange={(e) => setSelectedPersonType(e.target.value as any)}
+                  style={fieldStyle}
+                >
+                  <option value="all">🌟 All Types</option>
+                  {Object.entries(PERSON_TYPE_CONFIG).map(([type, config]) => (
+                    <option key={type} value={type}>
+                      {config.icon} {config.label}s
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label style={labelStyle}>Select Person:</label>
+                <select 
+                  value={selectedPerson?.id || ''} 
+                  onChange={(e) => handlePersonChange(e.target.value)}
+                  style={fieldStyle}
+                >
+                  <option value="">Choose Person...</option>
+                  {(filteredPersons || []).map(person => (
+                    <option key={person.id} value={person.id}>
+                      {PERSON_TYPE_CONFIG[person.type].icon} {person.personalInfo.fullName} - {person.workInfo.personId} ({PERSON_TYPE_CONFIG[person.type].label})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {selectedPerson && (
+              <div style={{
+                border: '2px solid #e3f2fd',
+                borderRadius: '8px',
+                padding: '20px',
+                backgroundColor: '#f8f9fa'
+              }}>
+                <h4 style={{ color: '#1565c0', marginBottom: '15px' }}>
+                  {PERSON_TYPE_CONFIG[selectedPerson.type].icon} Selected {PERSON_TYPE_CONFIG[selectedPerson.type].label}: {selectedPerson.personalInfo.fullName}
+                </h4>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                  <div>
+                    <strong>Person ID:</strong> {selectedPerson.workInfo.personId}
+                  </div>
+                  <div>
+                    <strong>Department:</strong> {selectedPerson.workInfo.department || 'N/A'}
+                  </div>
+                  <div>
+                    <strong>Position:</strong> {selectedPerson.workInfo.position || selectedPerson.workInfo.title || 'N/A'}
+                  </div>
+                  <div>
+                    <strong>Email:</strong> {selectedPerson.personalInfo.email}
+                  </div>
+                  <div>
+                    <strong>Phone:</strong> {selectedPerson.personalInfo.phone || 'N/A'}
+                  </div>
+                  <div>
+                    <strong>Status:</strong> {selectedPerson.workInfo.status}
+                  </div>
+                  {selectedPerson.compensation.baseSalary && (
+                    <div>
+                      <strong>Base Salary:</strong> {selectedPerson.compensation.currency} {selectedPerson.compensation.baseSalary.toLocaleString()}
+                    </div>
+                  )}
+                  {selectedPerson.compensation.hourlyRate && (
+                    <div>
+                      <strong>Hourly Rate:</strong> {selectedPerson.compensation.currency} {selectedPerson.compensation.hourlyRate.toLocaleString()}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#e8f5e8', borderRadius: '4px' }}>
+                  <p style={{ margin: 0, color: '#2e7d32', fontSize: '14px' }}>
+                    💡 <strong>Tip:</strong> This person's information will be used to populate template fields in the Preview tab, 
+                    making it easier to see how your template will look with real data.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -768,7 +996,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
               </button>
             </div>
             
-            {currentTemplate.subHeaders.map((subHeader, index) => (
+            {(currentTemplate.subHeaders || []).map((subHeader, index) => (
               <div key={subHeader.id} style={{
                 border: '1px solid #ddd',
                 borderRadius: '8px',
@@ -795,7 +1023,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                 </div>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-                  {subHeader.sections.map(section => (
+                  {(subHeader.sections || []).map(section => (
                     <div key={section.id} style={{ border: '1px solid #eee', padding: '10px', borderRadius: '4px' }}>
                       <input
                         type="text"
@@ -840,7 +1068,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
             </button>
           </div>
           
-          {currentTemplate.sections.map(section => (
+          {(currentTemplate.sections || []).map(section => (
             <div key={section.id} style={{
               ...sectionStyle,
               border: `2px solid ${section.styling?.borderColor || '#e0e0e0'}`,
@@ -853,7 +1081,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                   onChange={(e) => {
                     const updatedTemplate = {
                       ...currentTemplate,
-                      sections: currentTemplate.sections.map(s =>
+                      sections: (currentTemplate.sections || []).map(s =>
                         s.id === section.id ? { ...s, title: e.target.value } : s
                       )
                     };
@@ -869,23 +1097,55 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                     borderBottom: '2px solid #ddd'
                   }}
                 />
-                <button
-                  onClick={() => addFieldToSection(section.id)}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#4caf50',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  + Add Field
-                </button>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => addFieldToSection(section.id)}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#4caf50',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    + Add Field
+                  </button>
+                  
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                    <small style={{ alignSelf: 'center', color: '#666', marginRight: '5px' }}>Quick Add:</small>
+                    {[
+                      { key: 'name', label: '👤 Name' },
+                      { key: 'email', label: '📧 Email' },
+                      { key: 'id', label: '🆔 ID' },
+                      { key: 'department', label: '🏢 Dept' },
+                      { key: 'position', label: '💼 Position' },
+                      { key: 'salary', label: '💰 Salary' },
+                      { key: 'phone', label: '📞 Phone' }
+                    ].map(item => (
+                      <button
+                        key={item.key}
+                        onClick={() => addPersonField(section.id, item.key as any)}
+                        style={{
+                          padding: '4px 8px',
+                          backgroundColor: '#e3f2fd',
+                          color: '#1565c0',
+                          border: '1px solid #bbdefb',
+                          borderRadius: '3px',
+                          cursor: 'pointer',
+                          fontSize: '11px'
+                        }}
+                        title={`Add ${item.label} field`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '15px' }}>
-                {section.fields.map(field => (
+                {(section.fields || []).map(field => (
                   <div key={field.id} style={{
                     border: '1px solid #ddd',
                     borderRadius: '8px',
@@ -1110,6 +1370,34 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
         <div>
           <h2>👁️ Template Preview</h2>
           
+          {selectedPerson && (
+            <div style={{
+              backgroundColor: '#e8f5e8',
+              padding: '15px',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              border: '1px solid #4caf50'
+            }}>
+              <p style={{ margin: '0', color: '#2e7d32', fontSize: '14px' }}>
+                <strong>🎯 Live Preview:</strong> Showing template with data from {PERSON_TYPE_CONFIG[selectedPerson.type].icon} <strong>{selectedPerson.personalInfo.fullName}</strong> ({PERSON_TYPE_CONFIG[selectedPerson.type].label}) - Go to "👥 Select Person" tab to change.
+              </p>
+            </div>
+          )}
+          
+          {!selectedPerson && (
+            <div style={{
+              backgroundColor: '#fff3e0',
+              padding: '15px',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              border: '1px solid #ff9800'
+            }}>
+              <p style={{ margin: '0', color: '#e65100', fontSize: '14px' }}>
+                <strong>💡 Tip:</strong> Go to "👥 Select Person" tab to choose someone from your database and see the template with real data!
+              </p>
+            </div>
+          )}
+          
           <div style={{
             border: '2px solid #ddd',
             borderRadius: '12px',
@@ -1157,7 +1445,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
             </div>
 
             {/* Sub Headers Preview */}
-            {currentTemplate.subHeaders.map((subHeader, index) => (
+            {(currentTemplate.subHeaders || []).map((subHeader, index) => (
               <div key={subHeader.id} style={{
                 backgroundColor: subHeader.styling?.backgroundColor || '#f0f0f0',
                 color: subHeader.styling?.textColor || '#333',
@@ -1169,7 +1457,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                 gridTemplateColumns: `repeat(${Math.min(subHeader.sections.length, 4)}, 1fr)`,
                 gap: '15px'
               }}>
-                {subHeader.sections.map(section => (
+                {(subHeader.sections || []).map(section => (
                   <div key={section.id}>
                     <strong>{section.label}:</strong>
                     <div style={{ marginTop: '5px' }}>
@@ -1186,7 +1474,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
               gridTemplateColumns: `repeat(${currentTemplate.layout.columnsPerRow}, 1fr)`,
               gap: `${currentTemplate.layout.sectionSpacing}px`
             }}>
-              {currentTemplate.sections.map(section => (
+              {(currentTemplate.sections || []).map(section => (
                 <div key={section.id} style={{
                   backgroundColor: section.styling?.backgroundColor || '#f9f9f9',
                   color: section.styling?.textColor || '#333',
@@ -1201,7 +1489,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                   }}>
                     {section.title}
                   </h3>
-                  {section.fields.map(field => (
+                  {(section.fields || []).map(field => (
                     <div key={field.id} style={{
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -1209,7 +1497,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                       fontSize: '14px'
                     }}>
                       <span style={{ fontWeight: 'bold' }}>{field.label}:</span>
-                      <span>{field.value || `[${field.type}]`}</span>
+                      <span>{getFieldValue(field)}</span>
                     </div>
                   ))}
                 </div>
@@ -1217,7 +1505,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
             </div>
 
             {/* Tables Preview */}
-            {currentTemplate.tables.map(table => (
+            {(currentTemplate.tables || []).map(table => (
               <div key={table.id} style={{ marginTop: '20px' }}>
                 <h3 style={{ color: currentTemplate.styling.primaryColor }}>{table.title}</h3>
                 <table style={{
@@ -1227,7 +1515,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                 }}>
                   <thead>
                     <tr style={{ backgroundColor: currentTemplate.styling.primaryColor, color: 'white' }}>
-                      {table.columns.map(column => (
+                      {(table.columns || []).map(column => (
                         <th key={column.id} style={{
                           padding: '10px',
                           border: '1px solid #ddd',
@@ -1240,7 +1528,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                   </thead>
                   <tbody>
                     <tr>
-                      {table.columns.map(column => (
+                      {(table.columns || []).map(column => (
                         <td key={column.id} style={{
                           padding: '8px',
                           border: '1px solid #ddd',

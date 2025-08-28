@@ -7,7 +7,9 @@ import {
   SectionDefinition,
   DynamicTable
 } from '../types/PayslipTypes';
+import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 import { templateManager } from '../utils/templateManager';
+import { personManager } from '../utils/personManager';
 
 const Container = styled.div`
   padding: 20px;
@@ -287,6 +289,9 @@ const AdvancedPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const [selectedTemplate, setSelectedTemplate] = useState<PayslipTemplate | null>(null);
   const [employees, setEmployees] = useState<EmployeePayslip[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeePayslip | null>(null);
+  const [persons, setPersons] = useState<PersonProfile[]>([]);
+  const [selectedPersonType, setSelectedPersonType] = useState<'all' | 'employee' | 'customer' | 'contractor' | 'freelancer' | 'vendor' | 'consultant' | 'other'>('all');
+  const [showPersonSelector, setShowPersonSelector] = useState(false);
   const [sectionStates, setSectionStates] = useState<{ [sectionId: string]: boolean }>({});
 
   useEffect(() => {
@@ -297,6 +302,10 @@ const AdvancedPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     if (allTemplates.length > 0) {
       setSelectedTemplate(allTemplates[0]);
     }
+    
+    // Load persons
+    const loadedPersons = personManager.getAllPersons();
+    setPersons(loadedPersons);
   }, []);
 
   useEffect(() => {
@@ -319,14 +328,37 @@ const AdvancedPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
   const handleAddEmployee = () => {
     if (!selectedTemplate) return;
+    setShowPersonSelector(true);
+  };
+
+  const handleAddPersonAsEmployee = (person: PersonProfile) => {
+    if (!selectedTemplate) return;
     
     const employeeId = `emp-${Date.now()}`;
     const employeeData: { [fieldId: string]: any } = {};
     
-    // Initialize with default values
+    // Initialize with person's data
     selectedTemplate.sections.forEach(section => {
       section.fields.forEach(field => {
-        if (field.type === 'text') {
+        // Map person data to template fields
+        const fieldLower = field.label.toLowerCase();
+        const fieldIdLower = field.id.toLowerCase();
+        
+        if (fieldLower.includes('name') || fieldIdLower.includes('name')) {
+          employeeData[field.id] = person.personalInfo.fullName;
+        } else if (fieldLower.includes('email') || fieldIdLower.includes('email')) {
+          employeeData[field.id] = person.personalInfo.email;
+        } else if (fieldLower.includes('employee') && (fieldLower.includes('id') || fieldLower.includes('number'))) {
+          employeeData[field.id] = person.workInfo.personId;
+        } else if (fieldLower.includes('department')) {
+          employeeData[field.id] = person.workInfo.department || '';
+        } else if (fieldLower.includes('position') || fieldLower.includes('title') || fieldLower.includes('job')) {
+          employeeData[field.id] = person.workInfo.position || person.workInfo.title || '';
+        } else if (fieldLower.includes('salary') || fieldLower.includes('basic')) {
+          employeeData[field.id] = person.compensation.baseSalary || person.compensation.hourlyRate || field.value || 0;
+        } else if (fieldLower.includes('phone')) {
+          employeeData[field.id] = person.personalInfo.phone || '';
+        } else if (field.type === 'text') {
           employeeData[field.id] = field.value || '';
         } else if (field.type === 'number') {
           employeeData[field.id] = field.value || 0;
@@ -343,7 +375,13 @@ const AdvancedPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       setEmployees(prev => [...prev, newPayslip]);
       setSelectedEmployee(newPayslip);
     }
+    
+    setShowPersonSelector(false);
   };
+
+  const filteredPersons = selectedPersonType === 'all' 
+    ? persons 
+    : persons.filter(person => person.type === selectedPersonType);
 
   const handleDuplicateEmployee = () => {
     if (!selectedEmployee || !selectedTemplate) return;
@@ -589,7 +627,7 @@ const AdvancedPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             ))}
           </Select>
           <Button variant="success" onClick={handleAddEmployee} disabled={!selectedTemplate}>
-            Add Employee
+            👥 Add Person
           </Button>
           <Button variant="primary" onClick={handleDuplicateEmployee} disabled={!selectedEmployee}>
             Duplicate
@@ -689,14 +727,131 @@ const AdvancedPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                 </div>
               ) : (
                 <div>
-                  <h3>Add an Employee</h3>
-                  <p>Click "Add Employee" to create your first payslip</p>
+                  <h3>Add a Person</h3>
+                  <p>Click "👥 Add Person" to select someone from your database and create their first payslip</p>
                 </div>
               )}
             </div>
           )}
         </PayslipArea>
       </MainArea>
+
+      {/* Person Selector Modal */}
+      {showPersonSelector && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '30px',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ color: '#1565c0', margin: 0 }}>👥 Select Person to Add</h3>
+              <Button variant="secondary" onClick={() => setShowPersonSelector(false)}>×</Button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>Person Type Filter:</label>
+              <Select 
+                value={selectedPersonType} 
+                onChange={(e) => setSelectedPersonType(e.target.value as any)}
+                style={{ width: '100%' }}
+              >
+                <option value="all">🌟 All Types</option>
+                {Object.entries(PERSON_TYPE_CONFIG).map(([type, config]) => (
+                  <option key={type} value={type}>
+                    {config.icon} {config.label}s
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ color: '#666', fontSize: '14px', margin: '0 0 15px 0' }}>
+                Select a person from your database to create a payslip. Their information will be automatically populated in the template.
+              </p>
+            </div>
+
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              {filteredPersons.length > 0 ? (
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  {filteredPersons.map(person => (
+                    <div
+                      key={person.id}
+                      style={{
+                        border: '2px solid #e0e0e0',
+                        borderRadius: '8px',
+                        padding: '15px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onClick={() => handleAddPersonAsEmployee(person)}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h4 style={{ margin: 0, color: '#1565c0' }}>
+                          {PERSON_TYPE_CONFIG[person.type].icon} {person.personalInfo.fullName}
+                        </h4>
+                        <span style={{
+                          padding: '4px 8px',
+                          backgroundColor: PERSON_TYPE_CONFIG[person.type].color,
+                          color: 'white',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: 'bold'
+                        }}>
+                          {PERSON_TYPE_CONFIG[person.type].label}
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px', fontSize: '14px', color: '#666' }}>
+                        <div><strong>ID:</strong> {person.workInfo.personId}</div>
+                        <div><strong>Email:</strong> {person.personalInfo.email}</div>
+                        {person.workInfo.department && (
+                          <div><strong>Dept:</strong> {person.workInfo.department}</div>
+                        )}
+                        {person.workInfo.position && (
+                          <div><strong>Position:</strong> {person.workInfo.position}</div>
+                        )}
+                        {person.compensation.baseSalary && (
+                          <div><strong>Salary:</strong> {person.compensation.currency} {person.compensation.baseSalary.toLocaleString()}</div>
+                        )}
+                        {person.compensation.hourlyRate && (
+                          <div><strong>Rate:</strong> {person.compensation.currency} {person.compensation.hourlyRate.toLocaleString()}/hr</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', color: '#666', padding: '40px 0' }}>
+                  <h4>No persons found</h4>
+                  <p>No {selectedPersonType === 'all' ? 'persons' : PERSON_TYPE_CONFIG[selectedPersonType as keyof typeof PERSON_TYPE_CONFIG]?.label + 's'} available. Add some in the Person Management section first.</p>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '10px' }}>
+              <Button variant="secondary" onClick={() => setShowPersonSelector(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </Container>
   );
 };
