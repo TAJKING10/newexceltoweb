@@ -129,7 +129,7 @@ const Cell = styled.div<{
   border: 1px solid #ccc;
   font-size: ${props => props.isHeader ? '12px' : '14px'};
   font-weight: ${props => props.isHeader || props.isCalculated || props.isTotal || props.isGroupHeader ? 'bold' : 'normal'};
-  min-height: 20px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: ${props => props.isHeader || props.isGroupHeader ? 'center' : 'flex-start'};
@@ -321,6 +321,8 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const [templates, setTemplates] = useState<PayslipTemplate[]>([]);
   const [persons, setPersons] = useState<PersonProfile[]>([]);
   const [editMode, setEditMode] = useState(false);
+  const [editingRowName, setEditingRowName] = useState<string | null>(null);
+  const [tempRowName, setTempRowName] = useState<string>('');
 
   const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
   
@@ -618,7 +620,10 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
   // Add new row
   const addCustomRow = () => {
-    const newRowName = `Custom Field ${payslipData.customRows.length + 1}`;
+    // Create a temporary unique placeholder name
+    const tempId = Date.now();
+    const newRowName = `__NEW_ROW_${tempId}__`;
+    
     setPayslipData(prev => {
       const newRows = [...prev.customRows, newRowName];
       const newMonths = { ...prev.months };
@@ -637,6 +642,12 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         totals: newTotals
       };
     });
+    
+    // Immediately enter edit mode for the new row
+    setTimeout(() => {
+      setEditingRowName(newRowName);
+      setTempRowName('');
+    }, 50);
   };
 
   // Add new group
@@ -655,14 +666,13 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
   // Add row to specific group
   const addRowToGroup = (groupId: string) => {
-    const groupName = payslipData.groups.find(g => g.id === groupId)?.name || 'Group';
-    const newRowName = `${groupName} Field ${Date.now()}`;
+    // Create a temporary unique placeholder name
+    const tempId = Date.now();
+    const newRowName = `__NEW_ROW_${tempId}__`;
     
     setPayslipData(prev => {
-      // Add row to customRows if not already there
-      const newCustomRows = prev.customRows.includes(newRowName) 
-        ? prev.customRows 
-        : [...prev.customRows, newRowName];
+      // Add row to customRows
+      const newCustomRows = [...prev.customRows, newRowName];
       
       // Initialize monthly data for new row
       const newMonths = { ...prev.months };
@@ -688,6 +698,12 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         groups: newGroups
       };
     });
+    
+    // Immediately enter edit mode for the new row
+    setTimeout(() => {
+      setEditingRowName(newRowName);
+      setTempRowName('');
+    }, 50);
   };
 
   // Remove row from group
@@ -759,6 +775,119 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       
       return { ...prev, groups: newGroups };
     });
+  };
+
+  // Rename row
+  const renameRow = (oldName: string, newName: string) => {
+    // If new name is empty and this is a temporary row, delete it
+    if (!newName.trim() && oldName.startsWith('__NEW_ROW_')) {
+      deleteRowCompletely(oldName);
+      return true;
+    }
+    
+    if (!newName.trim()) return false;
+    
+    // If it's the same name and not a temporary row, no change needed
+    if (oldName === newName && !oldName.startsWith('__NEW_ROW_')) return true;
+    
+    // Check if new name already exists (but not if it's the same row or a temp row)
+    if (payslipData.customRows.includes(newName.trim()) && !oldName.startsWith('__NEW_ROW_')) {
+      alert(`Row name "${newName}" already exists. Please choose a different name.`);
+      return false;
+    }
+    
+    setPayslipData(prev => {
+      // Update customRows
+      const newCustomRows = prev.customRows.map(row => 
+        row === oldName ? newName.trim() : row
+      );
+      
+      // Update monthly data
+      const newMonths = { ...prev.months };
+      for (let i = 0; i < 12; i++) {
+        const monthData = { ...newMonths[i] };
+        if (monthData[oldName] !== undefined) {
+          monthData[newName.trim()] = monthData[oldName];
+          delete monthData[oldName];
+        }
+        newMonths[i] = monthData;
+      }
+      
+      // Update totals
+      const newTotals = { ...prev.totals };
+      if (newTotals[oldName] !== undefined) {
+        newTotals[newName.trim()] = newTotals[oldName];
+        delete newTotals[oldName];
+      }
+      
+      // Update groups
+      const newGroups = prev.groups.map(group => ({
+        ...group,
+        rows: group.rows.map(row => row === oldName ? newName.trim() : row)
+      }));
+      
+      return {
+        ...prev,
+        customRows: newCustomRows,
+        months: newMonths,
+        totals: newTotals,
+        groups: newGroups
+      };
+    });
+    
+    return true;
+  };
+
+  // Start editing row name
+  const startEditingRowName = (rowName: string) => {
+    setEditingRowName(rowName);
+    // If it's a temporary row, start with empty name
+    if (rowName.startsWith('__NEW_ROW_')) {
+      setTempRowName('');
+    } else {
+      setTempRowName(rowName);
+    }
+  };
+
+  // Finish editing row name
+  const finishEditingRowName = () => {
+    if (editingRowName && tempRowName.trim()) {
+      // For new rows or any renaming, call renameRow
+      const success = renameRow(editingRowName, tempRowName.trim());
+      if (success) {
+        setEditingRowName(null);
+        setTempRowName('');
+      }
+    } else if (editingRowName && !tempRowName.trim()) {
+      // If no name provided, handle appropriately
+      if (editingRowName.startsWith('__NEW_ROW_')) {
+        // Delete new unnamed rows
+        deleteRowCompletely(editingRowName);
+      }
+      setEditingRowName(null);
+      setTempRowName('');
+    } else {
+      setEditingRowName(null);
+      setTempRowName('');
+    }
+  };
+
+  // Cancel editing row name
+  const cancelEditingRowName = () => {
+    // If canceling edit on a new temporary row, delete it
+    if (editingRowName && editingRowName.startsWith('__NEW_ROW_')) {
+      deleteRowCompletely(editingRowName);
+    }
+    setEditingRowName(null);
+    setTempRowName('');
+  };
+
+  // Get display name for row (handle temp rows)
+  const getDisplayRowName = (rowName: string): string => {
+    if (rowName.startsWith('__NEW_ROW_')) {
+      return '💭 Click to name this row...';
+    }
+    return rowName;
   };
 
   // Update group
@@ -1062,7 +1191,61 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                         alignItems: 'center',
                         gap: '5px'
                       }}>
-                        <span style={{ flex: 1 }}>{row}</span>
+                        {editingRowName === row ? (
+                          <input
+                            type="text"
+                            value={tempRowName}
+                            onChange={(e) => setTempRowName(e.target.value)}
+                            onBlur={finishEditingRowName}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                finishEditingRowName();
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault();
+                                cancelEditingRowName();
+                              }
+                            }}
+                            placeholder="Enter row name..."
+                            autoFocus
+                            style={{
+                              flex: 1,
+                              padding: '2px 4px',
+                              border: '1px solid #2196f3',
+                              borderRadius: '2px',
+                              fontSize: '11px',
+                              fontFamily: 'inherit'
+                            }}
+                          />
+                        ) : (
+                          <span 
+                            style={{ 
+                              flex: 1, 
+                              cursor: 'pointer' 
+                            }}
+                            onClick={() => startEditingRowName(row)}
+                            title="Click to edit row name"
+                          >
+                            {getDisplayRowName(row)}
+                          </span>
+                        )}
+                        {(editMode || row.startsWith('__NEW_ROW_')) && (
+                          <button
+                            onClick={() => startEditingRowName(row)}
+                            style={{
+                              background: '#2196f3',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '2px',
+                              padding: '2px 4px',
+                              fontSize: '9px',
+                              cursor: 'pointer'
+                            }}
+                            title="Edit row name"
+                          >
+                            ✏️
+                          </button>
+                        )}
                         <select
                           value=""
                           onChange={(e) => {
@@ -1135,17 +1318,84 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
               {safeArray(payslipData.customRows).map((row, index) => (
-                <div key={index} style={{ padding: '8px', backgroundColor: 'white', border: '1px solid #ddd', borderRadius: '4px' }}>
-                  <input
-                    type="text"
-                    value={row}
-                    onChange={(e) => {
-                      const newRows = [...payslipData.customRows];
-                      newRows[index] = e.target.value;
-                      setPayslipData(prev => ({ ...prev, customRows: newRows }));
+                <div key={index} style={{ 
+                  padding: '8px', 
+                  backgroundColor: 'white', 
+                  border: '1px solid #ddd', 
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  {editingRowName === row ? (
+                    <input
+                      type="text"
+                      value={tempRowName}
+                      onChange={(e) => setTempRowName(e.target.value)}
+                      onBlur={finishEditingRowName}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          finishEditingRowName();
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          cancelEditingRowName();
+                        }
+                      }}
+                      placeholder="Enter row name..."
+                      autoFocus
+                      style={{ 
+                        flex: 1, 
+                        border: '1px solid #2196f3', 
+                        padding: '4px',
+                        borderRadius: '3px',
+                        fontWeight: 'bold' 
+                      }}
+                    />
+                  ) : (
+                    <span
+                      style={{ 
+                        flex: 1, 
+                        fontWeight: 'bold', 
+                        cursor: 'pointer',
+                        padding: '4px'
+                      }}
+                      onClick={() => startEditingRowName(row)}
+                      title="Click to edit row name"
+                    >
+                      {getDisplayRowName(row)}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => startEditingRowName(row)}
+                    style={{
+                      background: '#2196f3',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '2px',
+                      padding: '4px 6px',
+                      fontSize: '10px',
+                      cursor: 'pointer'
                     }}
-                    style={{ width: '100%', border: 'none', background: 'transparent', fontWeight: 'bold' }}
-                  />
+                    title="Edit row name"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => deleteRowCompletely(row)}
+                    style={{
+                      background: '#f44336',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '2px',
+                      padding: '4px 6px',
+                      fontSize: '10px',
+                      cursor: 'pointer'
+                    }}
+                    title="Delete row completely"
+                  >
+                    🗑️
+                  </button>
                 </div>
               ))}
             </div>
@@ -1332,7 +1582,77 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               {/* Group Rows */}
               {!group.isCollapsed && safeArray(group.rows).map(row => (
                 <React.Fragment key={row}>
-                  <Cell>{row}</Cell>
+                  <Cell>
+                    {editingRowName === row ? (
+                      <input
+                        type="text"
+                        value={tempRowName}
+                        onChange={(e) => setTempRowName(e.target.value)}
+                        onBlur={finishEditingRowName}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            finishEditingRowName();
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            cancelEditingRowName();
+                          }
+                        }}
+                        placeholder="Enter row name..."
+                        autoFocus
+                        style={{
+                          width: '100%',
+                          padding: '4px',
+                          border: '2px solid #2196f3',
+                          borderRadius: '3px',
+                          fontSize: '14px',
+                          fontFamily: 'inherit',
+                          backgroundColor: '#f0f8ff'
+                        }}
+                      />
+                    ) : (
+                      <div 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '8px',
+                          cursor: editMode ? 'pointer' : 'default'
+                        }}
+                        onClick={() => !row.startsWith('__NEW_ROW_') && editMode && startEditingRowName(row)}
+                        title={!row.startsWith('__NEW_ROW_') && editMode ? 'Click to edit row name' : row.startsWith('__NEW_ROW_') ? 'Use the edit button to name this row' : ''}
+                      >
+                        <span 
+                          style={{ 
+                            flex: 1,
+                            color: row.startsWith('__NEW_ROW_') ? '#999' : 'inherit',
+                            fontStyle: row.startsWith('__NEW_ROW_') ? 'italic' : 'normal'
+                          }}
+                        >
+                          {getDisplayRowName(row)}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditingRowName(row);
+                          }}
+                          style={{
+                            background: '#2196f3',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                            marginLeft: '8px'
+                          }}
+                          title="Click to edit row name"
+                        >
+                          ✏️ Edit
+                        </button>
+                      </div>
+                    )}
+                  </Cell>
                   {monthNames.map((_, monthIndex) => (
                     <Cell key={monthIndex} isEditable>
                       <CellInput
@@ -1399,51 +1719,106 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             .map(row => (
               <React.Fragment key={row}>
                 <Cell>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ flex: 1 }}>{row}</span>
-                    {editMode && (
-                      <select
-                        value=""
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            moveRowToGroup(row, null, e.target.value);
-                            e.target.value = '';
-                          }
+                  {editingRowName === row ? (
+                    <input
+                      type="text"
+                      value={tempRowName}
+                      onChange={(e) => setTempRowName(e.target.value)}
+                      onBlur={finishEditingRowName}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          finishEditingRowName();
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          cancelEditingRowName();
+                        }
+                      }}
+                      placeholder="Enter row name..."
+                      autoFocus
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        border: '2px solid #2196f3',
+                        borderRadius: '3px',
+                        fontSize: '14px',
+                        fontFamily: 'inherit',
+                        backgroundColor: '#f0f8ff'
+                      }}
+                    />
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span 
+                        style={{ 
+                          flex: 1,
+                          cursor: editMode ? 'pointer' : 'default'
                         }}
-                        style={{
-                          fontSize: '9px',
-                          padding: '1px 2px',
-                          border: '1px solid #ccc',
-                          borderRadius: '2px'
-                        }}
-                        title={`Move "${row}" to a group`}
+                        onClick={() => !row.startsWith('__NEW_ROW_') && editMode && startEditingRowName(row)}
+                        title={!row.startsWith('__NEW_ROW_') && editMode ? 'Click to edit row name' : row.startsWith('__NEW_ROW_') ? 'Use the edit button to name this row' : ''}
                       >
-                        <option value="">Move to...</option>
-                        {payslipData.groups.map(group => (
-                          <option key={group.id} value={group.id}>
-                            {group.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    {editMode && (
+                        {getDisplayRowName(row)}
+                      </span>
                       <button
-                        onClick={() => deleteRowCompletely(row)}
+                        onClick={() => startEditingRowName(row)}
                         style={{
-                          background: '#f44336',
+                          background: '#2196f3',
                           color: 'white',
                           border: 'none',
-                          borderRadius: '2px',
-                          padding: '2px 4px',
-                          fontSize: '10px',
-                          cursor: 'pointer'
+                          borderRadius: '4px',
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                          marginLeft: '8px'
                         }}
-                        title={`Delete "${row}" completely`}
+                        title="Click to edit row name"
                       >
-                        🗑️
+                        ✏️ Edit
                       </button>
-                    )}
-                  </div>
+                      {editMode && (
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              moveRowToGroup(row, null, e.target.value);
+                              e.target.value = '';
+                            }
+                          }}
+                          style={{
+                            fontSize: '9px',
+                            padding: '1px 2px',
+                            border: '1px solid #ccc',
+                            borderRadius: '2px'
+                          }}
+                          title={`Move "${row}" to a group`}
+                        >
+                          <option value="">Move to...</option>
+                          {payslipData.groups.map(group => (
+                            <option key={group.id} value={group.id}>
+                              {group.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {editMode && (
+                        <button
+                          onClick={() => deleteRowCompletely(row)}
+                          style={{
+                            background: '#f44336',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '2px',
+                            padding: '2px 4px',
+                            fontSize: '10px',
+                            cursor: 'pointer'
+                          }}
+                          title={`Delete "${row}" completely`}
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </Cell>
                 {monthNames.map((_, monthIndex) => (
                   <Cell key={monthIndex} isEditable>
