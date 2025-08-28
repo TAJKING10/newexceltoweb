@@ -5,12 +5,12 @@ import EnhancedPayslipGenerator from './components/EnhancedPayslipGenerator';
 import TemplateBuilder from './components/TemplateBuilder';
 import EnhancedTemplateBuilder from './components/EnhancedTemplateBuilder';
 import AdvancedPayslipGenerator from './components/AdvancedPayslipGenerator';
-import EmployeeManagement from './components/EmployeeManagement';
+import PersonManagement from './components/PersonManagement';
 import './App.css';
 
 function App() {
   const [analysisData, setAnalysisData] = useState<any>(null);
-  const [currentView, setCurrentView] = useState<'analysis' | 'basic' | 'excel' | 'template' | 'advanced' | 'employees'>('employees');
+  const [currentView, setCurrentView] = useState<'analysis' | 'basic' | 'excel' | 'template' | 'advanced' | 'persons'>('persons');
 
   const handleAnalysisComplete = (data: any) => {
     setAnalysisData(data);
@@ -43,15 +43,15 @@ function App() {
           fontSize: '28px',
           fontWeight: 'bold'
         }}>
-          🚀 Advanced Excel Payslip Platform
+          🚀 Universal Payslip Platform
         </h1>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
           <button 
-            onClick={() => setCurrentView('employees')}
-            style={buttonStyle(currentView === 'employees')}
-            title="Comprehensive employee database with search and history"
+            onClick={() => setCurrentView('persons')}
+            style={buttonStyle(currentView === 'persons')}
+            title="Universal person management for employees, customers, contractors, and more"
           >
-            👥 Employee Management
+            👥 Person Management
           </button>
           
           <button 
@@ -104,7 +104,7 @@ function App() {
           color: '#1565c0'
         }}>
           <strong>✨ Key Features:</strong> 
-          {currentView === 'employees' && ' Employee database • Search & filter • History tracking • Analytics • Alerts'}
+          {currentView === 'persons' && ' Universal database • Employees • Customers • Contractors • Search & filter • History tracking'}
           {currentView === 'template' && ' Expandable sections • Custom fields • Dynamic tables • Drag & drop'}
           {currentView === 'advanced' && ' Multi-employee • Repeating sections • Bulk operations • Templates'}
           {currentView === 'excel' && ' Formula calculations • Real-time updates • Print ready • Excel-like'}
@@ -114,8 +114,8 @@ function App() {
       </header>
       
       <div>
-        {currentView === 'employees' && (
-          <EmployeeManagement />
+        {currentView === 'persons' && (
+          <PersonManagement />
         )}
         
         {currentView === 'analysis' && (

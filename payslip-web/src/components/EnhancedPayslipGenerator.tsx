@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FormulaParser } from '../utils/formulaParser';
 import { templateManager } from '../utils/templateManager';
-import { employeeManager } from '../utils/employeeManager';
+import { personManager } from '../utils/personManager';
 import { PayslipTemplate } from '../types/PayslipTypes';
-import { EmployeeProfile } from '../types/EmployeeTypes';
+import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 import '../styles/print.css';
 
 const Container = styled.div`
@@ -235,7 +235,7 @@ interface Props {
 
 const EnhancedPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const [selectedTemplate, setSelectedTemplate] = useState<PayslipTemplate | null>(null);
-  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeProfile | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<PersonProfile | null>(null);
   const [payPeriod, setPayPeriod] = useState({
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
@@ -243,7 +243,8 @@ const EnhancedPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     endDate: new Date().toISOString().substr(0, 10)
   });
   const [templates, setTemplates] = useState<PayslipTemplate[]>([]);
-  const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
+  const [persons, setPersons] = useState<PersonProfile[]>([]);
+  const [selectedPersonType, setSelectedPersonType] = useState<'all' | 'employee' | 'customer' | 'contractor' | 'freelancer' | 'vendor' | 'consultant' | 'other'>('all');
 
   const [payslipData, setPayslipData] = useState<PayslipState>({
     // Headers and Labels
@@ -325,43 +326,47 @@ const EnhancedPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     payslipData.B13, payslipData.B14, payslipData.B20, payslipData.B21
   ]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load templates and employees
+  // Load templates and persons
   useEffect(() => {
     const loadedTemplates = templateManager.getAllTemplates();
-    const loadedEmployees = employeeManager.getAllEmployees();
+    const loadedPersons = personManager.getAllPersons();
     setTemplates(loadedTemplates);
-    setEmployees(loadedEmployees);
+    setPersons(loadedPersons);
     
     if (loadedTemplates.length > 0) {
       setSelectedTemplate(loadedTemplates[0]);
     }
-    if (loadedEmployees.length > 0) {
-      setSelectedEmployee(loadedEmployees[0]);
-      // Auto-fill employee data
-      const emp = loadedEmployees[0];
+    if (loadedPersons.length > 0) {
+      setSelectedPerson(loadedPersons[0]);
+      // Auto-fill person data
+      const person = loadedPersons[0];
       setPayslipData(prev => ({
         ...prev,
-        B3: emp.personalInfo.fullName,
-        B4: emp.employment.employeeId,
-        B5: emp.employment.department,
-        B6: emp.employment.position
+        B3: person.personalInfo.fullName,
+        B4: person.workInfo.personId,
+        B5: person.workInfo.department || 'N/A',
+        B6: person.workInfo.position || person.workInfo.title || 'N/A'
       }));
     }
   }, []);
 
-  const handleEmployeeChange = (employeeId: string) => {
-    const employee = employees.find(emp => emp.id === employeeId);
-    if (employee) {
-      setSelectedEmployee(employee);
+  const handlePersonChange = (personId: string) => {
+    const person = persons.find(p => p.id === personId);
+    if (person) {
+      setSelectedPerson(person);
       setPayslipData(prev => ({
         ...prev,
-        B3: employee.personalInfo.fullName,
-        B4: employee.employment.employeeId,
-        B5: employee.employment.department,
-        B6: employee.employment.position
+        B3: person.personalInfo.fullName,
+        B4: person.workInfo.personId,
+        B5: person.workInfo.department || 'N/A',
+        B6: person.workInfo.position || person.workInfo.title || 'N/A'
       }));
     }
   };
+
+  const filteredPersons = selectedPersonType === 'all' 
+    ? persons 
+    : persons.filter(person => person.type === selectedPersonType);
 
   const handleTemplateChange = (templateId: string) => {
     const template = templates.find(t => t.id === templateId);
@@ -434,15 +439,30 @@ const EnhancedPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       
       <ControlPanel>
         <InputGroup>
-          <Label>Select Employee:</Label>
+          <Label>Person Type Filter:</Label>
           <Select 
-            value={selectedEmployee?.id || ''} 
-            onChange={(e) => handleEmployeeChange(e.target.value)}
+            value={selectedPersonType} 
+            onChange={(e) => setSelectedPersonType(e.target.value as any)}
           >
-            <option value="">Choose Employee...</option>
-            {employees.map(emp => (
-              <option key={emp.id} value={emp.id}>
-                {emp.personalInfo.fullName} - {emp.employment.employeeId}
+            <option value="all">🌟 All Types</option>
+            {Object.entries(PERSON_TYPE_CONFIG).map(([type, config]) => (
+              <option key={type} value={type}>
+                {config.icon} {config.label}s
+              </option>
+            ))}
+          </Select>
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>Select Person:</Label>
+          <Select 
+            value={selectedPerson?.id || ''} 
+            onChange={(e) => handlePersonChange(e.target.value)}
+          >
+            <option value="">Choose Person...</option>
+            {filteredPersons.map(person => (
+              <option key={person.id} value={person.id}>
+                {PERSON_TYPE_CONFIG[person.type].icon} {person.personalInfo.fullName} - {person.workInfo.personId} ({PERSON_TYPE_CONFIG[person.type].label})
               </option>
             ))}
           </Select>
