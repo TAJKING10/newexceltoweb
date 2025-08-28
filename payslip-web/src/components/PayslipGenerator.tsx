@@ -333,25 +333,25 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     }
   }, [safeArray]);
 
-  // Initialize payslip data from template
-  const initializeFromTemplate = (template: PayslipTemplate) => {
-    const newData: any = { ...payslipData };
+  // Initialize fresh personalized template from base template
+  const initializeFromTemplate = (template: PayslipTemplate, person?: PersonProfile) => {
+    const newData: any = {};
     
-    // Initialize header from template
+    // Initialize header from template (personalized if person provided)
     if (template.header) {
       newData.header = {
-        title: template.header.title || 'PAYSLIP',
-        subtitle: template.header.subtitle || 'Pay Statement',
+        title: person ? `${template.header.title || 'PAYSLIP'} - ${person.personalInfo?.fullName || 'Employee'}` : (template.header.title || 'PAYSLIP'),
+        subtitle: person ? `${PERSON_TYPE_CONFIG[person.type]?.label || person.type} Pay Statement` : (template.header.subtitle || 'Pay Statement'),
         companyInfo: {
-          name: template.header.companyInfo?.name || 'Company Name',
-          address: template.header.companyInfo?.address || 'Address',
-          phone: template.header.companyInfo?.phone || 'Phone',
-          email: template.header.companyInfo?.email || 'Email'
+          name: template.header.companyInfo?.name || 'Universal Company Ltd.',
+          address: template.header.companyInfo?.address || '123 Business Street, City, State 12345',
+          phone: template.header.companyInfo?.phone || '+1 (555) 123-4567',
+          email: template.header.companyInfo?.email || 'hr@company.com'
         }
       };
     }
 
-    // Initialize subheaders from template
+    // Initialize subheaders from template (personalized)
     if (template.subHeaders) {
       newData.subHeaders = safeArray(template.subHeaders).map(sh => ({
         id: sh.id,
@@ -361,32 +361,56 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           value: s.value || ''
         }))
       }));
+    } else {
+      // Default subheaders with personalization
+      newData.subHeaders = [
+        {
+          id: 'info-header',
+          sections: [
+            { id: 'period', label: 'Pay Period', value: 'January 2025' },
+            { id: 'date', label: 'Pay Date', value: new Date().toLocaleDateString() },
+            { id: 'method', label: 'Payment Method', value: 'Direct Deposit' },
+            ...(person ? [{ id: 'type', label: 'Person Type', value: PERSON_TYPE_CONFIG[person.type]?.label || person.type }] : [])
+          ]
+        }
+      ];
     }
     
-    // Initialize fields from template sections
+    // Initialize fields from template sections - everything starts FRESH at 0
     safeArray(template.sections).forEach(section => {
       safeArray(section.fields).forEach(field => {
-        newData[field.id] = field.value || (field.type === 'number' ? 0 : '');
+        // Start all values fresh (0 for numbers, empty for text)
+        if (field.type === 'number') {
+          newData[field.id] = 0; // All numbers start at 0
+        } else {
+          newData[field.id] = ''; // All text fields start empty
+        }
       });
     });
     
     setPayslipData(newData);
   };
 
-  // Populate person data
+  // Populate ONLY editable common person data (rest stays at 0/empty)
   const populatePersonData = (person: PersonProfile) => {
-    const newData = { ...payslipData };
-    
-    // Map person data to common field names
-    newData.employeeName = person.personalInfo?.fullName || '';
-    newData.employeeId = person.workInfo?.personId || '';
-    newData.department = person.workInfo?.department || '';
-    newData.position = person.workInfo?.position || person.workInfo?.title || '';
-    newData.email = person.personalInfo?.email || '';
-    newData.phone = person.personalInfo?.phone || '';
-    newData.basicSalary = person.compensation?.baseSalary || 0;
-    
-    setPayslipData(newData);
+    setPayslipData(prev => ({
+      ...prev,
+      // Pre-populate common editable fields from person data
+      employeeName: person.personalInfo?.fullName || '',
+      employeeId: person.workInfo?.personId || '',
+      department: person.workInfo?.department || '',
+      position: person.workInfo?.position || person.workInfo?.title || '',
+      email: person.personalInfo?.email || '',
+      phone: person.personalInfo?.phone || '',
+      // Keep financial fields at 0 for fresh start
+      basicSalary: 0,
+      allowances: 0,
+      overtime: 0,
+      bonus: 0,
+      deductions: 0,
+      tax: 0,
+      netSalary: 0
+    }));
   };
 
   // Filtered persons based on type
@@ -406,12 +430,35 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     }
   };
 
-  // Handle person selection
+  // Handle person selection - create fresh personalized payslip
   const handlePersonChange = (personId: string) => {
     const person = safeArray(filteredPersons).find(p => p.id === personId);
     if (person) {
       setSelectedPerson(person);
+      
+      // Re-initialize template with personalization if template is selected
+      if (selectedTemplate) {
+        initializeFromTemplate(selectedTemplate, person);
+      }
+      
+      // Populate common editable fields only
       populatePersonData(person);
+      
+      // Try to load existing personalized payslip for this person
+      loadPersonalizedPayslip(person.id);
+    }
+  };
+
+  // Load personalized payslip if exists
+  const loadPersonalizedPayslip = (personId: string) => {
+    try {
+      const savedPayslip = localStorage.getItem(`basic-payslip-${personId}`);
+      if (savedPayslip) {
+        const parsedPayslip = JSON.parse(savedPayslip);
+        setPayslipData(parsedPayslip);
+      }
+    } catch (error) {
+      console.error('Error loading personalized payslip:', error);
     }
   };
 
@@ -718,6 +765,29 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               ) : null
             ))}
           </Select>
+        </InputGroup>
+
+        <InputGroup>
+          <Label style={{ color: '#f44336' }}>Fresh Start:</Label>
+          <Button 
+            onClick={() => {
+              if (selectedPerson && window.confirm(`Reset all data for ${selectedPerson.personalInfo?.fullName}? This will create a completely fresh payslip with all values at 0.`)) {
+                if (selectedTemplate) {
+                  initializeFromTemplate(selectedTemplate, selectedPerson);
+                  populatePersonData(selectedPerson);
+                }
+                // Remove saved data
+                localStorage.removeItem(`basic-payslip-${selectedPerson.id}`);
+              }
+            }}
+            style={{
+              backgroundColor: '#f44336',
+              marginTop: '5px'
+            }}
+            disabled={!selectedPerson}
+          >
+            🔄 Reset to Fresh Template
+          </Button>
         </InputGroup>
       </ControlPanel>
 

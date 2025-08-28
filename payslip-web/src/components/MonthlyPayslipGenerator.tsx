@@ -401,7 +401,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     return Array.isArray(arr) ? arr : [];
   }, []);
 
-  // Initialize monthly data with default values
+  // Initialize fresh monthly data (everything starts at 0)
   useEffect(() => {
     const initialMonths: any = {};
     const initialTotals: any = {};
@@ -409,17 +409,14 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     for (let i = 0; i < 12; i++) {
       initialMonths[i] = {};
       defaultRows.forEach(row => {
-        const defaultValue = getDefaultValue(row);
-        initialMonths[i][row] = defaultValue;
+        // Start everything at 0 for fresh template
+        initialMonths[i][row] = 0;
       });
     }
     
-    // Calculate initial totals
+    // Calculate initial totals (all 0)
     defaultRows.forEach(row => {
       initialTotals[row] = 0;
-      for (let i = 0; i < 12; i++) {
-        initialTotals[row] += initialMonths[i][row] || 0;
-      }
     });
     
     setPayslipData(prev => ({ 
@@ -512,18 +509,110 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     }));
   };
 
-  // Handle person selection
+  // Handle person selection - create fresh personalized template
   const handlePersonChange = (personId: string) => {
     const person = safeArray(filteredPersons).find(p => p.id === personId);
     if (person) {
       setSelectedPerson(person);
-      setPayslipData(prev => ({
-        ...prev,
-        personName: person.personalInfo?.fullName || 'Unknown',
-        personId: person.workInfo?.personId || 'N/A',
-        department: person.workInfo?.department || 'N/A',
-        position: person.workInfo?.position || person.workInfo?.title || 'N/A'
-      }));
+      
+      // Create fresh personalized template for this user
+      const personalizedData = createFreshPersonalizedTemplate(person);
+      setPayslipData(personalizedData);
+      
+      // Try to load existing data for this person
+      loadPersonalizedData(person.id);
+    }
+  };
+
+  // Create fresh personalized template for user
+  const createFreshPersonalizedTemplate = (person: PersonProfile): MonthlyPayslipState => {
+    const freshMonths: any = {};
+    const freshTotals: any = {};
+    
+    // Initialize all months with 0 values
+    for (let i = 0; i < 12; i++) {
+      freshMonths[i] = {};
+      defaultRows.forEach(row => {
+        freshMonths[i][row] = 0; // Everything starts at 0
+      });
+    }
+    
+    // All totals start at 0
+    defaultRows.forEach(row => {
+      freshTotals[row] = 0;
+    });
+
+    return {
+      // Editable common information from person (pre-populated but editable)
+      personName: person.personalInfo?.fullName || '',
+      personId: person.workInfo?.personId || '',
+      department: person.workInfo?.department || '',
+      position: person.workInfo?.position || person.workInfo?.title || '',
+      year: new Date().getFullYear(),
+      months: freshMonths,
+      totals: freshTotals,
+      customRows: [...defaultRows],
+      groups: [
+        {
+          id: 'earnings',
+          name: 'EARNINGS',
+          rows: ['Basic Salary', 'Housing Allowance', 'Transport Allowance', 'Overtime Pay', 'Bonus'],
+          isCollapsed: false
+        },
+        {
+          id: 'summary',
+          name: 'SUMMARY',
+          rows: ['Gross Salary'],
+          isCollapsed: false
+        },
+        {
+          id: 'deductions',
+          name: 'DEDUCTIONS',
+          rows: ['Income Tax', 'Social Security', 'Health Insurance', 'Total Deductions'],
+          isCollapsed: false
+        },
+        {
+          id: 'final',
+          name: 'NET PAY',
+          rows: ['Net Salary'],
+          isCollapsed: false
+        }
+      ],
+      header: {
+        id: 'main-header',
+        title: `ANNUAL PAYSLIP REPORT - ${person.personalInfo?.fullName || 'Employee'}`,
+        subtitle: `${PERSON_TYPE_CONFIG[person.type]?.label || person.type} Annual Statement`,
+        companyInfo: {
+          name: 'Universal Company Ltd.',
+          address: '123 Business Street, City, State 12345',
+          phone: '+1 (555) 123-4567',
+          email: 'hr@company.com'
+        }
+      },
+      subHeaders: [
+        {
+          id: 'info-header',
+          sections: [
+            { id: 'year', label: 'Year', value: new Date().getFullYear().toString() },
+            { id: 'type', label: 'Person Type', value: PERSON_TYPE_CONFIG[person.type]?.label || person.type },
+            { id: 'department', label: 'Department', value: person.workInfo?.department || 'N/A' },
+            { id: 'generated', label: 'Generated On', value: new Date().toLocaleDateString() }
+          ]
+        }
+      ]
+    };
+  };
+
+  // Load personalized data if exists
+  const loadPersonalizedData = (personId: string) => {
+    try {
+      const savedData = localStorage.getItem(`annual-payslip-${personId}`);
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        setPayslipData(parsedData);
+      }
+    } catch (error) {
+      console.error('Error loading personalized data:', error);
     }
   };
 
@@ -695,6 +784,27 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               <option key={year} value={year}>{year}</option>
             ))}
           </Select>
+        </InputGroup>
+
+        <InputGroup>
+          <Label style={{ color: '#f44336' }}>Fresh Start:</Label>
+          <Button 
+            onClick={() => {
+              if (selectedPerson && window.confirm(`Reset all data for ${selectedPerson.personalInfo?.fullName}? This will create a completely fresh template with all values at 0.`)) {
+                const freshData = createFreshPersonalizedTemplate(selectedPerson);
+                setPayslipData(freshData);
+                // Remove saved data
+                localStorage.removeItem(`annual-payslip-${selectedPerson.id}`);
+              }
+            }}
+            style={{
+              backgroundColor: '#f44336',
+              marginTop: '5px'
+            }}
+            disabled={!selectedPerson}
+          >
+            🔄 Reset to Fresh Template
+          </Button>
         </InputGroup>
       </ControlPanel>
 
@@ -905,7 +1015,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           </div>
         ))}
 
-        {/* Person Info */}
+        {/* Person Info - Editable */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
@@ -915,10 +1025,82 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           backgroundColor: '#f0f8ff',
           borderRadius: '8px'
         }}>
-          <div><strong>Name:</strong> {payslipData.personName}</div>
-          <div><strong>ID:</strong> {payslipData.personId}</div>
-          <div><strong>Department:</strong> {payslipData.department}</div>
-          <div><strong>Position:</strong> {payslipData.position}</div>
+          <div>
+            <strong>Name:</strong>
+            {editMode ? (
+              <input
+                type="text"
+                value={payslipData.personName}
+                onChange={(e) => setPayslipData(prev => ({ ...prev, personName: e.target.value }))}
+                style={{
+                  marginLeft: '10px',
+                  padding: '4px 8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '3px',
+                  fontSize: '14px'
+                }}
+              />
+            ) : (
+              <span style={{ marginLeft: '10px' }}>{payslipData.personName}</span>
+            )}
+          </div>
+          <div>
+            <strong>ID:</strong>
+            {editMode ? (
+              <input
+                type="text"
+                value={payslipData.personId}
+                onChange={(e) => setPayslipData(prev => ({ ...prev, personId: e.target.value }))}
+                style={{
+                  marginLeft: '10px',
+                  padding: '4px 8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '3px',
+                  fontSize: '14px'
+                }}
+              />
+            ) : (
+              <span style={{ marginLeft: '10px' }}>{payslipData.personId}</span>
+            )}
+          </div>
+          <div>
+            <strong>Department:</strong>
+            {editMode ? (
+              <input
+                type="text"
+                value={payslipData.department}
+                onChange={(e) => setPayslipData(prev => ({ ...prev, department: e.target.value }))}
+                style={{
+                  marginLeft: '10px',
+                  padding: '4px 8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '3px',
+                  fontSize: '14px'
+                }}
+              />
+            ) : (
+              <span style={{ marginLeft: '10px' }}>{payslipData.department}</span>
+            )}
+          </div>
+          <div>
+            <strong>Position:</strong>
+            {editMode ? (
+              <input
+                type="text"
+                value={payslipData.position}
+                onChange={(e) => setPayslipData(prev => ({ ...prev, position: e.target.value }))}
+                style={{
+                  marginLeft: '10px',
+                  padding: '4px 8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '3px',
+                  fontSize: '14px'
+                }}
+              />
+            ) : (
+              <span style={{ marginLeft: '10px' }}>{payslipData.position}</span>
+            )}
+          </div>
         </div>
 
         {/* Excel Grid */}

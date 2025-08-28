@@ -48,7 +48,7 @@ export class PersonManager {
 
     this.persons.set(id, person);
     this.saveToStorage();
-    this.logActivity('create', id, null, person);
+    this.logActivity('create', id, person);
     
     return id;
   }
@@ -73,7 +73,7 @@ export class PersonManager {
               name: updates.personalInfo.emergencyContact.name || person.personalInfo.emergencyContact?.name || '',
               relationship: updates.personalInfo.emergencyContact.relationship || person.personalInfo.emergencyContact?.relationship || '',
               phone: updates.personalInfo.emergencyContact.phone || person.personalInfo.emergencyContact?.phone || ''
-            }
+            } as { name: string; relationship: string; phone: string }
           : person.personalInfo.emergencyContact
       },
       workInfo: {
