@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { templateManager } from '../utils/templateManager';
 import { personManager } from '../utils/personManager';
-import { PayslipTemplate } from '../types/PayslipTypes';
+import { PayslipTemplate, SectionDefinition, FieldDefinition } from '../types/PayslipTypes';
 import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 
 const Container = styled.div`
@@ -14,17 +14,77 @@ const Container = styled.div`
 
 const PayslipContainer = styled.div`
   background-color: white;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  padding: 30px;
   margin: 20px 0;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  position: relative;
+  
+  @media print {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    margin: 0;
+    padding: 20px;
+  }
+`;
+
+const EditModeToggle = styled.button<{ isActive: boolean }>`
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  padding: 10px 20px;
+  background-color: ${props => props.isActive ? '#ff9800' : '#4caf50'};
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  z-index: 10;
+  
+  &:hover {
+    background-color: ${props => props.isActive ? '#f57c00' : '#45a049'};
+  }
+`;
+
+const TemplateEditor = styled.div`
+  background-color: #f8f9fa;
+  border: 2px solid #e3f2fd;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `;
 
-const Grid = styled.div`
+const SectionEditor = styled.div`
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+`;
+
+const FieldEditor = styled.div`
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+`;
+
+const HeaderEditor = styled.div`
+  background-color: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 15px;
+`;
+
+const Grid = styled.div<{ columns?: number }>`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 10px;
+  grid-template-columns: ${props => `repeat(${props.columns || 2}, 1fr)`};
+  gap: 15px;
   margin: 20px 0;
 `;
 
@@ -41,14 +101,15 @@ const Label = styled.label`
 `;
 
 const Input = styled.input`
-  padding: 8px;
+  padding: 8px 12px;
   border: 1px solid #ddd;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 14px;
   
   &:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: #1976d2;
+    box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
   }
   
   &:disabled {
@@ -57,37 +118,79 @@ const Input = styled.input`
   }
 `;
 
+const Select = styled.select`
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  
+  &:focus {
+    outline: none;
+    border-color: #1976d2;
+  }
+`;
+
+const Button = styled.button`
+  padding: 8px 16px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  
+  &:hover {
+    background-color: #1565c0;
+  }
+`;
+
+const DeleteButton = styled(Button)`
+  background-color: #f44336;
+  
+  &:hover {
+    background-color: #d32f2f;
+  }
+`;
+
 const CalculatedValue = styled.div`
-  padding: 8px;
+  padding: 8px 12px;
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 14px;
   color: #495057;
   font-weight: 500;
 `;
 
-const Section = styled.div`
-  border: 1px solid #ddd;
-  margin: 15px 0;
-  border-radius: 5px;
+const Section = styled.div<{ borderColor?: string; backgroundColor?: string }>`
+  border: 2px solid ${props => props.borderColor || '#ddd'};
+  margin: 20px 0;
+  border-radius: 8px;
+  background-color: ${props => props.backgroundColor || 'white'};
 `;
 
-const SectionHeader = styled.div`
-  background-color: #f1f3f4;
-  padding: 10px 15px;
+const SectionHeader = styled.div<{ textColor?: string; backgroundColor?: string }>`
+  background-color: ${props => props.backgroundColor || '#f1f3f4'};
+  color: ${props => props.textColor || '#333'};
+  padding: 15px 20px;
   font-weight: bold;
   border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const SectionContent = styled.div`
-  padding: 15px;
+  padding: 20px;
 `;
 
 const Title = styled.h2`
   text-align: center;
-  color: #333;
+  color: #1565c0;
   margin-bottom: 30px;
+  font-size: 28px;
+  font-weight: bold;
 `;
 
 const ControlPanel = styled.div`
@@ -101,212 +204,471 @@ const ControlPanel = styled.div`
   gap: 15px;
 `;
 
-const Select = styled.select`
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 3px;
-  font-size: 14px;
+const PrintButton = styled.button`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
   
-  &:focus {
-    outline: none;
-    border-color: #007bff;
+  &:hover {
+    background-color: #45a049;
+  }
+  
+  @media print {
+    display: none;
   }
 `;
 
-const DateInput = styled.input`
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 3px;
-  font-size: 14px;
+const SaveButton = styled.button`
+  position: absolute;
+  top: 20px;
+  right: 140px;
+  padding: 10px 20px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
   
-  &:focus {
-    outline: none;
-    border-color: #007bff;
+  &:hover {
+    background-color: #1976d2;
+  }
+  
+  @media print {
+    display: none;
   }
 `;
-
-interface PayslipData {
-  // Employee Information
-  employeeName: string;
-  employeeId: string;
-  department: string;
-  position: string;
-  payPeriod: string;
-  
-  // Basic Salary Components
-  basicSalary: number;
-  allowances: {
-    housing: number;
-    transport: number;
-    food: number;
-    other: number;
-  };
-  
-  // Overtime
-  overtimeHours: number;
-  overtimeRate: number;
-  
-  // Deductions
-  tax: number;
-  socialSecurity: number;
-  insurance: number;
-  otherDeductions: number;
-  
-  // Calculated Fields (read-only)
-  grossSalary: number;
-  totalDeductions: number;
-  netSalary: number;
-  overtimePay: number;
-}
 
 interface Props {
-  analysisData: any;
+  analysisData?: any;
+}
+
+interface CustomPayslipData {
+  [fieldId: string]: any;
+  header: {
+    title: string;
+    subtitle: string;
+    companyInfo: {
+      name: string;
+      address: string;
+      phone: string;
+      email: string;
+    };
+  };
+  subHeaders: Array<{
+    id: string;
+    sections: Array<{
+      id: string;
+      label: string;
+      value: string;
+    }>;
+  }>;
 }
 
 const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const [selectedTemplate, setSelectedTemplate] = useState<PayslipTemplate | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<PersonProfile | null>(null);
-  const [payPeriod, setPayPeriod] = useState({
-    month: new Date().getMonth() + 1,
-    year: new Date().getFullYear(),
-    startDate: new Date().toISOString().substr(0, 10),
-    endDate: new Date().toISOString().substr(0, 10)
-  });
+  const [selectedPersonType, setSelectedPersonType] = useState<'all' | 'employee' | 'customer' | 'contractor' | 'freelancer' | 'vendor' | 'consultant' | 'other'>('all');
   const [templates, setTemplates] = useState<PayslipTemplate[]>([]);
   const [persons, setPersons] = useState<PersonProfile[]>([]);
-  const [selectedPersonType, setSelectedPersonType] = useState<'all' | 'employee' | 'customer' | 'contractor' | 'freelancer' | 'vendor' | 'consultant' | 'other'>('all');
-  
-  const [payslipData, setPayslipData] = useState<PayslipData>({
-    employeeName: 'John Doe',
-    employeeId: 'EMP001',
-    department: 'IT',
-    position: 'Software Developer',
-    payPeriod: new Date().toISOString().substr(0, 7), // YYYY-MM format
-    
-    basicSalary: 5000,
-    allowances: {
-      housing: 1000,
-      transport: 300,
-      food: 200,
-      other: 100
+  const [editMode, setEditMode] = useState(false);
+
+  const [payslipData, setPayslipData] = useState<CustomPayslipData>({
+    header: {
+      title: 'PAYSLIP',
+      subtitle: 'Employee Pay Statement',
+      companyInfo: {
+        name: 'Universal Company Ltd.',
+        address: '123 Business Street, City, State 12345',
+        phone: '+1 (555) 123-4567',
+        email: 'hr@company.com'
+      }
     },
-    
-    overtimeHours: 10,
-    overtimeRate: 25,
-    
-    tax: 0,
-    socialSecurity: 0,
-    insurance: 200,
-    otherDeductions: 50,
-    
-    grossSalary: 0,
-    totalDeductions: 0,
-    netSalary: 0,
-    overtimePay: 0
+    subHeaders: [
+      {
+        id: 'info-header',
+        sections: [
+          { id: 'period', label: 'Pay Period', value: 'January 2025' },
+          { id: 'date', label: 'Pay Date', value: new Date().toLocaleDateString() },
+          { id: 'method', label: 'Payment Method', value: 'Direct Deposit' }
+        ]
+      }
+    ]
   });
+
+  const [calculatedValues, setCalculatedValues] = useState<{ [fieldId: string]: number }>({});
+
+  // Safe array utility
+  const safeArray = useCallback(<T,>(arr: T[] | undefined | null): T[] => {
+    return Array.isArray(arr) ? arr : [];
+  }, []);
 
   // Load templates and persons
   useEffect(() => {
-    const loadedTemplates = templateManager.getAllTemplates();
-    const loadedPersons = personManager.getAllPersons();
-    setTemplates(loadedTemplates);
-    setPersons(loadedPersons);
-    
-    if (loadedTemplates.length > 0) {
-      setSelectedTemplate(loadedTemplates[0]);
-    }
-    if (loadedPersons.length > 0) {
-      setSelectedPerson(loadedPersons[0]);
-      // Auto-fill person data
-      const person = loadedPersons[0];
-      setPayslipData(prev => ({
-        ...prev,
-        employeeName: person.personalInfo.fullName,
-        employeeId: person.workInfo.personId,
-        department: person.workInfo.department || 'N/A',
-        position: person.workInfo.position || person.workInfo.title || 'N/A'
-      }));
-    }
-  }, []);
-
-  // Calculate derived values whenever input data changes
-  useEffect(() => {
-    const totalAllowances = Object.values(payslipData.allowances).reduce((sum, val) => sum + val, 0);
-    const overtimePay = payslipData.overtimeHours * payslipData.overtimeRate;
-    const grossSalary = payslipData.basicSalary + totalAllowances + overtimePay;
-    
-    // Calculate tax (example: 10% of gross salary)
-    const tax = grossSalary * 0.10;
-    
-    // Calculate social security (example: 5% of basic salary)
-    const socialSecurity = payslipData.basicSalary * 0.05;
-    
-    const totalDeductions = tax + socialSecurity + payslipData.insurance + payslipData.otherDeductions;
-    const netSalary = grossSalary - totalDeductions;
-
-    setPayslipData(prev => ({
-      ...prev,
-      overtimePay,
-      grossSalary,
-      tax,
-      socialSecurity,
-      totalDeductions,
-      netSalary
-    }));
-  }, [
-    payslipData.basicSalary,
-    payslipData.allowances,
-    payslipData.overtimeHours,
-    payslipData.overtimeRate,
-    payslipData.insurance,
-    payslipData.otherDeductions
-  ]);
-
-  const handleInputChange = (field: keyof PayslipData, value: string | number) => {
-    setPayslipData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleAllowanceChange = (allowanceType: keyof PayslipData['allowances'], value: number) => {
-    setPayslipData(prev => ({
-      ...prev,
-      allowances: {
-        ...prev.allowances,
-        [allowanceType]: value
+    try {
+      const loadedTemplates = templateManager.getAllTemplates();
+      const loadedPersons = personManager.getAllPersons();
+      setTemplates(safeArray(loadedTemplates));
+      setPersons(safeArray(loadedPersons));
+      
+      if (safeArray(loadedTemplates).length > 0) {
+        setSelectedTemplate(loadedTemplates[0]);
+        // Initialize payslip data from first template
+        initializeFromTemplate(loadedTemplates[0]);
       }
-    }));
-  };
+      
+      if (safeArray(loadedPersons).length > 0) {
+        setSelectedPerson(loadedPersons[0]);
+        populatePersonData(loadedPersons[0]);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
+  }, [safeArray]);
 
-  const handlePersonChange = (personId: string) => {
-    const person = persons.find(p => p.id === personId);
-    if (person) {
-      setSelectedPerson(person);
-      setPayslipData(prev => ({
-        ...prev,
-        employeeName: person.personalInfo.fullName,
-        employeeId: person.workInfo.personId,
-        department: person.workInfo.department || 'N/A',
-        position: person.workInfo.position || person.workInfo.title || 'N/A'
+  // Initialize payslip data from template
+  const initializeFromTemplate = (template: PayslipTemplate) => {
+    const newData: any = { ...payslipData };
+    
+    // Initialize header from template
+    if (template.header) {
+      newData.header = {
+        title: template.header.title || 'PAYSLIP',
+        subtitle: template.header.subtitle || 'Pay Statement',
+        companyInfo: {
+          name: template.header.companyInfo?.name || 'Company Name',
+          address: template.header.companyInfo?.address || 'Address',
+          phone: template.header.companyInfo?.phone || 'Phone',
+          email: template.header.companyInfo?.email || 'Email'
+        }
+      };
+    }
+
+    // Initialize subheaders from template
+    if (template.subHeaders) {
+      newData.subHeaders = safeArray(template.subHeaders).map(sh => ({
+        id: sh.id,
+        sections: safeArray(sh.sections).map(s => ({
+          id: s.id,
+          label: s.label,
+          value: s.value || ''
+        }))
       }));
     }
+    
+    // Initialize fields from template sections
+    safeArray(template.sections).forEach(section => {
+      safeArray(section.fields).forEach(field => {
+        newData[field.id] = field.value || (field.type === 'number' ? 0 : '');
+      });
+    });
+    
+    setPayslipData(newData);
   };
 
-  const filteredPersons = selectedPersonType === 'all' 
-    ? persons 
-    : persons.filter(person => person.type === selectedPersonType);
+  // Populate person data
+  const populatePersonData = (person: PersonProfile) => {
+    const newData = { ...payslipData };
+    
+    // Map person data to common field names
+    newData.employeeName = person.personalInfo?.fullName || '';
+    newData.employeeId = person.workInfo?.personId || '';
+    newData.department = person.workInfo?.department || '';
+    newData.position = person.workInfo?.position || person.workInfo?.title || '';
+    newData.email = person.personalInfo?.email || '';
+    newData.phone = person.personalInfo?.phone || '';
+    newData.basicSalary = person.compensation?.baseSalary || 0;
+    
+    setPayslipData(newData);
+  };
 
+  // Filtered persons based on type
+  const filteredPersons = React.useMemo(() => {
+    const safePeople = safeArray(persons);
+    return selectedPersonType === 'all' 
+      ? safePeople 
+      : safePeople.filter(person => person && person.type === selectedPersonType);
+  }, [selectedPersonType, persons, safeArray]);
+
+  // Handle template selection
   const handleTemplateChange = (templateId: string) => {
     const template = templates.find(t => t.id === templateId);
     if (template) {
       setSelectedTemplate(template);
+      initializeFromTemplate(template);
     }
+  };
+
+  // Handle person selection
+  const handlePersonChange = (personId: string) => {
+    const person = safeArray(filteredPersons).find(p => p.id === personId);
+    if (person) {
+      setSelectedPerson(person);
+      populatePersonData(person);
+    }
+  };
+
+  // Handle field value change
+  const handleFieldChange = (fieldId: string, value: any) => {
+    setPayslipData(prev => ({
+      ...prev,
+      [fieldId]: value
+    }));
+  };
+
+  // Calculate formulas
+  useEffect(() => {
+    if (!selectedTemplate) return;
+    
+    const newCalculatedValues: { [fieldId: string]: number } = {};
+    
+    safeArray(selectedTemplate.sections).forEach(section => {
+      safeArray(section.fields).forEach(field => {
+        if (field.type === 'formula' && field.formula) {
+          try {
+            // Simple formula evaluation (expand as needed)
+            let formula = field.formula;
+            
+            // Replace field references with actual values
+            Object.keys(payslipData).forEach(key => {
+              const value = payslipData[key];
+              if (typeof value === 'number') {
+                formula = formula.replace(new RegExp(`\\b${key}\\b`, 'g'), value.toString());
+              }
+            });
+            
+            // Basic arithmetic evaluation
+            const result = eval(formula);
+            newCalculatedValues[field.id] = typeof result === 'number' ? result : 0;
+          } catch (error) {
+            console.error(`Error calculating formula for ${field.id}:`, error);
+            newCalculatedValues[field.id] = 0;
+          }
+        }
+      });
+    });
+    
+    setCalculatedValues(newCalculatedValues);
+  }, [payslipData, selectedTemplate, safeArray]);
+
+  // Add new section
+  const addSection = () => {
+    if (!selectedTemplate) return;
+    
+    const newSection: SectionDefinition = {
+      id: `section-${Date.now()}`,
+      title: 'New Section',
+      type: 'dynamic',
+      fields: [
+        {
+          id: `field-${Date.now()}`,
+          label: 'New Field',
+          type: 'text',
+          required: false
+        }
+      ],
+      canAddFields: true,
+      canRemove: true
+    };
+    
+    const updatedTemplate = {
+      ...selectedTemplate,
+      sections: [...safeArray(selectedTemplate.sections), newSection]
+    };
+    
+    setSelectedTemplate(updatedTemplate);
+    // Save to localStorage
+    const updatedTemplates = templates.map(t => t.id === selectedTemplate.id ? updatedTemplate : t);
+    setTemplates(updatedTemplates);
+    localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+  };
+
+  // Remove section
+  const removeSection = (sectionId: string) => {
+    if (!selectedTemplate) return;
+    
+    const updatedTemplate = {
+      ...selectedTemplate,
+      sections: safeArray(selectedTemplate.sections).filter(s => s.id !== sectionId)
+    };
+    
+    setSelectedTemplate(updatedTemplate);
+    // Save to localStorage
+    const updatedTemplates = templates.map(t => t.id === selectedTemplate.id ? updatedTemplate : t);
+    setTemplates(updatedTemplates);
+    localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+  };
+
+  // Add field to section
+  const addFieldToSection = (sectionId: string) => {
+    if (!selectedTemplate) return;
+    
+    const newField: FieldDefinition = {
+      id: `field-${Date.now()}`,
+      label: 'New Field',
+      type: 'text',
+      required: false
+    };
+    
+    const updatedTemplate = {
+      ...selectedTemplate,
+      sections: safeArray(selectedTemplate.sections).map(section =>
+        section.id === sectionId
+          ? { ...section, fields: [...safeArray(section.fields), newField] }
+          : section
+      )
+    };
+    
+    setSelectedTemplate(updatedTemplate);
+    // Initialize field value
+    setPayslipData(prev => ({ ...prev, [newField.id]: '' }));
+    // Save to localStorage
+    const updatedTemplates = templates.map(t => t.id === selectedTemplate.id ? updatedTemplate : t);
+    setTemplates(updatedTemplates);
+    localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+  };
+
+  // Remove field from section
+  const removeFieldFromSection = (sectionId: string, fieldId: string) => {
+    if (!selectedTemplate) return;
+    
+    const updatedTemplate = {
+      ...selectedTemplate,
+      sections: safeArray(selectedTemplate.sections).map(section =>
+        section.id === sectionId
+          ? { ...section, fields: safeArray(section.fields).filter(f => f.id !== fieldId) }
+          : section
+      )
+    };
+    
+    setSelectedTemplate(updatedTemplate);
+    // Remove field value
+    const newPayslipData = { ...payslipData };
+    delete newPayslipData[fieldId];
+    setPayslipData(newPayslipData);
+    // Save to localStorage
+    const updatedTemplates = templates.map(t => t.id === selectedTemplate.id ? updatedTemplate : t);
+    setTemplates(updatedTemplates);
+    localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+  };
+
+  // Update field properties
+  const updateField = (sectionId: string, fieldId: string, updates: Partial<FieldDefinition>) => {
+    if (!selectedTemplate) return;
+    
+    const updatedTemplate = {
+      ...selectedTemplate,
+      sections: safeArray(selectedTemplate.sections).map(section =>
+        section.id === sectionId
+          ? {
+              ...section,
+              fields: safeArray(section.fields).map(field =>
+                field.id === fieldId ? { ...field, ...updates } : field
+              )
+            }
+          : section
+      )
+    };
+    
+    setSelectedTemplate(updatedTemplate);
+    // Save to localStorage
+    const updatedTemplates = templates.map(t => t.id === selectedTemplate.id ? updatedTemplate : t);
+    setTemplates(updatedTemplates);
+    localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+  };
+
+  // Update header
+  const updateHeader = (field: string, value: string) => {
+    setPayslipData(prev => ({
+      ...prev,
+      header: {
+        ...prev.header,
+        [field]: value
+      }
+    }));
+  };
+
+  // Update company info
+  const updateCompanyInfo = (field: string, value: string) => {
+    setPayslipData(prev => ({
+      ...prev,
+      header: {
+        ...prev.header,
+        companyInfo: {
+          ...prev.header.companyInfo,
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  // Add subheader
+  const addSubHeader = () => {
+    const newSubHeader = {
+      id: `subheader-${Date.now()}`,
+      sections: [
+        { id: 'new-field', label: 'New Field', value: 'New Value' }
+      ]
+    };
+    
+    setPayslipData(prev => ({
+      ...prev,
+      subHeaders: [...prev.subHeaders, newSubHeader]
+    }));
+  };
+
+  // Print function
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Save function
+  const handleSave = () => {
+    try {
+      localStorage.setItem(`basic-payslip-${selectedPerson?.id || 'unknown'}`, JSON.stringify(payslipData));
+      alert('Payslip saved successfully!');
+    } catch (error) {
+      alert('Error saving payslip');
+    }
+  };
+
+  // Render field input
+  const renderFieldInput = (field: FieldDefinition) => {
+    const value = calculatedValues[field.id] !== undefined 
+      ? calculatedValues[field.id] 
+      : payslipData[field.id] || '';
+
+    if (field.type === 'formula') {
+      return (
+        <CalculatedValue>
+          {typeof value === 'number' ? value.toLocaleString() : value}
+        </CalculatedValue>
+      );
+    }
+
+    return (
+      <Input
+        type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+        value={value}
+        onChange={(e) => handleFieldChange(field.id, 
+          field.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value
+        )}
+        placeholder={field.label}
+        disabled={field.readonly}
+      />
+    );
   };
 
   return (
     <Container>
-      <Title>Employee Payslip Generator</Title>
+      <Title>📝 Basic View - Enhanced Editor</Title>
       
       <ControlPanel>
         <InputGroup>
@@ -316,14 +678,14 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             onChange={(e) => setSelectedPersonType(e.target.value as any)}
           >
             <option value="all">🌟 All Types</option>
-            {Object.entries(PERSON_TYPE_CONFIG).map(([type, config]) => (
+            {Object.entries(PERSON_TYPE_CONFIG || {}).map(([type, config]) => (
               <option key={type} value={type}>
-                {config.icon} {config.label}s
+                {config?.icon || ''} {config?.label || type}s
               </option>
             ))}
           </Select>
         </InputGroup>
-        
+
         <InputGroup>
           <Label>Select Person:</Label>
           <Select 
@@ -331,273 +693,332 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             onChange={(e) => handlePersonChange(e.target.value)}
           >
             <option value="">Choose Person...</option>
-            {filteredPersons.map(person => (
-              <option key={person.id} value={person.id}>
-                {PERSON_TYPE_CONFIG[person.type].icon} {person.personalInfo.fullName} - {person.workInfo.personId} ({PERSON_TYPE_CONFIG[person.type].label})
-              </option>
+            {safeArray(filteredPersons).map(person => (
+              person && person.id && person.personalInfo ? (
+                <option key={person.id} value={person.id}>
+                  {PERSON_TYPE_CONFIG[person.type]?.icon || ''} {person.personalInfo.fullName || 'Unknown'} - {person.workInfo?.personId || 'No ID'}
+                </option>
+              ) : null
             ))}
           </Select>
         </InputGroup>
-        
+
         <InputGroup>
-          <Label>Select Template:</Label>
+          <Label>Template:</Label>
           <Select 
             value={selectedTemplate?.id || ''} 
             onChange={(e) => handleTemplateChange(e.target.value)}
           >
             <option value="">Choose Template...</option>
-            {templates.map(template => (
-              <option key={template.id} value={template.id}>
-                {template.name} ({template.type})
-              </option>
+            {safeArray(templates).map(template => (
+              template && template.id ? (
+                <option key={template.id} value={template.id}>
+                  {template.name || 'Unnamed Template'}
+                </option>
+              ) : null
             ))}
           </Select>
-        </InputGroup>
-
-        <InputGroup>
-          <Label>Pay Period Month:</Label>
-          <Select 
-            value={payPeriod.month} 
-            onChange={(e) => setPayPeriod(prev => ({ ...prev, month: parseInt(e.target.value) }))}
-          >
-            {Array.from({length: 12}, (_, i) => (
-              <option key={i + 1} value={i + 1}>
-                {new Date(2024, i, 1).toLocaleString('default', { month: 'long' })}
-              </option>
-            ))}
-          </Select>
-        </InputGroup>
-        
-        <InputGroup>
-          <Label>Year:</Label>
-          <Select 
-            value={payPeriod.year} 
-            onChange={(e) => setPayPeriod(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-          >
-            {Array.from({length: 10}, (_, i) => (
-              <option key={2020 + i} value={2020 + i}>
-                {2020 + i}
-              </option>
-            ))}
-          </Select>
-        </InputGroup>
-
-        <InputGroup>
-          <Label>Period Start Date:</Label>
-          <DateInput 
-            type="date" 
-            value={payPeriod.startDate} 
-            onChange={(e) => setPayPeriod(prev => ({ ...prev, startDate: e.target.value }))}
-          />
-        </InputGroup>
-        
-        <InputGroup>
-          <Label>Period End Date:</Label>
-          <DateInput 
-            type="date" 
-            value={payPeriod.endDate} 
-            onChange={(e) => setPayPeriod(prev => ({ ...prev, endDate: e.target.value }))}
-          />
         </InputGroup>
       </ControlPanel>
-      
+
+      {editMode && (
+        <TemplateEditor>
+          <h3 style={{ color: '#1976d2', marginBottom: '20px' }}>🎨 Template Editor</h3>
+          
+          {/* Header Editor */}
+          <HeaderEditor>
+            <h4>📋 Header Settings</h4>
+            <Grid>
+              <InputGroup>
+                <Label>Main Title</Label>
+                <Input
+                  type="text"
+                  value={payslipData.header.title}
+                  onChange={(e) => updateHeader('title', e.target.value)}
+                />
+              </InputGroup>
+              <InputGroup>
+                <Label>Subtitle</Label>
+                <Input
+                  type="text"
+                  value={payslipData.header.subtitle}
+                  onChange={(e) => updateHeader('subtitle', e.target.value)}
+                />
+              </InputGroup>
+            </Grid>
+            
+            <h5>Company Information</h5>
+            <Grid>
+              <InputGroup>
+                <Label>Company Name</Label>
+                <Input
+                  type="text"
+                  value={payslipData.header.companyInfo.name}
+                  onChange={(e) => updateCompanyInfo('name', e.target.value)}
+                />
+              </InputGroup>
+              <InputGroup>
+                <Label>Phone</Label>
+                <Input
+                  type="text"
+                  value={payslipData.header.companyInfo.phone}
+                  onChange={(e) => updateCompanyInfo('phone', e.target.value)}
+                />
+              </InputGroup>
+              <InputGroup>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={payslipData.header.companyInfo.email}
+                  onChange={(e) => updateCompanyInfo('email', e.target.value)}
+                />
+              </InputGroup>
+              <InputGroup>
+                <Label>Address</Label>
+                <Input
+                  type="text"
+                  value={payslipData.header.companyInfo.address}
+                  onChange={(e) => updateCompanyInfo('address', e.target.value)}
+                />
+              </InputGroup>
+            </Grid>
+          </HeaderEditor>
+
+          {/* SubHeaders Editor */}
+          <SectionEditor>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h4>📊 Sub Headers</h4>
+              <Button onClick={addSubHeader}>+ Add Sub Header</Button>
+            </div>
+            
+            {safeArray(payslipData.subHeaders).map((subHeader, index) => (
+              <FieldEditor key={subHeader.id}>
+                <h5>Sub Header {index + 1}</h5>
+                {safeArray(subHeader.sections).map(section => (
+                  <Grid key={section.id}>
+                    <InputGroup>
+                      <Label>Label</Label>
+                      <Input
+                        type="text"
+                        value={section.label}
+                        onChange={(e) => {
+                          setPayslipData(prev => ({
+                            ...prev,
+                            subHeaders: prev.subHeaders.map(sh => 
+                              sh.id === subHeader.id ? {
+                                ...sh,
+                                sections: sh.sections.map(s => 
+                                  s.id === section.id ? { ...s, label: e.target.value } : s
+                                )
+                              } : sh
+                            )
+                          }));
+                        }}
+                      />
+                    </InputGroup>
+                    <InputGroup>
+                      <Label>Value</Label>
+                      <Input
+                        type="text"
+                        value={section.value}
+                        onChange={(e) => {
+                          setPayslipData(prev => ({
+                            ...prev,
+                            subHeaders: prev.subHeaders.map(sh => 
+                              sh.id === subHeader.id ? {
+                                ...sh,
+                                sections: sh.sections.map(s => 
+                                  s.id === section.id ? { ...s, value: e.target.value } : s
+                                )
+                              } : sh
+                            )
+                          }));
+                        }}
+                      />
+                    </InputGroup>
+                  </Grid>
+                ))}
+              </FieldEditor>
+            ))}
+          </SectionEditor>
+
+          {/* Sections Editor */}
+          <SectionEditor>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h4>📝 Sections Management</h4>
+              <Button onClick={addSection}>+ Add Section</Button>
+            </div>
+            
+            {safeArray(selectedTemplate?.sections).map(section => (
+              <FieldEditor key={section.id}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h5>{section.title}</h5>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <Button onClick={() => addFieldToSection(section.id)}>+ Add Field</Button>
+                    {section.canRemove && (
+                      <DeleteButton onClick={() => removeSection(section.id)}>Delete Section</DeleteButton>
+                    )}
+                  </div>
+                </div>
+                
+                {safeArray(section.fields).map(field => (
+                  <div key={field.id} style={{ border: '1px solid #eee', padding: '10px', marginBottom: '10px', borderRadius: '4px' }}>
+                    <Grid columns={4}>
+                      <InputGroup>
+                        <Label>Field Label</Label>
+                        <Input
+                          type="text"
+                          value={field.label}
+                          onChange={(e) => updateField(section.id, field.id, { label: e.target.value })}
+                        />
+                      </InputGroup>
+                      <InputGroup>
+                        <Label>Field Type</Label>
+                        <Select
+                          value={field.type}
+                          onChange={(e) => updateField(section.id, field.id, { type: e.target.value as any })}
+                        >
+                          <option value="text">Text</option>
+                          <option value="number">Number</option>
+                          <option value="date">Date</option>
+                          <option value="formula">Formula</option>
+                        </Select>
+                      </InputGroup>
+                      <InputGroup>
+                        <Label>Default Value</Label>
+                        <Input
+                          type="text"
+                          value={field.value || ''}
+                          onChange={(e) => updateField(section.id, field.id, { value: e.target.value })}
+                        />
+                      </InputGroup>
+                      <div style={{ alignSelf: 'end' }}>
+                        <DeleteButton onClick={() => removeFieldFromSection(section.id, field.id)}>Remove</DeleteButton>
+                      </div>
+                    </Grid>
+                    
+                    {field.type === 'formula' && (
+                      <InputGroup style={{ marginTop: '10px' }}>
+                        <Label>Formula</Label>
+                        <Input
+                          type="text"
+                          value={field.formula || ''}
+                          onChange={(e) => updateField(section.id, field.id, { formula: e.target.value })}
+                          placeholder="e.g., basicSalary * 0.15"
+                        />
+                      </InputGroup>
+                    )}
+                  </div>
+                ))}
+              </FieldEditor>
+            ))}
+          </SectionEditor>
+        </TemplateEditor>
+      )}
+
       <PayslipContainer>
-        <Section>
-          <SectionHeader>Employee Information</SectionHeader>
-          <SectionContent>
-            <Grid>
-              <InputGroup>
-                <Label>Employee Name:</Label>
-                <Input
-                  type="text"
-                  value={payslipData.employeeName}
-                  onChange={(e) => handleInputChange('employeeName', e.target.value)}
-                />
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Employee ID:</Label>
-                <Input
-                  type="text"
-                  value={payslipData.employeeId}
-                  onChange={(e) => handleInputChange('employeeId', e.target.value)}
-                />
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Department:</Label>
-                <Input
-                  type="text"
-                  value={payslipData.department}
-                  onChange={(e) => handleInputChange('department', e.target.value)}
-                />
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Position:</Label>
-                <Input
-                  type="text"
-                  value={payslipData.position}
-                  onChange={(e) => handleInputChange('position', e.target.value)}
-                />
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Pay Period:</Label>
-                <Input
-                  type="month"
-                  value={payslipData.payPeriod}
-                  onChange={(e) => handleInputChange('payPeriod', e.target.value)}
-                />
-              </InputGroup>
-            </Grid>
-          </SectionContent>
-        </Section>
+        <EditModeToggle 
+          isActive={editMode}
+          onClick={() => setEditMode(!editMode)}
+        >
+          {editMode ? '📝 Exit Edit Mode' : '🎨 Edit Mode'}
+        </EditModeToggle>
 
-        <Section>
-          <SectionHeader>Salary Components</SectionHeader>
-          <SectionContent>
-            <Grid>
-              <InputGroup>
-                <Label>Basic Salary:</Label>
-                <Input
-                  type="number"
-                  value={payslipData.basicSalary}
-                  onChange={(e) => handleInputChange('basicSalary', parseFloat(e.target.value) || 0)}
-                />
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Housing Allowance:</Label>
-                <Input
-                  type="number"
-                  value={payslipData.allowances.housing}
-                  onChange={(e) => handleAllowanceChange('housing', parseFloat(e.target.value) || 0)}
-                />
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Transport Allowance:</Label>
-                <Input
-                  type="number"
-                  value={payslipData.allowances.transport}
-                  onChange={(e) => handleAllowanceChange('transport', parseFloat(e.target.value) || 0)}
-                />
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Food Allowance:</Label>
-                <Input
-                  type="number"
-                  value={payslipData.allowances.food}
-                  onChange={(e) => handleAllowanceChange('food', parseFloat(e.target.value) || 0)}
-                />
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Other Allowances:</Label>
-                <Input
-                  type="number"
-                  value={payslipData.allowances.other}
-                  onChange={(e) => handleAllowanceChange('other', parseFloat(e.target.value) || 0)}
-                />
-              </InputGroup>
-            </Grid>
-          </SectionContent>
-        </Section>
+        <SaveButton onClick={handleSave}>💾 Save</SaveButton>
+        <PrintButton onClick={handlePrint}>🖨️ Print</PrintButton>
 
-        <Section>
-          <SectionHeader>Overtime</SectionHeader>
-          <SectionContent>
-            <Grid>
-              <InputGroup>
-                <Label>Overtime Hours:</Label>
-                <Input
-                  type="number"
-                  value={payslipData.overtimeHours}
-                  onChange={(e) => handleInputChange('overtimeHours', parseFloat(e.target.value) || 0)}
-                />
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Overtime Rate (per hour):</Label>
-                <Input
-                  type="number"
-                  value={payslipData.overtimeRate}
-                  onChange={(e) => handleInputChange('overtimeRate', parseFloat(e.target.value) || 0)}
-                />
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Overtime Pay:</Label>
-                <CalculatedValue>${payslipData.overtimePay.toFixed(2)}</CalculatedValue>
-              </InputGroup>
-            </Grid>
-          </SectionContent>
-        </Section>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '30px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+          <h1 style={{ margin: '0 0 10px 0', color: '#1976d2', fontSize: '32px' }}>
+            {payslipData.header.title}
+          </h1>
+          <h2 style={{ margin: '0 0 15px 0', color: '#666', fontSize: '18px' }}>
+            {payslipData.header.subtitle}
+          </h2>
+          <div style={{ fontSize: '14px', color: '#666' }}>
+            <div style={{ fontWeight: 'bold' }}>{payslipData.header.companyInfo.name}</div>
+            <div>{payslipData.header.companyInfo.address}</div>
+            <div>{payslipData.header.companyInfo.phone} | {payslipData.header.companyInfo.email}</div>
+          </div>
+        </div>
 
-        <Section>
-          <SectionHeader>Deductions</SectionHeader>
-          <SectionContent>
-            <Grid>
-              <InputGroup>
-                <Label>Tax (10% of Gross):</Label>
-                <CalculatedValue>${payslipData.tax.toFixed(2)}</CalculatedValue>
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Social Security (5% of Basic):</Label>
-                <CalculatedValue>${payslipData.socialSecurity.toFixed(2)}</CalculatedValue>
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Insurance:</Label>
-                <Input
-                  type="number"
-                  value={payslipData.insurance}
-                  onChange={(e) => handleInputChange('insurance', parseFloat(e.target.value) || 0)}
-                />
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Other Deductions:</Label>
-                <Input
-                  type="number"
-                  value={payslipData.otherDeductions}
-                  onChange={(e) => handleInputChange('otherDeductions', parseFloat(e.target.value) || 0)}
-                />
-              </InputGroup>
+        {/* Sub Headers */}
+        {safeArray(payslipData.subHeaders).map(subHeader => (
+          <div key={subHeader.id} style={{
+            backgroundColor: '#e3f2fd',
+            padding: '15px',
+            marginBottom: '20px',
+            borderRadius: '8px',
+            border: '1px solid #1976d2'
+          }}>
+            <Grid columns={Math.min(safeArray(subHeader.sections).length, 4)}>
+              {safeArray(subHeader.sections).map(section => (
+                <div key={section.id}>
+                  <strong>{section.label}:</strong>
+                  <div style={{ marginTop: '5px' }}>{section.value}</div>
+                </div>
+              ))}
             </Grid>
-          </SectionContent>
-        </Section>
+          </div>
+        ))}
 
-        <Section>
-          <SectionHeader>Summary</SectionHeader>
-          <SectionContent>
-            <Grid>
-              <InputGroup>
-                <Label>Gross Salary:</Label>
-                <CalculatedValue style={{ fontWeight: 'bold', fontSize: '16px', color: '#28a745' }}>
-                  ${payslipData.grossSalary.toFixed(2)}
-                </CalculatedValue>
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Total Deductions:</Label>
-                <CalculatedValue style={{ fontWeight: 'bold', fontSize: '16px', color: '#dc3545' }}>
-                  ${payslipData.totalDeductions.toFixed(2)}
-                </CalculatedValue>
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Net Salary:</Label>
-                <CalculatedValue style={{ fontWeight: 'bold', fontSize: '18px', color: '#007bff' }}>
-                  ${payslipData.netSalary.toFixed(2)}
-                </CalculatedValue>
-              </InputGroup>
-            </Grid>
-          </SectionContent>
-        </Section>
+        {/* Sections */}
+        {selectedTemplate && safeArray(selectedTemplate.sections).map(section => (
+          <Section 
+            key={section.id}
+            borderColor={section.styling?.borderColor}
+            backgroundColor={section.styling?.backgroundColor}
+          >
+            <SectionHeader 
+              textColor={section.styling?.textColor}
+              backgroundColor={section.styling?.backgroundColor}
+            >
+              <span>{section.title}</span>
+              {editMode && section.canRemove && (
+                <DeleteButton onClick={() => removeSection(section.id)}>Remove</DeleteButton>
+              )}
+            </SectionHeader>
+            <SectionContent>
+              <Grid columns={selectedTemplate.layout?.columnsPerRow || 2}>
+                {safeArray(section.fields).map(field => (
+                  <InputGroup key={field.id}>
+                    <Label>{field.label}</Label>
+                    {renderFieldInput(field)}
+                    {editMode && (
+                      <div style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
+                        <DeleteButton 
+                          style={{ fontSize: '10px', padding: '2px 6px' }}
+                          onClick={() => removeFieldFromSection(section.id, field.id)}
+                        >
+                          Remove
+                        </DeleteButton>
+                      </div>
+                    )}
+                  </InputGroup>
+                ))}
+              </Grid>
+              {editMode && section.canAddFields && (
+                <div style={{ marginTop: '15px' }}>
+                  <Button onClick={() => addFieldToSection(section.id)}>+ Add Field to {section.title}</Button>
+                </div>
+              )}
+            </SectionContent>
+          </Section>
+        ))}
+
+        {/* Summary */}
+        <div style={{ 
+          marginTop: '30px', 
+          padding: '15px', 
+          backgroundColor: '#fff3e0', 
+          borderRadius: '8px',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ color: '#e65100' }}>Generated on {new Date().toLocaleDateString()}</h3>
+          <div style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
+            {selectedPerson ? `for ${PERSON_TYPE_CONFIG[selectedPerson.type]?.label || selectedPerson.type} ${selectedPerson.personalInfo?.fullName}` : 'Please select a person'}
+          </div>
+        </div>
       </PayslipContainer>
     </Container>
   );
