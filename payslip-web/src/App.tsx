@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import ExcelAnalyzer from './components/ExcelAnalyzer';
 import PayslipGenerator from './components/PayslipGenerator';
-import EnhancedPayslipGenerator from './components/EnhancedPayslipGenerator';
-import TemplateBuilder from './components/TemplateBuilder';
+import MonthlyPayslipGenerator from './components/MonthlyPayslipGenerator';
 import EnhancedTemplateBuilder from './components/EnhancedTemplateBuilder';
 import AdvancedPayslipGenerator from './components/AdvancedPayslipGenerator';
 import PersonManagement from './components/PersonManagement';
@@ -81,9 +80,9 @@ function App() {
           <button 
             onClick={() => setCurrentView('excel')}
             style={buttonStyle(currentView === 'excel')}
-            title="Excel-like grid interface"
+            title="Annual payslip with monthly columns and totals"
           >
-            📋 Excel View
+            📊 Annual Excel View
           </button>
           
           <button 
@@ -107,7 +106,7 @@ function App() {
           {currentView === 'persons' && ' Universal database • Employees • Customers • Contractors • Search & filter • History tracking'}
           {currentView === 'template' && ' Expandable sections • Custom fields • Dynamic tables • Drag & drop'}
           {currentView === 'advanced' && ' Multi-employee • Repeating sections • Bulk operations • Templates'}
-          {currentView === 'excel' && ' Formula calculations • Real-time updates • Print ready • Excel-like'}
+          {currentView === 'excel' && ' Monthly columns (Jan-Dec) • Annual totals • Person selection • Template support • Real-time calculations'}
           {currentView === 'basic' && ' Simple interface • Quick setup • Easy editing • Form-based'}
           {currentView === 'analysis' && ' Excel structure analysis • Formula parsing • Data extraction'}
         </div>
@@ -131,7 +130,7 @@ function App() {
         )}
         
         {currentView === 'excel' && (
-          <EnhancedPayslipGenerator analysisData={analysisData} />
+          <MonthlyPayslipGenerator analysisData={analysisData} />
         )}
         
         {currentView === 'basic' && (
