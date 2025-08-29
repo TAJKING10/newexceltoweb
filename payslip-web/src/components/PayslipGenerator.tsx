@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { personManager } from '../utils/personManager';
 import { templateSync } from '../utils/templateSync';
+import { viewSync } from '../utils/viewSync';
 import { PayslipTemplate, SectionDefinition, FieldDefinition } from '../types/PayslipTypes';
 import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 
@@ -474,14 +475,40 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       }
 
       // Subscribe to template changes from other views
-      const unsubscribe = templateSync.subscribe(() => {
+      const unsubscribeTemplateSync = templateSync.subscribe(() => {
         console.log('📝 Basic View: Received template sync notification');
         const updatedTemplates = templateSync.getAllTemplates();
         setTemplates(safeArray(updatedTemplates));
         console.log(`🔄 Basic View: Updated with ${updatedTemplates.length} templates`);
       });
+
+      // Subscribe to cross-view selection changes
+      const unsubscribeViewSync = viewSync.onTemplateChange((templateId) => {
+        if (templateId) {
+          const template = loadedTemplates.find(t => t.id === templateId);
+          if (template && (!selectedTemplate || selectedTemplate.id !== templateId)) {
+            console.log('📝 Basic View: Received cross-view template selection:', template.name);
+            setSelectedTemplate(template);
+            initializeFromTemplate(template);
+          }
+        }
+      });
+
+      // Set initial selections from viewSync
+      const syncedTemplateId = viewSync.getSelectedTemplate();
+      if (syncedTemplateId) {
+        const syncedTemplate = loadedTemplates.find(t => t.id === syncedTemplateId);
+        if (syncedTemplate) {
+          setSelectedTemplate(syncedTemplate);
+          initializeFromTemplate(syncedTemplate);
+          console.log('📝 Basic View: Applied synced template:', syncedTemplate.name);
+        }
+      }
       
-      return unsubscribe;
+      return () => {
+        unsubscribeTemplateSync();
+        unsubscribeViewSync();
+      };
     } catch (error) {
       console.error('Error loading Basic View data:', error);
     }
@@ -909,10 +936,16 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           <Select 
             value={selectedTemplate?.id || ''} 
             onChange={(e) => {
-              handleTemplateChange(e.target.value);
-              const template = templates.find(t => t.id === e.target.value);
+              const templateId = e.target.value;
+              handleTemplateChange(templateId);
+              
+              const template = templates.find(t => t.id === templateId);
               if (template) {
-                console.log('✅ Template applied:', template.name);
+                // Sync selection across views
+                viewSync.setSelectedTemplate(template.id);
+                console.log('📝 Basic View: Template selected and synced to Excel View:', template.name);
+              } else {
+                viewSync.setSelectedTemplate(null);
               }
             }}
             style={{
@@ -954,6 +987,17 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               ✅ Active: {selectedTemplate.name}
               <br />
               📝 {selectedTemplate.description || 'No description'}
+              <br />
+              <div style={{ 
+                color: '#4caf50', 
+                fontSize: '11px', 
+                marginTop: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                🔄 Synced with Excel View
+              </div>
             </div>
           ) : (
             <div style={{ 
