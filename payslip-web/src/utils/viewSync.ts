@@ -5,9 +5,13 @@
 class ViewSyncService {
   private templateListeners: Set<(templateId: string | null) => void> = new Set();
   private personListeners: Set<(personId: string | null) => void> = new Set();
+  private personTypeListeners: Set<(personType: string) => void> = new Set();
+  private yearListeners: Set<(year: number) => void> = new Set();
   
   private readonly SELECTED_TEMPLATE_KEY = 'selected-template-id';
   private readonly SELECTED_PERSON_KEY = 'selected-person-id';
+  private readonly SELECTED_PERSON_TYPE_KEY = 'selected-person-type';
+  private readonly SELECTED_YEAR_KEY = 'selected-year';
 
   /**
    * Set the currently selected template across all views
@@ -108,6 +112,97 @@ class ViewSyncService {
   }
 
   /**
+   * Set the currently selected person type across all views
+   */
+  setSelectedPersonType(personType: string): void {
+    try {
+      localStorage.setItem(this.SELECTED_PERSON_TYPE_KEY, personType);
+      console.log('🔄 ViewSync: Person type selection synced:', personType);
+      
+      // Notify all views about the person type change
+      this.personTypeListeners.forEach(callback => {
+        try {
+          callback(personType);
+        } catch (e) {
+          console.error('Error in person type listener:', e);
+        }
+      });
+    } catch (e) {
+      console.error('Error setting selected person type:', e);
+    }
+  }
+
+  /**
+   * Get the currently selected person type
+   */
+  getSelectedPersonType(): string {
+    try {
+      return localStorage.getItem(this.SELECTED_PERSON_TYPE_KEY) || 'all';
+    } catch (e) {
+      console.error('Error getting selected person type:', e);
+      return 'all';
+    }
+  }
+
+  /**
+   * Subscribe to person type selection changes
+   */
+  onPersonTypeChange(callback: (personType: string) => void): () => void {
+    this.personTypeListeners.add(callback);
+    
+    // Return unsubscribe function
+    return () => {
+      this.personTypeListeners.delete(callback);
+    };
+  }
+
+  /**
+   * Set the currently selected year across all views
+   */
+  setSelectedYear(year: number): void {
+    try {
+      localStorage.setItem(this.SELECTED_YEAR_KEY, year.toString());
+      console.log('🔄 ViewSync: Year selection synced:', year);
+      
+      // Notify all views about the year change
+      this.yearListeners.forEach(callback => {
+        try {
+          callback(year);
+        } catch (e) {
+          console.error('Error in year listener:', e);
+        }
+      });
+    } catch (e) {
+      console.error('Error setting selected year:', e);
+    }
+  }
+
+  /**
+   * Get the currently selected year
+   */
+  getSelectedYear(): number {
+    try {
+      const stored = localStorage.getItem(this.SELECTED_YEAR_KEY);
+      return stored ? parseInt(stored) : new Date().getFullYear();
+    } catch (e) {
+      console.error('Error getting selected year:', e);
+      return new Date().getFullYear();
+    }
+  }
+
+  /**
+   * Subscribe to year selection changes
+   */
+  onYearChange(callback: (year: number) => void): () => void {
+    this.yearListeners.add(callback);
+    
+    // Return unsubscribe function
+    return () => {
+      this.yearListeners.delete(callback);
+    };
+  }
+
+  /**
    * Get view-specific storage key for template+person combination
    */
   getViewDataKey(viewName: string, templateId?: string, personId?: string): string {
@@ -166,6 +261,8 @@ class ViewSyncService {
   forceSync(): void {
     const templateId = this.getSelectedTemplate();
     const personId = this.getSelectedPerson();
+    const personType = this.getSelectedPersonType();
+    const year = this.getSelectedYear();
     
     this.templateListeners.forEach(callback => {
       try {
@@ -180,6 +277,22 @@ class ViewSyncService {
         callback(personId);
       } catch (e) {
         console.error('Error in person force sync:', e);
+      }
+    });
+    
+    this.personTypeListeners.forEach(callback => {
+      try {
+        callback(personType);
+      } catch (e) {
+        console.error('Error in person type force sync:', e);
+      }
+    });
+    
+    this.yearListeners.forEach(callback => {
+      try {
+        callback(year);
+      } catch (e) {
+        console.error('Error in year force sync:', e);
       }
     });
     

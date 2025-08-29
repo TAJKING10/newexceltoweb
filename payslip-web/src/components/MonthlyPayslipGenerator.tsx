@@ -583,6 +583,31 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         }
       });
 
+      const unsubscribePersonSync = viewSync.onPersonChange((personId) => {
+        if (personId) {
+          const person = loadedPersons.find(p => p.id === personId);
+          if (person && (!selectedPerson || selectedPerson.id !== personId)) {
+            console.log('📊 Excel View: Received cross-view person selection:', person.personalInfo?.fullName);
+            setSelectedPerson(person);
+            handlePersonChange(personId);
+          }
+        }
+      });
+
+      const unsubscribePersonTypeSync = viewSync.onPersonTypeChange((personType) => {
+        if (personType !== selectedPersonType) {
+          console.log('📊 Excel View: Received cross-view person type selection:', personType);
+          setSelectedPersonType(personType as any);
+        }
+      });
+
+      const unsubscribeYearSync = viewSync.onYearChange((year) => {
+        if (year !== selectedYear) {
+          console.log('📊 Excel View: Received cross-view year selection:', year);
+          setSelectedYear(year);
+        }
+      });
+
       // Set initial selections from viewSync
       const syncedTemplateId = viewSync.getSelectedTemplate();
       if (syncedTemplateId) {
@@ -592,10 +617,35 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           console.log('📊 Excel View: Applied synced template:', syncedTemplate.name);
         }
       }
+
+      const syncedPersonId = viewSync.getSelectedPerson();
+      if (syncedPersonId) {
+        const syncedPerson = loadedPersons.find(p => p.id === syncedPersonId);
+        if (syncedPerson) {
+          setSelectedPerson(syncedPerson);
+          handlePersonChange(syncedPersonId);
+          console.log('📊 Excel View: Applied synced person:', syncedPerson.personalInfo?.fullName);
+        }
+      }
+
+      const syncedPersonType = viewSync.getSelectedPersonType();
+      if (syncedPersonType !== 'all') {
+        setSelectedPersonType(syncedPersonType as any);
+        console.log('📊 Excel View: Applied synced person type:', syncedPersonType);
+      }
+
+      const syncedYear = viewSync.getSelectedYear();
+      if (syncedYear !== new Date().getFullYear()) {
+        setSelectedYear(syncedYear);
+        console.log('📊 Excel View: Applied synced year:', syncedYear);
+      }
       
       return () => {
         unsubscribeTemplateSync();
         unsubscribeViewSync();
+        unsubscribePersonSync();
+        unsubscribePersonTypeSync();
+        unsubscribeYearSync();
       };
     } catch (error) {
       console.error('Error loading data:', error);
@@ -1149,7 +1199,13 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           <Label>Person Type Filter:</Label>
           <Select 
             value={selectedPersonType} 
-            onChange={(e) => setSelectedPersonType(e.target.value as any)}
+            onChange={(e) => {
+              const newPersonType = e.target.value as any;
+              setSelectedPersonType(newPersonType);
+              // Sync person type selection across views
+              viewSync.setSelectedPersonType(newPersonType);
+              console.log('📊 Excel View: Person type selected and synced to Basic View:', newPersonType);
+            }}
           >
             <option value="all">🌟 All Types</option>
             {Object.entries(PERSON_TYPE_CONFIG || {}).map(([type, config]) => (
@@ -1164,7 +1220,17 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           <Label>Select Person:</Label>
           <Select 
             value={selectedPerson?.id || ''} 
-            onChange={(e) => handlePersonChange(e.target.value)}
+            onChange={(e) => {
+              const personId = e.target.value;
+              handlePersonChange(personId);
+              // Sync person selection across views
+              if (personId) {
+                viewSync.setSelectedPerson(personId);
+                console.log('📊 Excel View: Person selected and synced to Basic View:', personId);
+              } else {
+                viewSync.setSelectedPerson(null);
+              }
+            }}
           >
             <option value="">Choose Person...</option>
             {safeArray(filteredPersons).map(person => (
@@ -1242,7 +1308,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                 alignItems: 'center',
                 gap: '4px'
               }}>
-                🔄 Synced with Basic View
+                🔄 All selections synced with Basic View
               </div>
             </div>
           ) : (
@@ -1268,7 +1334,13 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           <Label>Year:</Label>
           <Select 
             value={selectedYear} 
-            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+            onChange={(e) => {
+              const newYear = parseInt(e.target.value);
+              setSelectedYear(newYear);
+              // Sync year selection across views
+              viewSync.setSelectedYear(newYear);
+              console.log('📊 Excel View: Year selected and synced to Basic View:', newYear);
+            }}
           >
             {[2022, 2023, 2024, 2025, 2026, 2027].map(year => (
               <option key={year} value={year}>{year}</option>

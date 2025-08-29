@@ -494,6 +494,24 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         }
       });
 
+      const unsubscribePersonSync = viewSync.onPersonChange((personId) => {
+        if (personId) {
+          const person = loadedPersons.find(p => p.id === personId);
+          if (person && (!selectedPerson || selectedPerson.id !== personId)) {
+            console.log('📝 Basic View: Received cross-view person selection:', person.personalInfo?.fullName);
+            setSelectedPerson(person);
+            handlePersonChange(personId);
+          }
+        }
+      });
+
+      const unsubscribePersonTypeSync = viewSync.onPersonTypeChange((personType) => {
+        if (personType !== selectedPersonType) {
+          console.log('📝 Basic View: Received cross-view person type selection:', personType);
+          setSelectedPersonType(personType as any);
+        }
+      });
+
       // Set initial selections from viewSync
       const syncedTemplateId = viewSync.getSelectedTemplate();
       if (syncedTemplateId) {
@@ -504,10 +522,28 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           console.log('📝 Basic View: Applied synced template:', syncedTemplate.name);
         }
       }
+
+      const syncedPersonId = viewSync.getSelectedPerson();
+      if (syncedPersonId) {
+        const syncedPerson = loadedPersons.find(p => p.id === syncedPersonId);
+        if (syncedPerson) {
+          setSelectedPerson(syncedPerson);
+          handlePersonChange(syncedPersonId);
+          console.log('📝 Basic View: Applied synced person:', syncedPerson.personalInfo?.fullName);
+        }
+      }
+
+      const syncedPersonType = viewSync.getSelectedPersonType();
+      if (syncedPersonType !== 'all') {
+        setSelectedPersonType(syncedPersonType as any);
+        console.log('📝 Basic View: Applied synced person type:', syncedPersonType);
+      }
       
       return () => {
         unsubscribeTemplateSync();
         unsubscribeViewSync();
+        unsubscribePersonSync();
+        unsubscribePersonTypeSync();
       };
     } catch (error) {
       console.error('Error loading Basic View data:', error);
@@ -903,7 +939,13 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           <Label>Person Type Filter:</Label>
           <Select 
             value={selectedPersonType} 
-            onChange={(e) => setSelectedPersonType(e.target.value as any)}
+            onChange={(e) => {
+              const newPersonType = e.target.value as any;
+              setSelectedPersonType(newPersonType);
+              // Sync person type selection across views
+              viewSync.setSelectedPersonType(newPersonType);
+              console.log('📝 Basic View: Person type selected and synced to Excel View:', newPersonType);
+            }}
           >
             <option value="all">🌟 All Types</option>
             {Object.entries(PERSON_TYPE_CONFIG || {}).map(([type, config]) => (
@@ -918,7 +960,17 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           <Label>Select Person:</Label>
           <Select 
             value={selectedPerson?.id || ''} 
-            onChange={(e) => handlePersonChange(e.target.value)}
+            onChange={(e) => {
+              const personId = e.target.value;
+              handlePersonChange(personId);
+              // Sync person selection across views
+              if (personId) {
+                viewSync.setSelectedPerson(personId);
+                console.log('📝 Basic View: Person selected and synced to Excel View:', personId);
+              } else {
+                viewSync.setSelectedPerson(null);
+              }
+            }}
           >
             <option value="">Choose Person...</option>
             {safeArray(filteredPersons).map(person => (
@@ -996,7 +1048,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                 alignItems: 'center',
                 gap: '4px'
               }}>
-                🔄 Synced with Excel View
+                🔄 All selections synced with Excel View
               </div>
             </div>
           ) : (
