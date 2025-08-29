@@ -3,13 +3,12 @@ import ExcelAnalyzer from './components/ExcelAnalyzer';
 import PayslipGenerator from './components/PayslipGenerator';
 import MonthlyPayslipGenerator from './components/MonthlyPayslipGenerator';
 import EnhancedTemplateBuilder from './components/EnhancedTemplateBuilder';
-import AdvancedPayslipGenerator from './components/AdvancedPayslipGenerator';
 import PersonManagement from './components/PersonManagement';
 import './App.css';
 
 function App() {
   const [analysisData, setAnalysisData] = useState<any>(null);
-  const [currentView, setCurrentView] = useState<'analysis' | 'basic' | 'excel' | 'template' | 'advanced' | 'persons'>('persons');
+  const [currentView, setCurrentView] = useState<'analysis' | 'basic' | 'excel' | 'template' | 'persons'>('persons');
 
   const handleAnalysisComplete = (data: any) => {
     setAnalysisData(data);
@@ -69,13 +68,6 @@ function App() {
             🎨 Template Builder
           </button>
           
-          <button 
-            onClick={() => setCurrentView('advanced')}
-            style={buttonStyle(currentView === 'advanced')}
-            title="Multi-employee payslips with dynamic sections"
-          >
-            ⚡ Advanced Generator
-          </button>
           
           <button 
             onClick={() => setCurrentView('excel')}
@@ -105,7 +97,6 @@ function App() {
           <strong>✨ Key Features:</strong> 
           {currentView === 'persons' && ' Universal database • Employees • Customers • Contractors • Search & filter • History tracking'}
           {currentView === 'template' && ' Expandable sections • Custom fields • Dynamic tables • Drag & drop'}
-          {currentView === 'advanced' && ' Multi-employee • Repeating sections • Bulk operations • Templates'}
           {currentView === 'excel' && ' Monthly columns (Jan-Dec) • Annual totals • Person selection • Template support • Real-time calculations'}
           {currentView === 'basic' && ' Simple interface • Quick setup • Easy editing • Form-based'}
           {currentView === 'analysis' && ' Excel structure analysis • Formula parsing • Data extraction'}
@@ -125,9 +116,6 @@ function App() {
           <EnhancedTemplateBuilder />
         )}
         
-        {currentView === 'advanced' && (
-          <AdvancedPayslipGenerator analysisData={analysisData} />
-        )}
         
         {currentView === 'excel' && (
           <MonthlyPayslipGenerator analysisData={analysisData} />
