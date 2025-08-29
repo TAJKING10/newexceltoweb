@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { templateManager } from '../utils/templateManager';
 import { personManager } from '../utils/personManager';
+import { templateSync } from '../utils/templateSync';
 import { PayslipTemplate } from '../types/PayslipTypes';
 import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 import '../styles/print.css';
@@ -523,80 +523,32 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     return [basicTemplate, advancedTemplate];
   }, []);
 
-  // Load templates and persons
+  // Load templates and persons using unified sync service
   useEffect(() => {
     try {
-      // Start with essential templates
-      let loadedTemplates = createEssentialTemplates();
-      console.log('🚀 Force created essential templates:', loadedTemplates.length);
+      console.log('📊 Excel View: Loading templates via TemplateSync');
       
-      // Try to load existing templates and merge
-      try {
-        const existingTemplates = templateManager.getAllTemplates();
-        if (existingTemplates && existingTemplates.length > 0) {
-          // Merge with existing, avoiding duplicates
-          existingTemplates.forEach(template => {
-            if (template && template.id && !loadedTemplates.find(t => t.id === template.id)) {
-              // Ensure template has required fields with defaults
-              const safeTemplate = {
-                ...template,
-                description: template.description || 'No description',
-                type: template.type || 'basic'
-              } as any;
-              loadedTemplates.push(safeTemplate);
-            }
-          });
-        }
-      } catch (e) {
-        console.log('Could not load from templateManager, using defaults');
-      }
-
-      // Also check Enhanced Template Builder storage
-      try {
-        const enhancedTemplatesJson = localStorage.getItem('payslip-templates');
-        if (enhancedTemplatesJson) {
-          const enhancedTemplates = JSON.parse(enhancedTemplatesJson);
-          if (Array.isArray(enhancedTemplates)) {
-            enhancedTemplates.forEach(template => {
-              if (template && template.id && !loadedTemplates.find(t => t.id === template.id)) {
-                loadedTemplates.push(template);
-              }
-            });
-          }
-        }
-      } catch (error) {
-        console.log('Could not load enhanced templates:', error);
-      }
-
+      // Load templates from unified sync service
+      const loadedTemplates = templateSync.getAllTemplates();
       const loadedPersons = personManager.getAllPersons();
-      
-      // Always save the merged templates back to localStorage to ensure persistence
-      try {
-        localStorage.setItem('payslip-templates', JSON.stringify(loadedTemplates));
-        console.log('💾 Saved templates to localStorage');
-      } catch (e) {
-        console.log('Could not save to localStorage');
-      }
 
       setTemplates(safeArray(loadedTemplates));
       setPersons(safeArray(loadedPersons));
       
       // Debug: Log templates found
-      console.log('📋 Templates loaded in Monthly Payslip Generator:', loadedTemplates.length);
+      console.log(`✅ Excel View: Loaded ${loadedTemplates.length} synchronized templates`);
       loadedTemplates.forEach((template: any) => {
-        console.log(`- ${template.type === 'basic' ? '📝' : template.type === 'annual' ? '📊' : '⚡'} ${template.name} (${template.type})`);
+        console.log(`  - ${template.type === 'basic' ? '📝' : template.type === 'annual' ? '📊' : '⚡'} ${template.name} (${template.type})`);
       });
       
       // Default to basic template
       const basicTemplate = loadedTemplates.find(t => t.type === 'basic');
       if (basicTemplate) {
         setSelectedTemplate(basicTemplate);
-        console.log('✅ Default template set to:', basicTemplate.name);
+        console.log('✅ Excel View: Default template set to:', basicTemplate.name);
       } else if (safeArray(loadedTemplates).length > 0) {
         setSelectedTemplate(loadedTemplates[0]);
-        console.log('✅ Default template set to:', loadedTemplates[0].name);
-      } else {
-        console.log('❌ No templates available');
+        console.log('✅ Excel View: Default template set to:', loadedTemplates[0].name);
       }
 
       if (safeArray(loadedPersons).length > 0) {
@@ -610,10 +562,20 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           position: person.workInfo?.position || person.workInfo?.title || 'N/A'
         }));
       }
+
+      // Subscribe to template changes from other views
+      const unsubscribe = templateSync.subscribe(() => {
+        console.log('📊 Excel View: Received template sync notification');
+        const updatedTemplates = templateSync.getAllTemplates();
+        setTemplates(safeArray(updatedTemplates));
+        console.log(`🔄 Excel View: Updated with ${updatedTemplates.length} templates`);
+      });
+      
+      return unsubscribe;
     } catch (error) {
       console.error('Error loading data:', error);
     }
-  }, [createEssentialTemplates, safeArray]);
+  }, [safeArray]);
 
   // Calculate totals whenever monthly data changes
   useEffect(() => {

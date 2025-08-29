@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { PayslipTemplate, TemplateSubHeader, SectionDefinition, FieldDefinition } from '../types/PayslipTypes';
 import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 import { personManager } from '../utils/personManager';
-import { templateManager } from '../utils/templateManager';
+import { templateSync } from '../utils/templateSync';
 
 interface EnhancedTemplateBuilderProps {
   onTemplateSelect?: (template: PayslipTemplate) => void;
@@ -316,59 +316,15 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     lastModified: new Date()
   }), [safeArray]);
 
-  // Load templates with comprehensive error handling
+  // Load templates using unified sync service
   const loadTemplates = useCallback(() => {
     setIsLoading(true);
     setError(null);
     try {
-      // First try to load from Enhanced Template Builder localStorage
-      let loadedTemplates: PayslipTemplate[] = [];
-      
-      const savedTemplates = localStorage.getItem('payslip-templates');
-      if (savedTemplates) {
-        const parsed = JSON.parse(savedTemplates);
-        if (Array.isArray(parsed)) {
-          loadedTemplates = safeArray(parsed).filter((t: any) => t && t.id && t.name) as PayslipTemplate[];
-        }
-      }
-      
-      // Also load from templateManager
-      const managerTemplates = templateManager.getAllTemplates();
-      if (managerTemplates && managerTemplates.length > 0) {
-        // Merge and deduplicate
-        managerTemplates.forEach(template => {
-          if (!loadedTemplates.find(t => t.id === template.id)) {
-            loadedTemplates.push(template);
-          }
-        });
-      }
-      
-      // If no templates exist, create defaults
-      if (loadedTemplates.length === 0) {
-        const basicTemplate = createBasicTemplate();
-        const customTemplate = createCustomTemplate();
-        const defaultTemplates = [basicTemplate, customTemplate];
-        
-        // Save to both storage methods
-        localStorage.setItem('payslip-templates', JSON.stringify(defaultTemplates));
-        
-        // Also add to templateManager
-        defaultTemplates.forEach(template => {
-          try {
-            // Create a copy without the id first, then let createTemplate assign the id
-            const templateWithoutId = { ...template };
-            delete (templateWithoutId as any).id;
-            const newId = templateManager.createTemplate(templateWithoutId);
-            template.id = newId;
-          } catch (e) {
-            console.log('Template already exists in manager');
-          }
-        });
-        
-        loadedTemplates = defaultTemplates;
-      }
-      
+      console.log('🎨 Template Builder: Loading templates via TemplateSync');
+      const loadedTemplates = templateSync.getAllTemplates();
       setTemplates(loadedTemplates);
+      console.log(`✅ Template Builder: Loaded ${loadedTemplates.length} synchronized templates`);
     } catch (error) {
       console.error('Error loading templates:', error);
       setError('Failed to load templates');
@@ -376,37 +332,36 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     } finally {
       setIsLoading(false);
     }
-  }, [createBasicTemplate, createCustomTemplate, safeArray]);
+  }, []);
 
-  // Initialize on mount
+  // Initialize on mount and subscribe to template changes
   useEffect(() => {
     loadTemplates();
     loadPersons();
+    
+    // Subscribe to template changes from other views
+    const unsubscribe = templateSync.subscribe(() => {
+      console.log('🎨 Template Builder: Received template sync notification');
+      loadTemplates();
+    });
+    
+    return unsubscribe;
   }, [loadTemplates, loadPersons]);
 
-  // Safe template update function
+  // Safe template update function using unified sync
   const saveTemplate = useCallback((template: PayslipTemplate) => {
     if (!template || !template.id) return;
     try {
+      console.log('🎨 Template Builder: Saving template via TemplateSync:', template.name);
+      
+      // Update local state immediately for responsiveness
       const updatedTemplates = safeArray(templates).map(t => t.id === template.id ? template : t);
       setTemplates(updatedTemplates);
       
-      // Save to Enhanced Template Builder localStorage
-      localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+      // Save via unified sync service (this will notify all other views)
+      templateSync.addTemplate(template);
       
-      // Also update in templateManager if it exists there
-      try {
-        const existingTemplate = templateManager.getTemplate(template.id);
-        if (existingTemplate) {
-          // Update in templateManager by replacing the template
-          templateManager.updateTemplate(template.id, {
-            type: 'UPDATE_TEMPLATE_SETTINGS',
-            updates: template
-          });
-        }
-      } catch (e) {
-        console.log('Could not update template in templateManager');
-      }
+      console.log('✅ Template Builder: Template saved and synchronized');
     } catch (error) {
       console.error('Error saving template:', error);
       setError('Failed to save template');
@@ -423,21 +378,17 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
         description: 'Custom payslip template'
       };
       
+      console.log('🎨 Template Builder: Creating new template via TemplateSync');
+      
+      // Update local state immediately
       const updatedTemplates = [...safeArray(templates), newTemplate];
       setTemplates(updatedTemplates);
       setCurrentTemplate(newTemplate);
       
-      // Save to Enhanced Template Builder localStorage
-      localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+      // Save via unified sync service (this will make it available in all views)
+      templateSync.addTemplate(newTemplate);
       
-      // Also add to templateManager
-      try {
-        const templateWithoutId = { ...newTemplate };
-        delete (templateWithoutId as any).id;
-        templateManager.createTemplate(templateWithoutId);
-      } catch (e) {
-        console.log('Could not add template to templateManager');
-      }
+      console.log('✅ Template Builder: New template created and synchronized');
     } catch (error) {
       console.error('Error creating template:', error);
       setError('Failed to create template');
@@ -707,19 +658,14 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
         }))
       };
 
-      // Save to templates
+      // Add to templates via unified sync
       const updatedTemplates = [...safeArray(templates), functionalTemplate];
       setTemplates(updatedTemplates);
-      localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
       
-      // Also add to templateManager
-      try {
-        const templateWithoutId = { ...functionalTemplate };
-        delete (templateWithoutId as any).id;
-        templateManager.createTemplate(templateWithoutId);
-      } catch (e) {
-        console.log('Template might already exist in manager');
-      }
+      // Save via unified sync service (this will make it available in all views)
+      templateSync.addTemplate(functionalTemplate);
+      
+      console.log('✅ Template Builder: Functional template created and synchronized');
 
       // Call the onTemplateSelect callback if provided
       if (onTemplateSelect) {
