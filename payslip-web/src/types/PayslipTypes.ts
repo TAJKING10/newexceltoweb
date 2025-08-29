@@ -99,7 +99,7 @@ export interface PayslipTemplate {
   name: string;
   version: string;
   description?: string;
-  type: 'basic' | 'custom';
+  type: 'basic' | 'custom' | 'annual';
   header: TemplateHeader;
   subHeaders: TemplateSubHeader[];
   sections: SectionDefinition[];

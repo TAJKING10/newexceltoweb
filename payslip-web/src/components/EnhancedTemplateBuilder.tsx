@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PayslipTemplate, TemplateHeader, TemplateSubHeader, SectionDefinition, FieldDefinition, DynamicTable, COMMON_FIELDS } from '../types/PayslipTypes';
+import { PayslipTemplate, TemplateSubHeader, SectionDefinition, FieldDefinition } from '../types/PayslipTypes';
 import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 import { personManager } from '../utils/personManager';
+import { templateManager } from '../utils/templateManager';
 
 interface EnhancedTemplateBuilderProps {
   onTemplateSelect?: (template: PayslipTemplate) => void;
@@ -39,9 +40,9 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
   // Create basic template with safe structure
   const createBasicTemplate = useCallback((): PayslipTemplate => ({
     id: 'basic-template',
-    name: 'Basic Payslip',
+    name: '📝 Basic Payslip Template',
     version: '1.0',
-    description: 'Simple payslip template with essential fields',
+    description: 'Simple payslip template with essential fields - ready to use with one click',
     type: 'basic',
     header: {
       id: 'basic-header',
@@ -75,7 +76,12 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
         id: 'employee-info',
         title: 'Employee Information',
         type: 'static',
-        fields: safeArray(COMMON_FIELDS.employee).slice(0, 4),
+        fields: [
+          { id: 'emp-name', label: 'Full Name', type: 'text', required: true },
+          { id: 'emp-id', label: 'Employee ID', type: 'text', required: true },
+          { id: 'emp-dept', label: 'Department', type: 'text', required: false },
+          { id: 'emp-position', label: 'Position', type: 'text', required: false }
+        ],
         canAddFields: true,
         canRemove: false
       },
@@ -83,7 +89,11 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
         id: 'earnings',
         title: 'Earnings',
         type: 'dynamic',
-        fields: safeArray(COMMON_FIELDS.earnings).slice(0, 3),
+        fields: [
+          { id: 'basic-salary', label: 'Basic Salary', type: 'number', required: true },
+          { id: 'allowances', label: 'Allowances', type: 'number', required: false },
+          { id: 'overtime', label: 'Overtime Pay', type: 'number', required: false }
+        ],
         canAddFields: true,
         canRemove: false
       },
@@ -91,15 +101,23 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
         id: 'deductions',
         title: 'Deductions',
         type: 'dynamic',
-        fields: safeArray(COMMON_FIELDS.deductions).slice(0, 3),
+        fields: [
+          { id: 'tax', label: 'Income Tax', type: 'number', required: false },
+          { id: 'social-security', label: 'Social Security', type: 'number', required: false },
+          { id: 'insurance', label: 'Insurance', type: 'number', required: false }
+        ],
         canAddFields: true,
         canRemove: false
       },
       {
         id: 'summary',
-        title: 'Summary',
+        title: 'Pay Summary',
         type: 'static',
-        fields: safeArray(COMMON_FIELDS.summary),
+        fields: [
+          { id: 'gross-pay', label: 'Gross Pay', type: 'formula', formula: 'basic-salary + allowances + overtime', readonly: true },
+          { id: 'total-deductions', label: 'Total Deductions', type: 'formula', formula: 'tax + social-security + insurance', readonly: true },
+          { id: 'net-pay', label: 'Net Pay', type: 'formula', formula: 'gross-pay - total-deductions', readonly: true }
+        ],
         canAddFields: false,
         canRemove: false
       }
@@ -126,21 +144,21 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
   // Create advanced template with safe structure
   const createCustomTemplate = useCallback((): PayslipTemplate => ({
     id: 'custom-template',
-    name: 'Advanced Payslip',
+    name: '⚡ Annual Payslip Template',
     version: '1.0',
-    description: 'Comprehensive payslip template with advanced features',
-    type: 'custom',
+    description: 'Comprehensive annual payslip template with advanced features - fully functional',
+    type: 'annual',
     header: {
       id: 'custom-header',
-      title: 'EMPLOYEE PAYROLL STATEMENT',
-      subtitle: 'Confidential Salary Information',
+      title: 'ANNUAL PAYROLL STATEMENT',
+      subtitle: 'Complete Yearly Financial Report',
       logo: '',
       companyInfo: {
-        name: 'Advanced Corporation Ltd.',
-        address: '123 Business Park, Suite 100, City, State 12345',
-        phone: '+1 (555) 123-4567',
-        email: 'payroll@company.com',
-        website: 'www.company.com'
+        name: 'Annual Reports Corp.',
+        address: '456 Annual Drive, Excel City, State 67890',
+        phone: '+1 (555) 987-6543',
+        email: 'annual@company.com',
+        website: 'www.annualreports.com'
       },
       styling: {
         titleColor: '#2e7d32',
@@ -154,10 +172,10 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
       {
         id: 'period-info',
         sections: [
-          { id: 'pay-period', label: 'Pay Period', value: '', type: 'text', editable: true },
-          { id: 'pay-date', label: 'Payment Date', value: '', type: 'date', editable: true },
-          { id: 'pay-method', label: 'Payment Method', value: 'Direct Deposit', type: 'text', editable: true },
-          { id: 'check-number', label: 'Reference #', value: '', type: 'text', editable: true }
+          { id: 'reporting-year', label: 'Reporting Year', value: new Date().getFullYear().toString(), type: 'text', editable: true },
+          { id: 'pay-frequency', label: 'Pay Frequency', value: 'Monthly', type: 'text', editable: true },
+          { id: 'generated-date', label: 'Report Generated', value: new Date().toLocaleDateString(), type: 'date', editable: true },
+          { id: 'report-type', label: 'Report Type', value: 'Annual Summary', type: 'text', editable: true }
         ],
         styling: {
           backgroundColor: '#e1f5fe',
@@ -171,7 +189,14 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
         id: 'employee-details',
         title: 'Employee Details',
         type: 'static',
-        fields: safeArray(COMMON_FIELDS.employee),
+        fields: [
+          { id: 'emp-name', label: 'Full Name', type: 'text', required: true },
+          { id: 'emp-id', label: 'Employee ID', type: 'text', required: true },
+          { id: 'emp-dept', label: 'Department', type: 'text', required: false },
+          { id: 'emp-position', label: 'Position', type: 'text', required: false },
+          { id: 'emp-start-date', label: 'Start Date', type: 'date', required: false },
+          { id: 'emp-status', label: 'Employment Status', type: 'text', required: false }
+        ],
         canAddFields: true,
         canRemove: false,
         styling: {
@@ -183,9 +208,15 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
       },
       {
         id: 'earnings',
-        title: 'Earnings & Allowances',
+        title: 'Annual Earnings & Allowances',
         type: 'dynamic',
-        fields: safeArray(COMMON_FIELDS.earnings),
+        fields: [
+          { id: 'annual-basic', label: 'Annual Basic Salary', type: 'number', required: true },
+          { id: 'housing-allowance', label: 'Housing Allowance', type: 'number', required: false },
+          { id: 'transport-allowance', label: 'Transport Allowance', type: 'number', required: false },
+          { id: 'performance-bonus', label: 'Performance Bonus', type: 'number', required: false },
+          { id: 'overtime-total', label: 'Total Overtime', type: 'number', required: false }
+        ],
         canAddFields: true,
         canRemove: false,
         styling: {
@@ -196,9 +227,15 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
       },
       {
         id: 'deductions',
-        title: 'Deductions & Taxes',
+        title: 'Annual Deductions & Taxes',
         type: 'dynamic',
-        fields: safeArray(COMMON_FIELDS.deductions),
+        fields: [
+          { id: 'income-tax', label: 'Annual Income Tax', type: 'number', required: false },
+          { id: 'social-security', label: 'Social Security', type: 'number', required: false },
+          { id: 'health-insurance', label: 'Health Insurance', type: 'number', required: false },
+          { id: 'pension', label: 'Pension Contribution', type: 'number', required: false },
+          { id: 'other-deductions', label: 'Other Deductions', type: 'number', required: false }
+        ],
         canAddFields: true,
         canRemove: false,
         styling: {
@@ -209,9 +246,14 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
       },
       {
         id: 'summary',
-        title: 'Payment Summary',
+        title: 'Annual Summary',
         type: 'static',
-        fields: safeArray(COMMON_FIELDS.summary),
+        fields: [
+          { id: 'gross-annual', label: 'Gross Annual Salary', type: 'formula', formula: 'annual-basic + housing-allowance + transport-allowance + performance-bonus + overtime-total', readonly: true },
+          { id: 'total-deductions', label: 'Total Annual Deductions', type: 'formula', formula: 'income-tax + social-security + health-insurance + pension + other-deductions', readonly: true },
+          { id: 'net-annual', label: 'Net Annual Salary', type: 'formula', formula: 'gross-annual - total-deductions', readonly: true },
+          { id: 'monthly-average', label: 'Average Monthly Net', type: 'formula', formula: 'net-annual / 12', readonly: true }
+        ],
         canAddFields: false,
         canRemove: false,
         styling: {
@@ -224,13 +266,30 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     ],
     tables: [
       {
-        id: 'overtime-table',
-        title: 'Overtime Details',
+        id: 'monthly-breakdown',
+        title: 'Monthly Breakdown',
         columns: [
-          { id: 'date', header: 'Date', type: 'text' },
-          { id: 'hours', header: 'Hours', type: 'number' },
-          { id: 'rate', header: 'Rate', type: 'number' },
-          { id: 'amount', header: 'Amount', type: 'formula', formula: 'hours * rate', readonly: true }
+          { id: 'month', header: 'Month', type: 'text' },
+          { id: 'basic', header: 'Basic Salary', type: 'number' },
+          { id: 'allowances', header: 'Allowances', type: 'number' },
+          { id: 'overtime', header: 'Overtime', type: 'number' },
+          { id: 'deductions', header: 'Deductions', type: 'number' },
+          { id: 'net', header: 'Net Pay', type: 'formula', formula: 'basic + allowances + overtime - deductions', readonly: true }
+        ],
+        rows: [],
+        canAddColumns: true,
+        canAddRows: true,
+        canRemoveColumns: true,
+        canRemoveRows: true
+      },
+      {
+        id: 'tax-summary',
+        title: 'Annual Tax Summary',
+        columns: [
+          { id: 'tax-type', header: 'Tax Type', type: 'text' },
+          { id: 'rate', header: 'Rate %', type: 'number' },
+          { id: 'taxable-amount', header: 'Taxable Amount', type: 'number' },
+          { id: 'tax-amount', header: 'Tax Amount', type: 'formula', formula: 'taxable-amount * rate / 100', readonly: true }
         ],
         rows: [],
         canAddColumns: true,
@@ -262,19 +321,54 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     setIsLoading(true);
     setError(null);
     try {
+      // First try to load from Enhanced Template Builder localStorage
+      let loadedTemplates: PayslipTemplate[] = [];
+      
       const savedTemplates = localStorage.getItem('payslip-templates');
       if (savedTemplates) {
         const parsed = JSON.parse(savedTemplates);
-        const validTemplates = safeArray(parsed).filter((t: any) => t && t.id && t.name) as PayslipTemplate[];
-        setTemplates(validTemplates);
-      } else {
-        // Create default templates if none exist
+        if (Array.isArray(parsed)) {
+          loadedTemplates = safeArray(parsed).filter((t: any) => t && t.id && t.name) as PayslipTemplate[];
+        }
+      }
+      
+      // Also load from templateManager
+      const managerTemplates = templateManager.getAllTemplates();
+      if (managerTemplates && managerTemplates.length > 0) {
+        // Merge and deduplicate
+        managerTemplates.forEach(template => {
+          if (!loadedTemplates.find(t => t.id === template.id)) {
+            loadedTemplates.push(template);
+          }
+        });
+      }
+      
+      // If no templates exist, create defaults
+      if (loadedTemplates.length === 0) {
         const basicTemplate = createBasicTemplate();
         const customTemplate = createCustomTemplate();
         const defaultTemplates = [basicTemplate, customTemplate];
-        setTemplates(defaultTemplates);
+        
+        // Save to both storage methods
         localStorage.setItem('payslip-templates', JSON.stringify(defaultTemplates));
+        
+        // Also add to templateManager
+        defaultTemplates.forEach(template => {
+          try {
+            // Create a copy without the id first, then let createTemplate assign the id
+            const templateWithoutId = { ...template };
+            delete (templateWithoutId as any).id;
+            const newId = templateManager.createTemplate(templateWithoutId);
+            template.id = newId;
+          } catch (e) {
+            console.log('Template already exists in manager');
+          }
+        });
+        
+        loadedTemplates = defaultTemplates;
       }
+      
+      setTemplates(loadedTemplates);
     } catch (error) {
       console.error('Error loading templates:', error);
       setError('Failed to load templates');
@@ -282,7 +376,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     } finally {
       setIsLoading(false);
     }
-  }, [safeArray, createBasicTemplate, createCustomTemplate]);
+  }, [createBasicTemplate, createCustomTemplate, safeArray]);
 
   // Initialize on mount
   useEffect(() => {
@@ -296,7 +390,23 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     try {
       const updatedTemplates = safeArray(templates).map(t => t.id === template.id ? template : t);
       setTemplates(updatedTemplates);
+      
+      // Save to Enhanced Template Builder localStorage
       localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+      
+      // Also update in templateManager if it exists there
+      try {
+        const existingTemplate = templateManager.getTemplate(template.id);
+        if (existingTemplate) {
+          // Update in templateManager by replacing the template
+          templateManager.updateTemplate(template.id, {
+            type: 'UPDATE_TEMPLATE_SETTINGS',
+            updates: template
+          });
+        }
+      } catch (e) {
+        console.log('Could not update template in templateManager');
+      }
     } catch (error) {
       console.error('Error saving template:', error);
       setError('Failed to save template');
@@ -316,7 +426,18 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
       const updatedTemplates = [...safeArray(templates), newTemplate];
       setTemplates(updatedTemplates);
       setCurrentTemplate(newTemplate);
+      
+      // Save to Enhanced Template Builder localStorage
       localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+      
+      // Also add to templateManager
+      try {
+        const templateWithoutId = { ...newTemplate };
+        delete (templateWithoutId as any).id;
+        templateManager.createTemplate(templateWithoutId);
+      } catch (e) {
+        console.log('Could not add template to templateManager');
+      }
     } catch (error) {
       console.error('Error creating template:', error);
       setError('Failed to create template');
@@ -564,6 +685,56 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     }
   }, [persons, safeArray]);
 
+  // Handle template use - make it fully functional
+  const handleTemplateUse = useCallback((template: PayslipTemplate) => {
+    if (!template) return;
+
+    try {
+      // Create a comprehensive functional template
+      const functionalTemplate: PayslipTemplate = {
+        ...template,
+        id: `functional-${template.id}-${Date.now()}`,
+        name: `${template.name} (Functional Copy)`,
+        isEditable: true,
+        lastModified: new Date(),
+        // Ensure all sections have proper fields
+        sections: safeArray(template.sections).map(section => ({
+          ...section,
+          fields: safeArray(section.fields).length > 0 ? section.fields : [
+            { id: `${section.id}-field-1`, label: 'Field 1', type: 'text', required: false },
+            { id: `${section.id}-field-2`, label: 'Field 2', type: 'number', required: false }
+          ]
+        }))
+      };
+
+      // Save to templates
+      const updatedTemplates = [...safeArray(templates), functionalTemplate];
+      setTemplates(updatedTemplates);
+      localStorage.setItem('payslip-templates', JSON.stringify(updatedTemplates));
+      
+      // Also add to templateManager
+      try {
+        const templateWithoutId = { ...functionalTemplate };
+        delete (templateWithoutId as any).id;
+        templateManager.createTemplate(templateWithoutId);
+      } catch (e) {
+        console.log('Template might already exist in manager');
+      }
+
+      // Call the onTemplateSelect callback if provided
+      if (onTemplateSelect) {
+        onTemplateSelect(functionalTemplate);
+      }
+
+      // Show success message
+      alert(`✅ Template "${template.name}" is now ready to use!\n\nThe template has been:\n• Made fully functional\n• Added to your templates\n• Ready for customization\n\n${template.type === 'basic' ? '📝 Basic View: Simple payslip for monthly use' : template.type === 'annual' ? '📊 Annual View: Excel-style spreadsheet for yearly data' : '⚡ Advanced: Full-featured template'}`);
+
+    } catch (error) {
+      console.error('Error using template:', error);
+      alert('❌ Error using template. Please try again.');
+    }
+  }, [templates, safeArray, onTemplateSelect]);
+
   // Safe filtered persons with null checks
   const filteredPersons = React.useMemo(() => {
     const safePeople = safeArray(persons);
@@ -713,7 +884,12 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
       {activeTab === 'templates' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-            <h2>Available Templates</h2>
+            <div>
+              <h2>📋 Available Templates</h2>
+              <p style={{ color: '#666', margin: '5px 0 0 0', fontSize: '14px' }}>
+                Ready-to-use templates with all features functional. Click "📋 Use Template" to get started immediately!
+              </p>
+            </div>
             <button
               onClick={createNewTemplate}
               style={{
@@ -746,13 +922,13 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                       <h3 style={{ margin: '0 0 5px 0', color: '#1565c0' }}>{template.name || 'Unnamed Template'}</h3>
                       <span style={{
                         padding: '4px 8px',
-                        backgroundColor: template.type === 'basic' ? '#e3f2fd' : '#f3e5f5',
-                        color: template.type === 'basic' ? '#1565c0' : '#7b1fa2',
+                        backgroundColor: template.type === 'basic' ? '#e3f2fd' : template.type === 'annual' ? '#f3e5f5' : '#fff3e0',
+                        color: template.type === 'basic' ? '#1565c0' : template.type === 'annual' ? '#7b1fa2' : '#e65100',
                         borderRadius: '12px',
                         fontSize: '12px',
                         fontWeight: 'bold'
                       }}>
-                        {template.type === 'basic' ? '📝 Basic' : '⚡ Advanced'}
+                        {template.type === 'basic' ? '📝 Basic View' : template.type === 'annual' ? '📊 Annual View' : '⚡ Advanced'}
                       </span>
                     </div>
                   </div>
@@ -762,9 +938,12 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                   </p>
                   
                   <div style={{ fontSize: '12px', color: '#999', marginBottom: '15px' }}>
-                    <div>Sections: {safeArray(template.sections).length}</div>
-                    <div>Tables: {safeArray(template.tables).length}</div>
-                    <div>Last modified: {template.lastModified ? new Date(template.lastModified).toLocaleDateString() : 'Unknown'}</div>
+                    <div>✅ Fully Functional Template</div>
+                    <div>📋 Sections: {safeArray(template.sections).length}</div>
+                    <div>📊 Tables: {safeArray(template.tables).length}</div>
+                    <div>📅 Last modified: {template.lastModified ? new Date(template.lastModified).toLocaleDateString() : 'Unknown'}</div>
+                    {template.type === 'basic' && <div style={{ color: '#1565c0', fontWeight: 'bold', marginTop: '5px' }}>🎯 Perfect for: Monthly payslips, simple reports</div>}
+                    {template.type === 'annual' && <div style={{ color: '#7b1fa2', fontWeight: 'bold', marginTop: '5px' }}>🎯 Perfect for: Yearly reports, Excel-style data</div>}
                   </div>
                   
                   <div style={{ display: 'flex', gap: '10px' }}>
@@ -787,7 +966,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                       ✏️ Edit
                     </button>
                     <button
-                      onClick={() => onTemplateSelect?.(template)}
+                      onClick={() => handleTemplateUse(template)}
                       style={{
                         flex: 1,
                         padding: '8px 12px',
@@ -796,10 +975,11 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                         border: 'none',
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        fontSize: '12px'
+                        fontSize: '12px',
+                        fontWeight: 'bold'
                       }}
                     >
-                      📋 Use
+                      📋 Use Template
                     </button>
                   </div>
                 </div>

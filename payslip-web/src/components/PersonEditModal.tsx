@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { PersonProfile, PersonType, PersonUpdateData, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
+import { PersonProfile, PersonUpdateData, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 
 const ModalOverlay = styled.div`
   position: fixed;

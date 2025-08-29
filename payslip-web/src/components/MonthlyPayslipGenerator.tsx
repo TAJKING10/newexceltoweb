@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { templateManager } from '../utils/templateManager';
 import { personManager } from '../utils/personManager';
-import { PayslipTemplate, TemplateSubHeader } from '../types/PayslipTypes';
+import { PayslipTemplate } from '../types/PayslipTypes';
 import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 import '../styles/print.css';
 
@@ -326,7 +326,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
   const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
   
-  const defaultRows = [
+  const defaultRows = React.useMemo(() => [
     'Basic Salary',
     'Housing Allowance', 
     'Transport Allowance',
@@ -338,7 +338,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     'Health Insurance',
     'Total Deductions',
     'Net Salary'
-  ];
+  ], []);
 
   const [payslipData, setPayslipData] = useState<MonthlyPayslipState>({
     personName: 'John Doe',
@@ -426,37 +426,179 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       months: initialMonths,
       totals: initialTotals
     }));
-  }, []);
+  }, [defaultRows]);
 
-  // Get default values for different row types
-  const getDefaultValue = (rowName: string): number => {
-    const defaults: { [key: string]: number } = {
-      'Basic Salary': 5000,
-      'Housing Allowance': 1000,
-      'Transport Allowance': 500,
-      'Overtime Pay': 200,
-      'Bonus': 300,
-      'Gross Salary': 7000,
-      'Income Tax': 1050,
-      'Social Security': 350,
-      'Health Insurance': 200,
-      'Total Deductions': 1600,
-      'Net Salary': 5400
+
+  // Force create essential templates immediately
+  const createEssentialTemplates = useCallback(() => {
+    const basicTemplate = {
+      id: 'basic-monthly-template',
+      name: '📝 Basic Payslip Template',
+      version: '1.0',
+      description: 'Simple monthly payslip template - perfect for regular payslips',
+      type: 'basic' as const,
+      header: {
+        id: 'basic-header',
+        title: 'MONTHLY PAYSLIP',
+        subtitle: 'Employee Pay Statement',
+        companyInfo: {
+          name: 'Your Company Name',
+          address: 'Company Address',
+          phone: 'Phone Number',
+          email: 'Email Address'
+        }
+      },
+      subHeaders: [{
+        id: 'basic-subheader',
+        sections: [
+          { id: 'pay-period', label: 'Pay Period', value: 'Monthly', type: 'text' as const, editable: true },
+          { id: 'pay-date', label: 'Pay Date', value: new Date().toLocaleDateString(), type: 'date' as const, editable: true }
+        ]
+      }],
+      sections: [],
+      tables: [],
+      globalFormulas: {},
+      styling: {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: 12,
+        primaryColor: '#1565c0',
+        secondaryColor: '#f5f5f5',
+        borderStyle: 'solid' as const
+      },
+      layout: {
+        columnsPerRow: 2,
+        sectionSpacing: 15,
+        printOrientation: 'portrait' as const
+      },
+      isEditable: true,
+      createdDate: new Date(),
+      lastModified: new Date()
     };
-    return defaults[rowName] || 0;
-  };
+
+    const advancedTemplate = {
+      id: 'advanced-annual-template',
+      name: '⚡ Advanced Annual Template',
+      version: '1.0', 
+      description: 'Comprehensive yearly Excel-style template - perfect for detailed annual reports',
+      type: 'annual' as const,
+      header: {
+        id: 'advanced-header',
+        title: 'ADVANCED ANNUAL PAYROLL',
+        subtitle: 'Comprehensive Yearly Financial Analysis',
+        companyInfo: {
+          name: 'Advanced Analytics Corp.',
+          address: 'Advanced Drive, Data City',
+          phone: '+1 (555) 999-8888',
+          email: 'advanced@company.com'
+        }
+      },
+      subHeaders: [{
+        id: 'advanced-subheader',
+        sections: [
+          { id: 'fiscal-year', label: 'Fiscal Year', value: new Date().getFullYear().toString(), type: 'text' as const, editable: true },
+          { id: 'report-type', label: 'Report Type', value: 'Advanced Analysis', type: 'text' as const, editable: true },
+          { id: 'generated-date', label: 'Generated', value: new Date().toLocaleDateString(), type: 'date' as const, editable: true }
+        ]
+      }],
+      sections: [],
+      tables: [],
+      globalFormulas: {},
+      styling: {
+        fontFamily: 'Calibri, Arial, sans-serif',
+        fontSize: 14,
+        primaryColor: '#6a1b9a',
+        secondaryColor: '#f3e5f5',
+        borderStyle: 'solid' as const
+      },
+      layout: {
+        columnsPerRow: 3,
+        sectionSpacing: 25,
+        printOrientation: 'landscape' as const
+      },
+      isEditable: true,
+      createdDate: new Date(),
+      lastModified: new Date()
+    };
+
+    return [basicTemplate, advancedTemplate];
+  }, []);
 
   // Load templates and persons
   useEffect(() => {
     try {
-      const loadedTemplates = templateManager.getAllTemplates();
+      // Start with essential templates
+      let loadedTemplates = createEssentialTemplates();
+      console.log('🚀 Force created essential templates:', loadedTemplates.length);
+      
+      // Try to load existing templates and merge
+      try {
+        const existingTemplates = templateManager.getAllTemplates();
+        if (existingTemplates && existingTemplates.length > 0) {
+          // Merge with existing, avoiding duplicates
+          existingTemplates.forEach(template => {
+            if (template && template.id && !loadedTemplates.find(t => t.id === template.id)) {
+              // Ensure template has required fields with defaults
+              const safeTemplate = {
+                ...template,
+                description: template.description || 'No description',
+                type: template.type || 'basic'
+              } as any;
+              loadedTemplates.push(safeTemplate);
+            }
+          });
+        }
+      } catch (e) {
+        console.log('Could not load from templateManager, using defaults');
+      }
+
+      // Also check Enhanced Template Builder storage
+      try {
+        const enhancedTemplatesJson = localStorage.getItem('payslip-templates');
+        if (enhancedTemplatesJson) {
+          const enhancedTemplates = JSON.parse(enhancedTemplatesJson);
+          if (Array.isArray(enhancedTemplates)) {
+            enhancedTemplates.forEach(template => {
+              if (template && template.id && !loadedTemplates.find(t => t.id === template.id)) {
+                loadedTemplates.push(template);
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.log('Could not load enhanced templates:', error);
+      }
+
       const loadedPersons = personManager.getAllPersons();
+      
+      // Always save the merged templates back to localStorage to ensure persistence
+      try {
+        localStorage.setItem('payslip-templates', JSON.stringify(loadedTemplates));
+        console.log('💾 Saved templates to localStorage');
+      } catch (e) {
+        console.log('Could not save to localStorage');
+      }
+
       setTemplates(safeArray(loadedTemplates));
       setPersons(safeArray(loadedPersons));
       
-      if (safeArray(loadedTemplates).length > 0) {
+      // Debug: Log templates found
+      console.log('📋 Templates loaded in Monthly Payslip Generator:', loadedTemplates.length);
+      loadedTemplates.forEach((template: any) => {
+        console.log(`- ${template.type === 'basic' ? '📝' : template.type === 'annual' ? '📊' : '⚡'} ${template.name} (${template.type})`);
+      });
+      
+      // Default to basic template
+      const basicTemplate = loadedTemplates.find(t => t.type === 'basic');
+      if (basicTemplate) {
+        setSelectedTemplate(basicTemplate);
+        console.log('✅ Default template set to:', basicTemplate.name);
+      } else if (safeArray(loadedTemplates).length > 0) {
         setSelectedTemplate(loadedTemplates[0]);
+        console.log('✅ Default template set to:', loadedTemplates[0].name);
+      } else {
+        console.log('❌ No templates available');
       }
+
       if (safeArray(loadedPersons).length > 0) {
         setSelectedPerson(loadedPersons[0]);
         const person = loadedPersons[0];
@@ -471,7 +613,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     } catch (error) {
       console.error('Error loading data:', error);
     }
-  }, [safeArray]);
+  }, [createEssentialTemplates, safeArray]);
 
   // Calculate totals whenever monthly data changes
   useEffect(() => {
@@ -525,6 +667,51 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       loadPersonalizedData(person.id);
     }
   };
+
+  // Apply selected template to payslip
+  const applyTemplateToPayslip = useCallback((template: PayslipTemplate) => {
+    if (!template) return;
+
+    try {
+      // Update header information from template
+      const templateHeader = template.header;
+      const templateSubHeaders = safeArray(template.subHeaders);
+
+      setPayslipData(prev => ({
+        ...prev,
+        header: {
+          id: templateHeader.id || 'applied-header',
+          title: templateHeader.title || 'PAYSLIP',
+          subtitle: templateHeader.subtitle || 'Employee Pay Statement',
+          companyInfo: {
+            name: templateHeader.companyInfo?.name || 'Company Name',
+            address: templateHeader.companyInfo?.address || 'Company Address',
+            phone: templateHeader.companyInfo?.phone || 'Phone Number',
+            email: templateHeader.companyInfo?.email || 'Email Address'
+          }
+        },
+        subHeaders: templateSubHeaders.length > 0 ? templateSubHeaders.map(sh => ({
+          id: sh.id,
+          sections: safeArray(sh.sections).map(section => ({
+            id: section.id,
+            label: section.label,
+            value: section.value
+          }))
+        })) : prev.subHeaders
+      }));
+
+      // Show template applied message
+      const templateTypeText = template.type === 'basic' ? '📝 Basic Monthly Template' : 
+                              template.type === 'annual' ? '📊 Annual Excel Template' : 
+                              '⚡ Custom Template';
+      
+      alert(`✅ Template Applied Successfully!\n\n${templateTypeText}\n\n"${template.name}" has been applied to your payslip.\n\n${template.description || 'Template is ready to use.'}`);
+      
+    } catch (error) {
+      console.error('Error applying template:', error);
+      alert('❌ Error applying template. Please try again.');
+    }
+  }, [safeArray]);
 
   // Create fresh personalized template for user
   const createFreshPersonalizedTemplate = (person: PersonProfile): MonthlyPayslipState => {
@@ -840,13 +1027,22 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
   // Start editing row name
   const startEditingRowName = (rowName: string) => {
+    console.log('=== START EDITING ===');
+    console.log('Row to edit:', rowName);
+    console.log('Current editingRowName:', editingRowName);
+    console.log('Current tempRowName:', tempRowName);
+    
     setEditingRowName(rowName);
     // If it's a temporary row, start with empty name
     if (rowName.startsWith('__NEW_ROW_')) {
       setTempRowName('');
+      console.log('Set tempRowName to empty for new row');
     } else {
       setTempRowName(rowName);
+      console.log('Set tempRowName to:', rowName);
     }
+    
+    console.log('=== END START EDITING ===');
   };
 
   // Finish editing row name
@@ -884,8 +1080,11 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
   // Get display name for row (handle temp rows)
   const getDisplayRowName = (rowName: string): string => {
+    if (!rowName) {
+      return '[NO NAME]';
+    }
     if (rowName.startsWith('__NEW_ROW_')) {
-      return '💭 Click to name this row...';
+      return 'New Row - Click Edit to name';
     }
     return rowName;
   };
@@ -992,23 +1191,75 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         </InputGroup>
 
         <InputGroup>
-          <Label>Template:</Label>
+          <Label>📋 Select Template:</Label>
           <Select 
             value={selectedTemplate?.id || ''} 
             onChange={(e) => {
               const template = templates.find(t => t.id === e.target.value);
               setSelectedTemplate(template || null);
+              
+              // Apply template data to current payslip
+              if (template) {
+                applyTemplateToPayslip(template);
+              }
+            }}
+            style={{
+              fontSize: '14px',
+              fontWeight: 'bold',
+              color: selectedTemplate ? '#1565c0' : '#666'
             }}
           >
-            <option value="">Choose Template...</option>
+            <option value="" style={{ color: '#999' }}>Choose Template Type...</option>
             {safeArray(templates).map(template => (
               template && template.id ? (
-                <option key={template.id} value={template.id}>
-                  {template.name || 'Unnamed Template'}
+                <option 
+                  key={template.id} 
+                  value={template.id}
+                  style={{
+                    fontWeight: 'bold',
+                    color: template.type === 'basic' ? '#1565c0' : template.type === 'annual' ? '#7b1fa2' : '#e65100'
+                  }}
+                >
+                  {template.type === 'basic' ? '📝 Basic: ' : template.type === 'annual' ? '📊 Advanced: ' : '⚡ Custom: '}
+                  {template.name?.replace('📝 ', '').replace('📊 ', '').replace('⚡ ', '') || 'Unnamed Template'}
+                  {template.type === 'basic' && ' - Monthly Payslip'}
+                  {template.type === 'annual' && ' - Annual Excel Report'}
+                  {template.type === 'custom' && ' - Custom Template'}
                 </option>
               ) : null
             ))}
           </Select>
+          {selectedTemplate ? (
+            <div style={{ 
+              marginTop: '8px', 
+              padding: '8px 12px', 
+              backgroundColor: selectedTemplate.type === 'basic' ? '#e3f2fd' : selectedTemplate.type === 'annual' ? '#f3e5f5' : '#fff3e0',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              color: selectedTemplate.type === 'basic' ? '#1565c0' : selectedTemplate.type === 'annual' ? '#7b1fa2' : '#e65100'
+            }}>
+              ✅ Active: {selectedTemplate.name}
+              <br />
+              📝 {selectedTemplate.description || 'No description'}
+            </div>
+          ) : (
+            <div style={{ 
+              marginTop: '8px', 
+              padding: '8px 12px', 
+              backgroundColor: '#fff3e0',
+              borderRadius: '4px',
+              fontSize: '12px',
+              color: '#e65100',
+              border: '1px solid #ffcc80'
+            }}>
+              💡 <strong>Select a template above to get started!</strong>
+              <br />
+              📝 Basic Template - For monthly payslips
+              <br />
+              📊 Annual Template - For yearly Excel-style reports
+            </div>
+          )}
         </InputGroup>
 
         <InputGroup>
@@ -1221,31 +1472,45 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                           <span 
                             style={{ 
                               flex: 1, 
-                              cursor: 'pointer' 
+                              cursor: 'default' 
                             }}
-                            onClick={() => startEditingRowName(row)}
-                            title="Click to edit row name"
+                            title="Use the edit button to rename this row"
                           >
                             {getDisplayRowName(row)}
                           </span>
                         )}
-                        {(editMode || row.startsWith('__NEW_ROW_')) && (
-                          <button
-                            onClick={() => startEditingRowName(row)}
-                            style={{
-                              background: '#2196f3',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '2px',
-                              padding: '2px 4px',
-                              fontSize: '9px',
-                              cursor: 'pointer'
-                            }}
-                            title="Edit row name"
-                          >
-                            ✏️
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => {
+                            console.log('=== TEMPLATE EDITOR BUTTON CLICKED ===');
+                            console.log('Button clicked for row:', row);
+                            e.stopPropagation();
+                            e.preventDefault();
+                            try {
+                              startEditingRowName(row);
+                            } catch (error) {
+                              console.error('Error in startEditingRowName:', error);
+                            }
+                          }}
+                          style={{
+                            background: '#2196f3',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '3px',
+                            padding: '3px 6px',
+                            fontSize: '10px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                            marginLeft: '6px',
+                            position: 'relative',
+                            zIndex: 10000,
+                            pointerEvents: 'auto',
+                            display: 'block',
+                            isolation: 'isolate'
+                          }}
+                          title="Click to edit row name"
+                        >
+                          ✏️ Edit
+                        </button>
                         <select
                           value=""
                           onChange={(e) => {
@@ -1357,29 +1622,43 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                       style={{ 
                         flex: 1, 
                         fontWeight: 'bold', 
-                        cursor: 'pointer',
+                        cursor: 'default',
                         padding: '4px'
                       }}
-                      onClick={() => startEditingRowName(row)}
-                      title="Click to edit row name"
+                      title="Use the edit button to rename this row"
                     >
                       {getDisplayRowName(row)}
                     </span>
                   )}
                   <button
-                    onClick={() => startEditingRowName(row)}
+                    onClick={(e) => {
+                      console.log('=== ROW MANAGEMENT BUTTON CLICKED ===');
+                      console.log('Button clicked for row:', row);
+                      e.stopPropagation();
+                      e.preventDefault();
+                      try {
+                        startEditingRowName(row);
+                      } catch (error) {
+                        console.error('Error in startEditingRowName:', error);
+                      }
+                    }}
                     style={{
                       background: '#2196f3',
                       color: 'white',
                       border: 'none',
-                      borderRadius: '2px',
-                      padding: '4px 6px',
-                      fontSize: '10px',
-                      cursor: 'pointer'
+                      borderRadius: '4px',
+                      padding: '6px 10px',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      marginLeft: '8px',
+                      position: 'relative',
+                      zIndex: 10000,
+                      pointerEvents: 'auto'
                     }}
-                    title="Edit row name"
+                    title="Click to edit row name"
                   >
-                    ✏️
+                    ✏️ Edit
                   </button>
                   <button
                     onClick={() => deleteRowCompletely(row)}
@@ -1584,6 +1863,13 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                 <React.Fragment key={row}>
                   <Cell>
                     {editingRowName === row ? (
+                      (() => {
+                        console.log('=== RENDERING INPUT ===');
+                        console.log('editingRowName:', editingRowName);
+                        console.log('row:', row);
+                        console.log('tempRowName:', tempRowName);
+                        return true;
+                      })() && 
                       <input
                         type="text"
                         value={tempRowName}
@@ -1616,24 +1902,33 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                           display: 'flex', 
                           alignItems: 'center', 
                           gap: '8px',
-                          cursor: editMode ? 'pointer' : 'default'
+                          cursor: 'default'
                         }}
-                        onClick={() => !row.startsWith('__NEW_ROW_') && editMode && startEditingRowName(row)}
-                        title={!row.startsWith('__NEW_ROW_') && editMode ? 'Click to edit row name' : row.startsWith('__NEW_ROW_') ? 'Use the edit button to name this row' : ''}
+                        title="Use the edit button to rename this row"
                       >
                         <span 
                           style={{ 
                             flex: 1,
                             color: row.startsWith('__NEW_ROW_') ? '#999' : 'inherit',
-                            fontStyle: row.startsWith('__NEW_ROW_') ? 'italic' : 'normal'
+                            fontStyle: row.startsWith('__NEW_ROW_') ? 'italic' : 'normal',
+                            pointerEvents: 'none',
+                            userSelect: 'none'
                           }}
                         >
                           {getDisplayRowName(row)}
                         </span>
                         <button
                           onClick={(e) => {
+                            console.log('=== EXCEL GRID BUTTON CLICKED ===');
+                            console.log('Button clicked for row:', row);
+                            console.log('Edit mode:', editMode);
                             e.stopPropagation();
-                            startEditingRowName(row);
+                            e.preventDefault();
+                            try {
+                              startEditingRowName(row);
+                            } catch (error) {
+                              console.error('Error in startEditingRowName:', error);
+                            }
                           }}
                           style={{
                             background: '#2196f3',
@@ -1644,7 +1939,12 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                             fontSize: '12px',
                             cursor: 'pointer',
                             fontWeight: 'bold',
-                            marginLeft: '8px'
+                            marginLeft: '8px',
+                            position: 'relative',
+                            zIndex: 10000,
+                            pointerEvents: 'auto',
+                            display: 'block',
+                            isolation: 'isolate'
                           }}
                           title="Click to edit row name"
                         >
@@ -1720,6 +2020,13 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               <React.Fragment key={row}>
                 <Cell>
                   {editingRowName === row ? (
+                    (() => {
+                      console.log('=== RENDERING INPUT (UNGROUPED) ===');
+                      console.log('editingRowName:', editingRowName);
+                      console.log('row:', row);
+                      console.log('tempRowName:', tempRowName);
+                      return true;
+                    })() && 
                     <input
                       type="text"
                       value={tempRowName}
@@ -1751,15 +2058,26 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                       <span 
                         style={{ 
                           flex: 1,
-                          cursor: editMode ? 'pointer' : 'default'
+                          cursor: 'default',
+                          pointerEvents: 'none',
+                          userSelect: 'none'
                         }}
-                        onClick={() => !row.startsWith('__NEW_ROW_') && editMode && startEditingRowName(row)}
-                        title={!row.startsWith('__NEW_ROW_') && editMode ? 'Click to edit row name' : row.startsWith('__NEW_ROW_') ? 'Use the edit button to name this row' : ''}
+                        title="Use the edit button to rename this row"
                       >
                         {getDisplayRowName(row)}
                       </span>
                       <button
-                        onClick={() => startEditingRowName(row)}
+                        onClick={(e) => {
+                          console.log('=== UNGROUPED BUTTON CLICKED ===');
+                          console.log('Button clicked for row:', row);
+                          e.stopPropagation();
+                          e.preventDefault();
+                          try {
+                            startEditingRowName(row);
+                          } catch (error) {
+                            console.error('Error in startEditingRowName:', error);
+                          }
+                        }}
                         style={{
                           background: '#2196f3',
                           color: 'white',
@@ -1769,7 +2087,10 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                           fontSize: '12px',
                           cursor: 'pointer',
                           fontWeight: 'bold',
-                          marginLeft: '8px'
+                          marginLeft: '8px',
+                          position: 'relative',
+                          zIndex: 10000,
+                          pointerEvents: 'auto'
                         }}
                         title="Click to edit row name"
                       >

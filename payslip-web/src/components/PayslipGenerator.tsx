@@ -310,18 +310,207 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     return Array.isArray(arr) ? arr : [];
   }, []);
 
+  // Force create essential templates for Basic View
+  const createBasicViewTemplates = useCallback(() => {
+    const basicTemplate: PayslipTemplate = {
+      id: 'basic-view-template',
+      name: '📝 Basic Payslip Template',
+      version: '1.0',
+      description: 'Simple monthly payslip template - perfect for basic payslips',
+      type: 'basic',
+      header: {
+        id: 'basic-header',
+        title: 'PAYSLIP',
+        subtitle: 'Employee Pay Statement',
+        companyInfo: {
+          name: 'Universal Company Ltd.',
+          address: '123 Business Street, City, State 12345',
+          phone: '+1 (555) 123-4567',
+          email: 'hr@company.com'
+        }
+      },
+      subHeaders: [{
+        id: 'basic-subheader',
+        sections: [
+          { id: 'pay-period', label: 'Pay Period', value: 'January 2025', type: 'text', editable: true },
+          { id: 'pay-date', label: 'Pay Date', value: new Date().toLocaleDateString(), type: 'date', editable: true },
+          { id: 'pay-method', label: 'Payment Method', value: 'Direct Deposit', type: 'text', editable: true },
+          { id: 'generated-date', label: 'Generated on', value: new Date().toLocaleDateString(), type: 'text', editable: false }
+        ]
+      }],
+      sections: [
+        {
+          id: 'employee-info',
+          title: 'Employee Information',
+          type: 'static',
+          fields: [
+            { id: 'emp_name', label: 'Employee Name', type: 'text', required: true },
+            { id: 'emp_id', label: 'Employee ID', type: 'text', required: true },
+            { id: 'department', label: 'Department', type: 'text' },
+            { id: 'position', label: 'Position', type: 'text' }
+          ],
+          canAddFields: true,
+          canRemove: false
+        }
+      ],
+      tables: [],
+      globalFormulas: {},
+      styling: {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: 12,
+        primaryColor: '#1565c0',
+        secondaryColor: '#f5f5f5',
+        borderStyle: 'solid'
+      },
+      layout: {
+        columnsPerRow: 2,
+        sectionSpacing: 15,
+        printOrientation: 'portrait'
+      },
+      isEditable: true,
+      createdDate: new Date(),
+      lastModified: new Date()
+    };
+
+    const advancedTemplate: PayslipTemplate = {
+      id: 'advanced-view-template',
+      name: '⚡ Advanced Payslip Template',
+      version: '1.0',
+      description: 'Comprehensive advanced payslip template with detailed sections',
+      type: 'custom',
+      header: {
+        id: 'advanced-header',
+        title: 'ADVANCED PAYROLL STATEMENT',
+        subtitle: 'Comprehensive Employee Pay Analysis',
+        companyInfo: {
+          name: 'Advanced Analytics Corp.',
+          address: '456 Advanced Drive, Tech City, State 67890',
+          phone: '+1 (555) 999-8888',
+          email: 'advanced@company.com'
+        }
+      },
+      subHeaders: [{
+        id: 'advanced-subheader',
+        sections: [
+          { id: 'pay-period', label: 'Pay Period', value: 'January 2025', type: 'text', editable: true },
+          { id: 'pay-date', label: 'Pay Date', value: new Date().toLocaleDateString(), type: 'date', editable: true },
+          { id: 'pay-method', label: 'Payment Method', value: 'Direct Deposit', type: 'text', editable: true },
+          { id: 'report-type', label: 'Report Type', value: 'Advanced Analysis', type: 'text', editable: true },
+          { id: 'generated-date', label: 'Generated on', value: new Date().toLocaleDateString(), type: 'text', editable: false }
+        ]
+      }],
+      sections: [
+        {
+          id: 'employee-details',
+          title: 'Employee Details',
+          type: 'static',
+          fields: [
+            { id: 'emp_name', label: 'Full Name', type: 'text', required: true },
+            { id: 'emp_id', label: 'Employee ID', type: 'text', required: true },
+            { id: 'department', label: 'Department', type: 'text' },
+            { id: 'position', label: 'Position', type: 'text' },
+            { id: 'hire_date', label: 'Hire Date', type: 'date' },
+            { id: 'emp_status', label: 'Employment Status', type: 'text' }
+          ],
+          canAddFields: true,
+          canRemove: false
+        }
+      ],
+      tables: [],
+      globalFormulas: {},
+      styling: {
+        fontFamily: 'Calibri, Arial, sans-serif',
+        fontSize: 14,
+        primaryColor: '#6a1b9a',
+        secondaryColor: '#f3e5f5',
+        borderStyle: 'solid'
+      },
+      layout: {
+        columnsPerRow: 3,
+        sectionSpacing: 20,
+        printOrientation: 'portrait'
+      },
+      isEditable: true,
+      createdDate: new Date(),
+      lastModified: new Date()
+    };
+
+    return [basicTemplate, advancedTemplate];
+  }, []);
+
   // Load templates and persons
   useEffect(() => {
     try {
-      const loadedTemplates = templateManager.getAllTemplates();
+      // Start with essential templates for Basic View
+      let loadedTemplates = createBasicViewTemplates();
+      console.log('🚀 Force created Basic View templates:', loadedTemplates.length);
+      
+      // Try to load existing templates and merge
+      try {
+        const existingTemplates = templateManager.getAllTemplates();
+        if (existingTemplates && existingTemplates.length > 0) {
+          // Merge with existing, avoiding duplicates
+          existingTemplates.forEach(template => {
+            if (template && template.id && !loadedTemplates.find(t => t.id === template.id)) {
+              const safeTemplate = {
+                ...template,
+                description: template.description || 'No description',
+                type: template.type || 'basic'
+              } as any;
+              loadedTemplates.push(safeTemplate);
+            }
+          });
+        }
+      } catch (e) {
+        console.log('Could not load from templateManager, using defaults');
+      }
+
+      // Also check Enhanced Template Builder storage
+      try {
+        const enhancedTemplatesJson = localStorage.getItem('payslip-templates');
+        if (enhancedTemplatesJson) {
+          const enhancedTemplates = JSON.parse(enhancedTemplatesJson);
+          if (Array.isArray(enhancedTemplates)) {
+            enhancedTemplates.forEach(template => {
+              if (template && template.id && !loadedTemplates.find(t => t.id === template.id)) {
+                loadedTemplates.push(template);
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.log('Could not load enhanced templates:', error);
+      }
+
       const loadedPersons = personManager.getAllPersons();
+      
+      // Save merged templates to localStorage for persistence
+      try {
+        localStorage.setItem('payslip-templates', JSON.stringify(loadedTemplates));
+        console.log('💾 Saved Basic View templates to localStorage');
+      } catch (e) {
+        console.log('Could not save to localStorage');
+      }
+      
       setTemplates(safeArray(loadedTemplates));
       setPersons(safeArray(loadedPersons));
       
-      if (safeArray(loadedTemplates).length > 0) {
+      // Debug: Log templates found
+      console.log('📋 Templates loaded in Basic View:', loadedTemplates.length);
+      loadedTemplates.forEach((template: any) => {
+        console.log(`- ${template.type === 'basic' ? '📝' : template.type === 'custom' ? '⚡' : '📊'} ${template.name} (${template.type})`);
+      });
+      
+      // Default to basic template
+      const basicTemplate = loadedTemplates.find(t => t.type === 'basic');
+      if (basicTemplate) {
+        setSelectedTemplate(basicTemplate);
+        initializeFromTemplate(basicTemplate);
+        console.log('✅ Default Basic View template set to:', basicTemplate.name);
+      } else if (safeArray(loadedTemplates).length > 0) {
         setSelectedTemplate(loadedTemplates[0]);
-        // Initialize payslip data from first template
         initializeFromTemplate(loadedTemplates[0]);
+        console.log('✅ Default Basic View template set to:', loadedTemplates[0].name);
       }
       
       if (safeArray(loadedPersons).length > 0) {
@@ -329,9 +518,9 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         populatePersonData(loadedPersons[0]);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('Error loading Basic View data:', error);
     }
-  }, [safeArray]);
+  }, [createBasicViewTemplates, safeArray]);
 
   // Initialize fresh personalized template from base template
   const initializeFromTemplate = (template: PayslipTemplate, person?: PersonProfile) => {
@@ -751,20 +940,72 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         </InputGroup>
 
         <InputGroup>
-          <Label>Template:</Label>
+          <Label>📋 Select Template:</Label>
           <Select 
             value={selectedTemplate?.id || ''} 
-            onChange={(e) => handleTemplateChange(e.target.value)}
+            onChange={(e) => {
+              handleTemplateChange(e.target.value);
+              const template = templates.find(t => t.id === e.target.value);
+              if (template) {
+                console.log('✅ Template applied:', template.name);
+              }
+            }}
+            style={{
+              fontSize: '14px',
+              fontWeight: 'bold',
+              color: selectedTemplate ? '#1565c0' : '#666'
+            }}
           >
-            <option value="">Choose Template...</option>
+            <option value="" style={{ color: '#999' }}>Choose Template Type...</option>
             {safeArray(templates).map(template => (
               template && template.id ? (
-                <option key={template.id} value={template.id}>
-                  {template.name || 'Unnamed Template'}
+                <option 
+                  key={template.id} 
+                  value={template.id}
+                  style={{
+                    fontWeight: 'bold',
+                    color: template.type === 'basic' ? '#1565c0' : template.type === 'custom' ? '#6a1b9a' : '#e65100'
+                  }}
+                >
+                  {template.type === 'basic' ? '📝 Basic: ' : template.type === 'custom' ? '⚡ Advanced: ' : '📊 Other: '}
+                  {template.name?.replace('📝 ', '').replace('⚡ ', '').replace('📊 ', '') || 'Unnamed Template'}
+                  {template.type === 'basic' && ' - Simple Payslip'}
+                  {template.type === 'custom' && ' - Advanced Features'}
                 </option>
               ) : null
             ))}
           </Select>
+          {selectedTemplate ? (
+            <div style={{ 
+              marginTop: '8px', 
+              padding: '8px 12px', 
+              backgroundColor: selectedTemplate.type === 'basic' ? '#e3f2fd' : selectedTemplate.type === 'custom' ? '#f3e5f5' : '#fff3e0',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              color: selectedTemplate.type === 'basic' ? '#1565c0' : selectedTemplate.type === 'custom' ? '#6a1b9a' : '#e65100'
+            }}>
+              ✅ Active: {selectedTemplate.name}
+              <br />
+              📝 {selectedTemplate.description || 'No description'}
+            </div>
+          ) : (
+            <div style={{ 
+              marginTop: '8px', 
+              padding: '8px 12px', 
+              backgroundColor: '#fff3e0',
+              borderRadius: '4px',
+              fontSize: '12px',
+              color: '#e65100',
+              border: '1px solid #ffcc80'
+            }}>
+              💡 <strong>Select a template above to get started!</strong>
+              <br />
+              📝 Basic Template - For simple monthly payslips
+              <br />
+              ⚡ Advanced Template - For detailed payroll analysis
+            </div>
+          )}
         </InputGroup>
 
         <InputGroup>
