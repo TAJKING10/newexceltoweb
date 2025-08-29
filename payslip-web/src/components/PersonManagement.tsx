@@ -3,150 +3,291 @@ import styled from 'styled-components';
 import { personManager } from '../utils/personManager';
 import { PersonProfile, PersonType, PERSON_TYPE_CONFIG, PersonFilters } from '../types/PersonTypes';
 import PersonEditModal from './PersonEditModal';
+import { theme } from '../styles/theme';
 
 const Container = styled.div`
-  padding: 20px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f8f9fa;
-  min-height: 100vh;
+  padding: 0;
+  font-family: ${theme.typography.fontFamily.primary};
+  background-color: transparent;
+  min-height: calc(100vh - 200px);
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: between;
   align-items: center;
-  margin-bottom: 30px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  margin-bottom: ${theme.spacing[8]};
+  background: ${theme.colors.gradients.primary};
   color: white;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  padding: ${theme.spacing[8]} ${theme.spacing[6]};
+  border-radius: ${theme.borderRadius['2xl']};
+  box-shadow: ${theme.shadows.xl};
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><radialGradient id="a" cx="50%" cy="50%"><stop offset="0%" stop-color="white" stop-opacity="0.1"/><stop offset="100%" stop-color="white" stop-opacity="0"/></radialGradient></defs><circle cx="200" cy="200" r="150" fill="url(%23a)"/><circle cx="800" cy="800" r="200" fill="url(%23a)"/></svg>');
+    pointer-events: none;
+  }
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    padding: ${theme.spacing[6]} ${theme.spacing[4]};
+  }
+`;
+
+const HeaderContent = styled.div`
+  position: relative;
+  z-index: 1;
 `;
 
 const Title = styled.h1`
   margin: 0;
-  font-size: 28px;
-  font-weight: bold;
+  font-size: ${theme.typography.fontSize['4xl']};
+  font-weight: ${theme.typography.fontWeight.black};
+  font-family: ${theme.typography.fontFamily.secondary};
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    font-size: ${theme.typography.fontSize['3xl']};
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    font-size: ${theme.typography.fontSize['2xl']};
+  }
 `;
 
 const Subtitle = styled.p`
-  margin: 5px 0 0 0;
+  margin: ${theme.spacing[2]} 0 0 0;
   opacity: 0.9;
-  font-size: 16px;
+  font-size: ${theme.typography.fontSize.lg};
+  font-weight: ${theme.typography.fontWeight.medium};
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    font-size: ${theme.typography.fontSize.base};
+  }
 `;
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: ${theme.spacing[6]};
+  margin-bottom: ${theme.spacing[8]};
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: ${theme.spacing[4]};
+  }
 `;
 
 const StatCard = styled.div`
   background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  padding: ${theme.spacing[6]};
+  border-radius: ${theme.borderRadius.xl};
+  box-shadow: ${theme.shadows.base};
   text-align: center;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid ${theme.colors.primary.main};
+  position: relative;
+  overflow: hidden;
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: ${theme.colors.gradients.primary};
+  }
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: ${theme.shadows.lg};
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    padding: ${theme.spacing[4]};
+  }
 `;
 
 const StatNumber = styled.div`
-  font-size: 32px;
-  font-weight: bold;
-  color: #667eea;
-  margin-bottom: 5px;
+  font-size: ${theme.typography.fontSize['4xl']};
+  font-weight: ${theme.typography.fontWeight.black};
+  color: ${theme.colors.primary.main};
+  margin-bottom: ${theme.spacing[2]};
+  font-family: ${theme.typography.fontFamily.secondary};
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    font-size: ${theme.typography.fontSize['3xl']};
+  }
 `;
 
 const StatLabel = styled.div`
-  color: #666;
-  font-size: 14px;
+  color: ${theme.colors.text.secondary};
+  font-size: ${theme.typography.fontSize.sm};
+  font-weight: ${theme.typography.fontWeight.medium};
+  text-transform: uppercase;
+  letter-spacing: ${theme.typography.letterSpacing.wide};
 `;
 
 const ControlsSection = styled.div`
   background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
+  padding: ${theme.spacing[6]};
+  border-radius: ${theme.borderRadius.xl};
+  box-shadow: ${theme.shadows.base};
+  margin-bottom: ${theme.spacing[6]};
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: ${theme.spacing[5]};
   align-items: end;
+  border: 1px solid ${theme.colors.border.light};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    grid-template-columns: 1fr;
+    padding: ${theme.spacing[4]};
+  }
 `;
 
 const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
+  gap: ${theme.spacing[2]};
 `;
 
 const Label = styled.label`
-  font-weight: 600;
-  margin-bottom: 5px;
-  color: #333;
-  font-size: 14px;
+  font-weight: ${theme.typography.fontWeight.semibold};
+  color: ${theme.colors.text.primary};
+  font-size: ${theme.typography.fontSize.sm};
+  font-family: ${theme.typography.fontFamily.primary};
 `;
 
 const Input = styled.input`
-  padding: 10px;
-  border: 2px solid #e1e5e9;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: border-color 0.3s;
+  padding: ${theme.spacing[3]} ${theme.spacing[4]};
+  border: 2px solid ${theme.colors.border.light};
+  border-radius: ${theme.borderRadius.lg};
+  font-size: ${theme.typography.fontSize.sm};
+  font-family: ${theme.typography.fontFamily.primary};
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
+  background: white;
   
   &:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: ${theme.colors.primary.main};
+    box-shadow: 0 0 0 3px ${theme.colors.primary[100]};
+  }
+  
+  &:hover {
+    border-color: ${theme.colors.primary.light};
+  }
+  
+  &::placeholder {
+    color: ${theme.colors.text.tertiary};
   }
 `;
 
 const Select = styled.select`
-  padding: 10px;
-  border: 2px solid #e1e5e9;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: border-color 0.3s;
+  padding: ${theme.spacing[3]} ${theme.spacing[4]};
+  border: 2px solid ${theme.colors.border.light};
+  border-radius: ${theme.borderRadius.lg};
+  font-size: ${theme.typography.fontSize.sm};
+  font-family: ${theme.typography.fontFamily.primary};
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
+  background: white;
+  cursor: pointer;
   
   &:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: ${theme.colors.primary.main};
+    box-shadow: 0 0 0 3px ${theme.colors.primary[100]};
+  }
+  
+  &:hover {
+    border-color: ${theme.colors.primary.light};
   }
 `;
 
 const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'success' | 'danger' }>`
-  padding: 10px 20px;
+  padding: ${theme.spacing[3]} ${theme.spacing[5]};
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: ${theme.borderRadius.lg};
+  font-size: ${theme.typography.fontSize.sm};
+  font-weight: ${theme.typography.fontWeight.semibold};
+  font-family: ${theme.typography.fontFamily.primary};
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${theme.spacing[2]};
+  min-height: 44px;
+  position: relative;
+  overflow: hidden;
+  
+  &:active {
+    transform: translateY(1px);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+  }
   
   ${props => {
     switch (props.variant) {
       case 'primary':
         return `
-          background-color: #667eea;
+          background: ${theme.colors.gradients.primary};
           color: white;
-          &:hover { background-color: #5a67d8; }
+          box-shadow: ${theme.shadows.base};
+          
+          &:hover {
+            box-shadow: ${theme.shadows.lg};
+            transform: translateY(-2px);
+          }
         `;
       case 'success':
         return `
-          background-color: #48bb78;
+          background: ${theme.colors.gradients.secondary};
           color: white;
-          &:hover { background-color: #38a169; }
+          box-shadow: ${theme.shadows.base};
+          
+          &:hover {
+            box-shadow: ${theme.shadows.lg};
+            transform: translateY(-2px);
+          }
         `;
       case 'danger':
         return `
-          background-color: #f56565;
+          background-color: ${theme.colors.error.main};
           color: white;
-          &:hover { background-color: #e53e3e; }
+          box-shadow: ${theme.shadows.base};
+          
+          &:hover {
+            background-color: ${theme.colors.error.dark};
+            box-shadow: ${theme.shadows.lg};
+            transform: translateY(-2px);
+          }
         `;
       default:
         return `
-          background-color: #e2e8f0;
-          color: #4a5568;
-          &:hover { background-color: #cbd5e0; }
+          background-color: white;
+          color: ${theme.colors.text.secondary};
+          border: 2px solid ${theme.colors.border.light};
+          
+          &:hover {
+            background-color: ${theme.colors.gray[50]};
+            border-color: ${theme.colors.primary.light};
+            color: ${theme.colors.primary.main};
+            transform: translateY(-2px);
+          }
         `;
     }
   }}
@@ -154,21 +295,48 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'success' | '
 
 const PersonGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: ${theme.spacing[6]};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: ${theme.spacing[4]};
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const PersonCard = styled.div`
   background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  transition: transform 0.3s, box-shadow 0.3s;
-  border-left: 4px solid #667eea;
+  border-radius: ${theme.borderRadius.xl};
+  padding: ${theme.spacing[6]};
+  box-shadow: ${theme.shadows.base};
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
+  border-left: 4px solid ${theme.colors.primary.main};
+  border: 1px solid ${theme.colors.border.light};
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: ${theme.colors.gradients.primary};
+  }
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    transform: translateY(-4px);
+    box-shadow: ${theme.shadows.xl};
+    border-color: ${theme.colors.primary.light};
+  }
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    padding: ${theme.spacing[4]};
   }
 `;
 
@@ -196,15 +364,22 @@ const PersonInfo = styled.div`
 `;
 
 const PersonName = styled.h3`
-  margin: 0 0 5px 0;
-  color: #2d3748;
-  font-size: 18px;
+  margin: 0 0 ${theme.spacing[1]} 0;
+  color: ${theme.colors.text.primary};
+  font-size: ${theme.typography.fontSize.xl};
+  font-weight: ${theme.typography.fontWeight.bold};
+  font-family: ${theme.typography.fontFamily.secondary};
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    font-size: ${theme.typography.fontSize.lg};
+  }
 `;
 
 const PersonDetails = styled.p`
   margin: 0;
-  color: #718096;
-  font-size: 14px;
+  color: ${theme.colors.text.secondary};
+  font-size: ${theme.typography.fontSize.sm};
+  font-weight: ${theme.typography.fontWeight.medium};
 `;
 
 const PersonMeta = styled.div`
@@ -216,7 +391,11 @@ const PersonMeta = styled.div`
 `;
 
 const MetaItem = styled.div`
-  color: #4a5568;
+  color: ${theme.colors.text.secondary};
+  font-size: ${theme.typography.fontSize.xs};
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing[1]};
 `;
 
 const PersonActions = styled.div`
@@ -227,28 +406,40 @@ const PersonActions = styled.div`
 
 const TypeFilter = styled.div`
   display: flex;
-  gap: 10px;
+  gap: ${theme.spacing[3]};
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: ${theme.spacing[6]};
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    gap: ${theme.spacing[2]};
+  }
 `;
 
 const TypeChip = styled.button<{ active: boolean; color: string }>`
-  padding: 8px 16px;
+  padding: ${theme.spacing[3]} ${theme.spacing[4]};
   border: 2px solid ${props => props.color};
   background-color: ${props => props.active ? props.color : 'white'};
   color: ${props => props.active ? 'white' : props.color};
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: ${theme.borderRadius.full};
+  font-size: ${theme.typography.fontSize.sm};
+  font-weight: ${theme.typography.fontWeight.semibold};
+  font-family: ${theme.typography.fontFamily.primary};
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: ${theme.spacing[2]};
+  box-shadow: ${theme.shadows.sm};
   
   &:hover {
     background-color: ${props => props.color};
     color: white;
+    transform: translateY(-2px);
+    box-shadow: ${theme.shadows.md};
+  }
+  
+  &:active {
+    transform: translateY(0);
   }
 `;
 
@@ -340,32 +531,32 @@ const PersonManagement: React.FC = () => {
   };
 
   return (
-    <Container>
+    <Container className="animate-fadeIn">
       <Header>
-        <div>
+        <HeaderContent>
           <Title>👥 Universal Person Management</Title>
           <Subtitle>Manage employees, customers, contractors, freelancers, and more</Subtitle>
-        </div>
+        </HeaderContent>
       </Header>
 
-      <StatsGrid>
-        <StatCard>
+      <StatsGrid className="stagger-children">
+        <StatCard className="hover-float">
           <StatNumber>{persons.length}</StatNumber>
           <StatLabel>Total Persons</StatLabel>
         </StatCard>
-        <StatCard>
+        <StatCard className="hover-float">
           <StatNumber>{persons.filter(p => p.workInfo.status === 'active').length}</StatNumber>
           <StatLabel>Active</StatLabel>
         </StatCard>
-        <StatCard>
+        <StatCard className="hover-float">
           <StatNumber>{getPersonTypeCount('employee')}</StatNumber>
           <StatLabel>Employees</StatLabel>
         </StatCard>
-        <StatCard>
+        <StatCard className="hover-float">
           <StatNumber>{getPersonTypeCount('customer')}</StatNumber>
           <StatLabel>Customers</StatLabel>
         </StatCard>
-        <StatCard>
+        <StatCard className="hover-float">
           <StatNumber>{getPersonTypeCount('contractor')}</StatNumber>
           <StatLabel>Contractors</StatLabel>
         </StatCard>
@@ -408,9 +599,9 @@ const PersonManagement: React.FC = () => {
         ))}
       </TypeFilter>
 
-      <PersonGrid>
+      <PersonGrid className="stagger-children">
         {filteredPersons.map(person => (
-          <PersonCard key={person.id}>
+          <PersonCard key={person.id} className="card-interactive hover-glow">
             <PersonHeader>
               <PersonTypeIcon backgroundColor={PERSON_TYPE_CONFIG[person.type].color}>
                 {PERSON_TYPE_CONFIG[person.type].icon}
