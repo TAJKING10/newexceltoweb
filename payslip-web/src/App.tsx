@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import ExcelAnalyzer from './components/ExcelAnalyzer';
 import PayslipGenerator from './components/PayslipGenerator';
 import MonthlyPayslipGenerator from './components/MonthlyPayslipGenerator';
 import EnhancedTemplateBuilder from './components/EnhancedTemplateBuilder';
@@ -8,12 +7,8 @@ import PersonManagement from './components/PersonManagement';
 import { theme } from './styles/theme';
 
 function App() {
-  const [analysisData, setAnalysisData] = useState<any>(null);
-  const [currentView, setCurrentView] = useState<'analysis' | 'basic' | 'excel' | 'template' | 'persons'>('persons');
+  const [currentView, setCurrentView] = useState<'basic' | 'excel' | 'template' | 'persons'>('persons');
 
-  const handleAnalysisComplete = (data: any) => {
-    setAnalysisData(data);
-  };
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -187,8 +182,7 @@ const getFeatureText = (view: string) => {
     persons: 'Universal database • Employees • Customers • Contractors • Search & filter • History tracking',
     template: 'Expandable sections • Custom fields • Dynamic tables • Drag & drop',
     excel: 'Monthly columns (Jan-Dec) • Annual totals • Person selection • Template support • Real-time calculations',
-    basic: 'Simple interface • Quick setup • Easy editing • Form-based',
-    analysis: 'Excel structure analysis • Formula parsing • Data extraction'
+    basic: 'Simple interface • Quick setup • Easy editing • Form-based'
   };
   return features[view as keyof typeof features] || '';
 };
@@ -208,14 +202,6 @@ const getFeatureText = (view: string) => {
               <span>Person Management</span>
             </NavTab>
             
-            <NavTab 
-              isActive={currentView === 'analysis'}
-              onClick={() => setCurrentView('analysis')}
-              title="Analyze your Excel file structure and formulas"
-            >
-              <span>📊</span>
-              <span>Excel Analysis</span>
-            </NavTab>
             
             <NavTab 
               isActive={currentView === 'template'}
@@ -258,20 +244,17 @@ const getFeatureText = (view: string) => {
           <PersonManagement />
         )}
         
-        {currentView === 'analysis' && (
-          <ExcelAnalyzer onAnalysisComplete={handleAnalysisComplete} />
-        )}
         
         {currentView === 'template' && (
           <EnhancedTemplateBuilder />
         )}
         
         {currentView === 'excel' && (
-          <MonthlyPayslipGenerator analysisData={analysisData} />
+          <MonthlyPayslipGenerator />
         )}
         
         {currentView === 'basic' && (
-          <PayslipGenerator analysisData={analysisData} />
+          <PayslipGenerator />
         )}
       </MainContent>
     </AppContainer>

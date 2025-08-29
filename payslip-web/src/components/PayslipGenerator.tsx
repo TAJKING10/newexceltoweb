@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { personManager } from '../utils/personManager';
 import { templateSync } from '../utils/templateSync';
 import { viewSync } from '../utils/viewSync';
+import { dataSync } from '../utils/dataSync';
 import { PayslipTemplate, SectionDefinition, FieldDefinition } from '../types/PayslipTypes';
 import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 
@@ -319,6 +320,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       version: '1.0',
       description: 'Simple monthly payslip template - perfect for basic payslips',
       type: 'basic',
+      compatibleViews: ['basic', 'excel'],
       header: {
         id: 'basic-header',
         title: 'PAYSLIP',
@@ -378,7 +380,8 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       name: '⚡ Advanced Payslip Template',
       version: '1.0',
       description: 'Comprehensive advanced payslip template with detailed sections',
-      type: 'custom',
+      type: 'advanced',
+      compatibleViews: ['basic', 'excel'],
       header: {
         id: 'advanced-header',
         title: 'ADVANCED PAYROLL STATEMENT',
@@ -454,11 +457,11 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       // Debug: Log templates found
       console.log(`✅ Basic View: Loaded ${loadedTemplates.length} synchronized templates`);
       loadedTemplates.forEach((template: any) => {
-        console.log(`  - ${template.type === 'basic' ? '📝' : template.type === 'custom' ? '⚡' : template.type === 'annual' ? '📊' : '📋'} ${template.name} (${template.type})`);
+        console.log(`  - ${template.type === 'basic' ? '📝' : '⚡'} ${template.name} (${template.type}) - Compatible with: ${template.compatibleViews?.join(', ') || 'basic'}`);
       });
       
-      // Default to basic template
-      const basicTemplate = loadedTemplates.find(t => t.type === 'basic');
+      // Default to basic template that works in both views
+      const basicTemplate = loadedTemplates.find(t => t.type === 'basic' && t.compatibleViews?.includes('basic'));
       if (basicTemplate) {
         setSelectedTemplate(basicTemplate);
         initializeFromTemplate(basicTemplate);
@@ -538,20 +541,43 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         setSelectedPersonType(syncedPersonType as any);
         console.log('📝 Basic View: Applied synced person type:', syncedPersonType);
       }
+
+      // Subscribe to data synchronization changes from Excel View
+      const unsubscribeDataSync = dataSync.subscribe((templateId, personId) => {
+        // Only reload if it's for the currently selected template/person
+        if (selectedTemplate?.id === templateId && selectedPerson?.id === personId) {
+          const syncedData = dataSync.loadData(templateId, personId);
+          if (syncedData) {
+            console.log('📂 Basic View: Received synchronized data from Excel View');
+            setPayslipData(syncedData);
+          }
+        }
+      });
       
       return () => {
         unsubscribeTemplateSync();
         unsubscribeViewSync();
         unsubscribePersonSync();
         unsubscribePersonTypeSync();
+        unsubscribeDataSync();
       };
     } catch (error) {
       console.error('Error loading Basic View data:', error);
     }
   }, [safeArray]);
 
-  // Initialize fresh personalized template from base template
+  // Initialize template with synchronized data
   const initializeFromTemplate = (template: PayslipTemplate, person?: PersonProfile) => {
+    // First, try to load existing synchronized data
+    const existingSyncedData = dataSync.loadData(template.id, person?.id);
+    
+    if (existingSyncedData) {
+      console.log(`📂 Basic View: Loading existing synced data for template ${template.name}`);
+      setPayslipData(existingSyncedData);
+      return;
+    }
+    
+    // If no synced data exists, create fresh template data
     const newData: any = {};
     
     // Initialize header from template (personalized if person provided)
@@ -606,6 +632,10 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     });
     
     setPayslipData(newData);
+    
+    // Save this fresh data as the initial synchronized state
+    dataSync.saveData(template.id, newData, person?.id);
+    console.log(`💾 Basic View: Saved fresh template data for ${template.name}`);
   };
 
   // Populate ONLY editable common person data (rest stays at 0/empty)
@@ -679,12 +709,20 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     }
   };
 
-  // Handle field value change
+  // Handle field value change with data synchronization
   const handleFieldChange = (fieldId: string, value: any) => {
-    setPayslipData(prev => ({
-      ...prev,
+    const newData = {
+      ...payslipData,
       [fieldId]: value
-    }));
+    };
+    
+    setPayslipData(newData);
+    
+    // Synchronize data across views
+    if (selectedTemplate) {
+      dataSync.saveData(selectedTemplate.id, newData, selectedPerson?.id);
+      console.log(`🔄 Basic View: Data synced for field ${fieldId} in template ${selectedTemplate.name}`);
+    }
   };
 
   // Calculate formulas
@@ -1014,14 +1052,13 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                   value={template.id}
                   style={{
                     fontWeight: 'bold',
-                    color: template.type === 'basic' ? '#1565c0' : template.type === 'custom' ? '#6a1b9a' : '#e65100'
+                    color: template.type === 'basic' ? '#1565c0' : '#e65100'
                   }}
                 >
-                  {template.type === 'basic' ? '📝 Basic: ' : template.type === 'custom' ? '⚡ Advanced: ' : template.type === 'annual' ? '📊 Excel: ' : '📋 Other: '}
+                  {template.type === 'basic' ? '📝 Basic: ' : '⚡ Advanced: '}
                   {template.name?.replace('📝 ', '').replace('⚡ ', '').replace('📊 ', '').replace('📋 ', '') || 'Unnamed Template'}
                   {template.type === 'basic' && ' - Simple Payslip'}
-                  {template.type === 'custom' && ' - Advanced Features'}  
-                  {template.type === 'annual' && ' - Excel/Annual Style'}
+                  {template.type === 'advanced' && ' - Advanced Features'}  
                 </option>
               ) : null
             ))}
@@ -1030,11 +1067,11 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             <div style={{ 
               marginTop: '8px', 
               padding: '8px 12px', 
-              backgroundColor: selectedTemplate.type === 'basic' ? '#e3f2fd' : selectedTemplate.type === 'custom' ? '#f3e5f5' : selectedTemplate.type === 'annual' ? '#e8f5e8' : '#fff3e0',
+              backgroundColor: selectedTemplate.type === 'basic' ? '#e3f2fd' : '#fff3e0',
               borderRadius: '4px',
               fontSize: '12px',
               fontWeight: 'bold',
-              color: selectedTemplate.type === 'basic' ? '#1565c0' : selectedTemplate.type === 'custom' ? '#6a1b9a' : selectedTemplate.type === 'annual' ? '#2e7d32' : '#e65100'
+              color: selectedTemplate.type === 'basic' ? '#1565c0' : '#e65100'
             }}>
               ✅ Active: {selectedTemplate.name}
               <br />

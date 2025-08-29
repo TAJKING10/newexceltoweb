@@ -44,6 +44,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     version: '1.0',
     description: 'Simple payslip template with essential fields - ready to use with one click',
     type: 'basic',
+    compatibleViews: ['basic', 'excel'],
     header: {
       id: 'basic-header',
       title: 'PAYSLIP',
@@ -141,13 +142,14 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     lastModified: new Date()
   }), [safeArray]);
 
-  // Create advanced template with safe structure
-  const createCustomTemplate = useCallback((): PayslipTemplate => ({
+  // Create advanced template with safe structure  
+  const createAdvancedTemplate = useCallback((): PayslipTemplate => ({
     id: 'custom-template',
-    name: '⚡ Annual Payslip Template',
+    name: '⚡ Advanced Payslip Template',
     version: '1.0',
-    description: 'Comprehensive annual payslip template with advanced features - fully functional',
-    type: 'annual',
+    description: 'Comprehensive payslip template with advanced features - works in both Basic and Excel views',
+    type: 'advanced',
+    compatibleViews: ['basic', 'excel'],
     header: {
       id: 'custom-header',
       title: 'ANNUAL PAYROLL STATEMENT',
@@ -316,13 +318,32 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     lastModified: new Date()
   }), [safeArray]);
 
+  // Initialize default templates if none exist
+  const initializeDefaultTemplates = useCallback(() => {
+    const basicTemplate = createBasicTemplate();
+    const advancedTemplate = createAdvancedTemplate();
+    
+    // Add default templates to sync
+    templateSync.addTemplate(basicTemplate);
+    templateSync.addTemplate(advancedTemplate);
+    
+    return [basicTemplate, advancedTemplate];
+  }, [createBasicTemplate, createAdvancedTemplate]);
+
   // Load templates using unified sync service
   const loadTemplates = useCallback(() => {
     setIsLoading(true);
     setError(null);
     try {
       console.log('🎨 Template Builder: Loading templates via TemplateSync');
-      const loadedTemplates = templateSync.getAllTemplates();
+      let loadedTemplates = templateSync.getAllTemplates();
+      
+      // If no templates exist, initialize with defaults
+      if (loadedTemplates.length === 0) {
+        console.log('🎨 Template Builder: No templates found, initializing defaults');
+        loadedTemplates = initializeDefaultTemplates();
+      }
+      
       setTemplates(loadedTemplates);
       console.log(`✅ Template Builder: Loaded ${loadedTemplates.length} synchronized templates`);
     } catch (error) {
@@ -332,7 +353,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [initializeDefaultTemplates]);
 
   // Initialize on mount and subscribe to template changes
   useEffect(() => {
@@ -374,7 +395,8 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
         ...createBasicTemplate(),
         id: `template-${Date.now()}`,
         name: 'New Custom Template',
-        type: 'custom',
+        type: 'advanced',
+        compatibleViews: ['basic', 'excel'],
         description: 'Custom payslip template'
       };
       
@@ -673,7 +695,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
       }
 
       // Show success message
-      alert(`✅ Template "${template.name}" is now ready to use!\n\nThe template has been:\n• Made fully functional\n• Added to your templates\n• Ready for customization\n\n${template.type === 'basic' ? '📝 Basic View: Simple payslip for monthly use' : template.type === 'annual' ? '📊 Annual View: Excel-style spreadsheet for yearly data' : '⚡ Advanced: Full-featured template'}`);
+      alert(`✅ Template "${template.name}" is now ready to use!\n\nThe template has been:\n• Made fully functional\n• Added to your templates\n• Ready for customization\n\n${template.type === 'basic' ? '📝 Basic View: Simple payslip for monthly use' : '⚡ Advanced: Full-featured template'}`);
 
     } catch (error) {
       console.error('Error using template:', error);
@@ -868,13 +890,13 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                       <h3 style={{ margin: '0 0 5px 0', color: '#1565c0' }}>{template.name || 'Unnamed Template'}</h3>
                       <span style={{
                         padding: '4px 8px',
-                        backgroundColor: template.type === 'basic' ? '#e3f2fd' : template.type === 'annual' ? '#f3e5f5' : '#fff3e0',
-                        color: template.type === 'basic' ? '#1565c0' : template.type === 'annual' ? '#7b1fa2' : '#e65100',
+                        backgroundColor: template.type === 'basic' ? '#e3f2fd' : '#fff3e0',
+                        color: template.type === 'basic' ? '#1565c0' : '#e65100',
                         borderRadius: '12px',
                         fontSize: '12px',
                         fontWeight: 'bold'
                       }}>
-                        {template.type === 'basic' ? '📝 Basic View' : template.type === 'annual' ? '📊 Annual View' : '⚡ Advanced'}
+                        {template.type === 'basic' ? '📝 Basic Template' : '⚡ Advanced Template'} • Works in Both Views
                       </span>
                     </div>
                   </div>
@@ -888,8 +910,8 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                     <div>📋 Sections: {safeArray(template.sections).length}</div>
                     <div>📊 Tables: {safeArray(template.tables).length}</div>
                     <div>📅 Last modified: {template.lastModified ? new Date(template.lastModified).toLocaleDateString() : 'Unknown'}</div>
-                    {template.type === 'basic' && <div style={{ color: '#1565c0', fontWeight: 'bold', marginTop: '5px' }}>🎯 Perfect for: Monthly payslips, simple reports</div>}
-                    {template.type === 'annual' && <div style={{ color: '#7b1fa2', fontWeight: 'bold', marginTop: '5px' }}>🎯 Perfect for: Yearly reports, Excel-style data</div>}
+                    {template.type === 'basic' && <div style={{ color: '#1565c0', fontWeight: 'bold', marginTop: '5px' }}>🎯 Perfect for: Simple payslips - works in Basic & Excel view</div>}
+                    {template.type === 'advanced' && <div style={{ color: '#e65100', fontWeight: 'bold', marginTop: '5px' }}>⚡ Perfect for: Complex payslips - works in Basic & Excel view</div>}
                   </div>
                   
                   <div style={{ display: 'flex', gap: '10px' }}>

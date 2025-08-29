@@ -252,7 +252,8 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
         name: 'New Template',
         version: '1.0',
         description: '',
-        type: 'custom',
+        type: 'advanced',
+        compatibleViews: ['basic', 'excel'],
         header: {
           id: 'header-' + Date.now(),
           title: 'PAYSLIP',

@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { personManager } from '../utils/personManager';
 import { templateSync } from '../utils/templateSync';
 import { viewSync } from '../utils/viewSync';
+import { dataSync } from '../utils/dataSync';
 import { PayslipTemplate } from '../types/PayslipTypes';
 import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 import '../styles/print.css';
@@ -539,11 +540,11 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       // Debug: Log templates found
       console.log(`✅ Excel View: Loaded ${loadedTemplates.length} synchronized templates`);
       loadedTemplates.forEach((template: any) => {
-        console.log(`  - ${template.type === 'basic' ? '📝' : template.type === 'annual' ? '📊' : '⚡'} ${template.name} (${template.type})`);
+        console.log(`  - ${template.type === 'basic' ? '📝' : '⚡'} ${template.name} (${template.type}) - Compatible with: ${template.compatibleViews?.join(', ') || 'basic'}`);
       });
       
-      // Default to basic template
-      const basicTemplate = loadedTemplates.find(t => t.type === 'basic');
+      // Default to basic template that works in Excel view
+      const basicTemplate = loadedTemplates.find(t => t.type === 'basic' && t.compatibleViews?.includes('excel'));
       if (basicTemplate) {
         setSelectedTemplate(basicTemplate);
         console.log('✅ Excel View: Default template set to:', basicTemplate.name);
@@ -639,6 +640,18 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         setSelectedYear(syncedYear);
         console.log('📊 Excel View: Applied synced year:', syncedYear);
       }
+
+      // Subscribe to data synchronization changes from Basic View
+      const unsubscribeDataSync = dataSync.subscribe((templateId, personId) => {
+        // Only reload if it's for the currently selected template/person
+        if (selectedTemplate?.id === templateId && selectedPerson?.id === personId) {
+          const syncedData = dataSync.loadData(templateId, personId);
+          if (syncedData) {
+            console.log('📂 Excel View: Received synchronized data from Basic View');
+            setPayslipData(syncedData);
+          }
+        }
+      });
       
       return () => {
         unsubscribeTemplateSync();
@@ -646,6 +659,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         unsubscribePersonSync();
         unsubscribePersonTypeSync();
         unsubscribeYearSync();
+        unsubscribeDataSync();
       };
     } catch (error) {
       console.error('Error loading data:', error);
@@ -675,19 +689,27 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       : safePeople.filter(person => person && person.type === selectedPersonType);
   }, [selectedPersonType, persons, safeArray]);
 
-  // Handle cell value change
+  // Handle cell value change with data synchronization
   const handleCellChange = (monthIndex: number, rowName: string, value: string) => {
     const numValue = parseFloat(value) || 0;
-    setPayslipData(prev => ({
-      ...prev,
+    const newData = {
+      ...payslipData,
       months: {
-        ...prev.months,
+        ...payslipData.months,
         [monthIndex]: {
-          ...prev.months[monthIndex],
+          ...payslipData.months[monthIndex],
           [rowName]: numValue
         }
       }
-    }));
+    };
+    
+    setPayslipData(newData);
+    
+    // Synchronize data across views
+    if (selectedTemplate) {
+      dataSync.saveData(selectedTemplate.id, newData, selectedPerson?.id);
+      console.log(`🔄 Excel View: Data synced for ${rowName} month ${monthIndex} in template ${selectedTemplate.name}`);
+    }
   };
 
   // Handle person selection - create fresh personalized template
@@ -710,12 +732,21 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     if (!template) return;
 
     try {
-      // Update header information from template
+      // First, try to load existing synchronized data for this template
+      const existingSyncedData = dataSync.loadData(template.id, selectedPerson?.id);
+      
+      if (existingSyncedData) {
+        console.log(`📂 Excel View: Loading existing synced data for template ${template.name}`);
+        setPayslipData(existingSyncedData);
+        return;
+      }
+
+      // If no synced data exists, create fresh template data
       const templateHeader = template.header;
       const templateSubHeaders = safeArray(template.subHeaders);
 
-      setPayslipData(prev => ({
-        ...prev,
+      const newData = {
+        ...payslipData,
         header: {
           id: templateHeader.id || 'applied-header',
           title: templateHeader.title || 'PAYSLIP',
@@ -734,21 +765,27 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             label: section.label,
             value: section.value
           }))
-        })) : prev.subHeaders
-      }));
+        })) : payslipData.subHeaders
+      };
+
+      setPayslipData(newData);
+      
+      // Save this fresh data as the initial synchronized state
+      dataSync.saveData(template.id, newData, selectedPerson?.id);
+      console.log(`💾 Excel View: Saved fresh template data for ${template.name}`);
 
       // Show template applied message
       const templateTypeText = template.type === 'basic' ? '📝 Basic Monthly Template' : 
-                              template.type === 'annual' ? '📊 Annual Excel Template' : 
+                              template.type === 'advanced' ? '⚡ Advanced Template' : 
                               '⚡ Custom Template';
       
-      alert(`✅ Template Applied Successfully!\n\n${templateTypeText}\n\n"${template.name}" has been applied to your payslip.\n\n${template.description || 'Template is ready to use.'}`);
+      console.log(`✅ Template Applied: ${templateTypeText} - ${template.name}`);
       
     } catch (error) {
       console.error('Error applying template:', error);
       alert('❌ Error applying template. Please try again.');
     }
-  }, [safeArray]);
+  }, [safeArray, selectedPerson, payslipData]);
 
   // Create fresh personalized template for user
   const createFreshPersonalizedTemplate = (person: PersonProfile): MonthlyPayslipState => {
@@ -1274,14 +1311,13 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                   value={template.id}
                   style={{
                     fontWeight: 'bold',
-                    color: template.type === 'basic' ? '#1565c0' : template.type === 'annual' ? '#7b1fa2' : '#e65100'
+                    color: template.type === 'basic' ? '#1565c0' : '#e65100'
                   }}
                 >
-                  {template.type === 'basic' ? '📝 Basic: ' : template.type === 'annual' ? '📊 Advanced: ' : '⚡ Custom: '}
+                  {template.type === 'basic' ? '📝 Basic: ' : '⚡ Advanced: '}
                   {template.name?.replace('📝 ', '').replace('📊 ', '').replace('⚡ ', '') || 'Unnamed Template'}
                   {template.type === 'basic' && ' - Monthly Payslip'}
-                  {template.type === 'annual' && ' - Annual Excel Report'}
-                  {template.type === 'custom' && ' - Custom Template'}
+                  {template.type === 'advanced' && ' - Works in Both Views'}
                 </option>
               ) : null
             ))}
@@ -1290,11 +1326,11 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             <div style={{ 
               marginTop: '8px', 
               padding: '8px 12px', 
-              backgroundColor: selectedTemplate.type === 'basic' ? '#e3f2fd' : selectedTemplate.type === 'annual' ? '#f3e5f5' : '#fff3e0',
+              backgroundColor: selectedTemplate.type === 'basic' ? '#e3f2fd' : '#fff3e0',
               borderRadius: '4px',
               fontSize: '12px',
               fontWeight: 'bold',
-              color: selectedTemplate.type === 'basic' ? '#1565c0' : selectedTemplate.type === 'annual' ? '#7b1fa2' : '#e65100'
+              color: selectedTemplate.type === 'basic' ? '#1565c0' : '#e65100'
             }}>
               ✅ Active: {selectedTemplate.name}
               <br />

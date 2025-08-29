@@ -46,12 +46,24 @@ class TemplateSyncService {
       console.log('Could not load from Template Manager');
     }
 
-    // 3. Create default templates if none exist
-    if (templates.length === 0) {
-      const defaults = this.createDefaultTemplates();
-      templates.push(...defaults);
-      this.saveTemplates(templates);
+    // 3. Always start with exactly 2 clean default templates
+    console.log('🧹 TemplateSync: Clearing all templates and creating clean defaults');
+    
+    // Clear from Enhanced Template Builder storage
+    try {
+      localStorage.removeItem(this.STORAGE_KEY);
+      localStorage.removeItem('payslip-templates');
+      localStorage.removeItem('payslip-payslips');
+      localStorage.removeItem('payslip-batches');
+      console.log('🧹 All templates cleared from storage');
+    } catch (e) {
+      console.error('Error clearing templates:', e);
     }
+    
+    const defaults = this.createDefaultTemplates();
+    templates.length = 0; // Clear the array
+    templates.push(...defaults);
+    this.saveTemplates(templates);
 
     console.log(`📋 TemplateSyncService: Loaded ${templates.length} templates`);
     templates.forEach(t => {
@@ -100,6 +112,25 @@ class TemplateSyncService {
       this.notifyListeners();
     } catch (e) {
       console.error('Error saving templates:', e);
+    }
+  }
+
+  /**
+   * Clear all templates from all storage locations
+   */
+  clearAllTemplates(): void {
+    try {
+      // Clear from Enhanced Template Builder storage
+      localStorage.removeItem(this.STORAGE_KEY);
+      
+      // Clear from Template Manager storage  
+      localStorage.removeItem('payslip-templates');
+      localStorage.removeItem('payslip-payslips');
+      localStorage.removeItem('payslip-batches');
+      
+      console.log('🧹 All templates cleared from storage');
+    } catch (e) {
+      console.error('Error clearing templates:', e);
     }
   }
 
@@ -210,6 +241,7 @@ class TemplateSyncService {
       version: '1.0',
       description: 'Universal basic template - works perfectly in all views',
       type: 'basic',
+      compatibleViews: ['basic', 'excel'],
       header: {
         id: 'basic-header',
         title: 'PAYSLIP',
@@ -268,7 +300,8 @@ class TemplateSyncService {
       name: '📊 Annual Excel Template',
       version: '1.0',
       description: 'Universal annual template - perfect for Excel view and data analysis',
-      type: 'annual',
+      type: 'advanced',
+      compatibleViews: ['basic', 'excel'],
       header: {
         id: 'annual-header',
         title: 'ANNUAL PAYROLL STATEMENT',

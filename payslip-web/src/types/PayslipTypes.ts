@@ -99,7 +99,8 @@ export interface PayslipTemplate {
   name: string;
   version: string;
   description?: string;
-  type: 'basic' | 'custom' | 'annual';
+  type: 'basic' | 'advanced';
+  compatibleViews: ('basic' | 'excel')[];
   header: TemplateHeader;
   subHeaders: TemplateSubHeader[];
   sections: SectionDefinition[];
@@ -185,6 +186,7 @@ export const DEFAULT_TEMPLATE: PayslipTemplate = {
   version: '1.0',
   description: 'Standard payslip template with common sections',
   type: 'basic',
+  compatibleViews: ['basic', 'excel'],
   header: {
     id: 'default-header',
     title: 'PAYSLIP',
