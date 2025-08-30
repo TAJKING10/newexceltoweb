@@ -4,6 +4,7 @@ import PayslipGenerator from './components/PayslipGenerator';
 import MonthlyPayslipGenerator from './components/MonthlyPayslipGenerator';
 import EnhancedTemplateBuilder from './components/EnhancedTemplateBuilder';
 import PersonManagement from './components/PersonManagement';
+import ErrorBoundary from './components/ErrorBoundary';
 import { theme } from './styles/theme';
 
 function App() {
@@ -70,49 +71,81 @@ const NavigationTabs = styled.div`
 const NavTab = styled.button<{ isActive: boolean }>`
   padding: ${theme.spacing[3]} ${theme.spacing[5]};
   border: none;
-  border-radius: ${theme.borderRadius.lg};
+  border-radius: ${theme.borderRadius.xl};
   font-size: ${theme.typography.fontSize.sm};
   font-weight: ${theme.typography.fontWeight.semibold};
   font-family: ${theme.typography.fontFamily.primary};
   cursor: pointer;
-  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: ${theme.spacing[2]};
   min-height: 48px;
+  white-space: nowrap;
+  user-select: none;
   
   background: ${props => props.isActive 
     ? theme.colors.gradients.primary 
-    : 'white'};
+    : theme.colors.background.primary};
   color: ${props => props.isActive 
-    ? 'white' 
+    ? theme.colors.text.inverse 
     : theme.colors.text.secondary};
   border: 2px solid ${props => props.isActive 
     ? 'transparent' 
     : theme.colors.border.light};
   box-shadow: ${props => props.isActive 
-    ? theme.shadows.md 
+    ? `${theme.shadows.md}, ${theme.shadows.glow}` 
     : theme.shadows.xs};
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: ${props => props.isActive 
+      ? 'transparent' 
+      : 'linear-gradient(135deg, transparent 0%, rgba(91, 124, 255, 0.05) 50%, transparent 100%)'};
+    opacity: 0;
+    transition: opacity ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
+    pointer-events: none;
+  }
   
   &:hover {
     background: ${props => props.isActive 
       ? theme.colors.gradients.primary 
       : theme.colors.primary[50]};
     color: ${props => props.isActive 
-      ? 'white' 
+      ? theme.colors.text.inverse 
       : theme.colors.primary.main};
     border-color: ${props => props.isActive 
       ? 'transparent' 
       : theme.colors.primary.light};
-    transform: translateY(-2px);
-    box-shadow: ${theme.shadows.lg};
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: ${props => props.isActive 
+      ? `${theme.shadows.lg}, ${theme.shadows.glowLg}` 
+      : `${theme.shadows.lg}, 0 0 15px rgba(91, 124, 255, 0.2)`};
+    
+    &::before {
+      opacity: 1;
+    }
   }
   
   &:active {
-    transform: translateY(0);
-    box-shadow: ${theme.shadows.sm};
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: ${props => props.isActive 
+      ? `${theme.shadows.md}, ${theme.shadows.glow}` 
+      : `${theme.shadows.base}, 0 0 10px rgba(91, 124, 255, 0.15)`};
+    transition-duration: ${theme.animation.duration.fast};
+  }
+  
+  &:focus-visible {
+    outline: 2px solid ${theme.colors.primary.main};
+    outline-offset: 2px;
   }
   
   @media (max-width: ${theme.breakpoints.sm}) {
@@ -122,6 +155,15 @@ const NavTab = styled.button<{ isActive: boolean }>`
     
     span:last-child {
       display: none;
+    }
+  }
+
+  @media (hover: none) {
+    &:hover {
+      transform: none;
+      box-shadow: ${props => props.isActive 
+        ? `${theme.shadows.md}, ${theme.shadows.glow}` 
+        : theme.shadows.xs};
     }
   }
 `;
@@ -240,22 +282,27 @@ const getFeatureText = (view: string) => {
       </Header>
       
       <MainContent className="animate-fadeIn">
-        {currentView === 'persons' && (
-          <PersonManagement />
-        )}
-        
-        
-        {currentView === 'template' && (
-          <EnhancedTemplateBuilder />
-        )}
-        
-        {currentView === 'excel' && (
-          <MonthlyPayslipGenerator />
-        )}
-        
-        {currentView === 'basic' && (
-          <PayslipGenerator />
-        )}
+        <ErrorBoundary 
+          onError={(error, errorInfo) => {
+            console.error('App Error Boundary:', error, errorInfo);
+          }}
+        >
+          {currentView === 'persons' && (
+            <PersonManagement />
+          )}
+          
+          {currentView === 'template' && (
+            <EnhancedTemplateBuilder />
+          )}
+          
+          {currentView === 'excel' && (
+            <MonthlyPayslipGenerator />
+          )}
+          
+          {currentView === 'basic' && (
+            <PayslipGenerator />
+          )}
+        </ErrorBoundary>
       </MainContent>
     </AppContainer>
   );

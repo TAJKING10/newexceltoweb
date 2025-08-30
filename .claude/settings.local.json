@@ -13,7 +13,8 @@
       "Bash(PORT=8080 npm start)",
       "Bash(start http://localhost:3000)",
       "Bash(curl:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(PORT=3009 npm start)"
     ],
     "deny": [],
     "ask": []
