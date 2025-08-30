@@ -716,17 +716,22 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       : safePeople.filter(person => person && person.type === selectedPersonType);
   }, [selectedPersonType, persons, safeArray]);
 
-  // Optimized cell change - only local updates, no saving
+  // Optimized cell change - immediate UI updates only
   const handleCellChange = useCallback((monthIndex: number, rowName: string, value: string) => {
     const numValue = parseFloat(value) || 0;
     
-    // Import optimized data manager
-    import('../utils/optimizedDataManager').then(({ OptimizedDataManager }) => {
-      // Update only the specific cell
-      const newState = OptimizedDataManager.updateCell(payslipData, monthIndex, rowName, numValue);
-      setPayslipData(newState);
-    });
-  }, [payslipData]);
+    // Immediate UI update for responsiveness
+    setPayslipData(prev => ({
+      ...prev,
+      months: {
+        ...prev.months,
+        [monthIndex]: {
+          ...prev.months[monthIndex],
+          [rowName]: numValue
+        }
+      }
+    }));
+  }, []);
 
   // Debounced calculation trigger
   const debouncedCalculate = useCallback(
@@ -770,14 +775,105 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     [payslipData.taxClass, payslipData.hasChildren]
   );
 
-  // Cell commit - save to backend and trigger calculations
+  // Cell commit - trigger calculations and save
   const handleCellCommit = useCallback((monthIndex: number, rowName: string, value: string) => {
-    // Trigger debounced calculations
-    debouncedCalculate(monthIndex, rowName);
+    const numValue = parseFloat(value) || 0;
+    
+    // Check if this is a salary field that should trigger Luxembourg tax calculations
+    const isSalaryField = rowName.toLowerCase().includes('salary') || 
+                         rowName.toLowerCase().includes('basic') ||
+                         rowName.toLowerCase().includes('allowance') ||
+                         rowName.toLowerCase().includes('overtime') ||
+                         rowName.toLowerCase().includes('bonus');
+    
+    if (isSalaryField) {
+      console.log(`🇱🇺 Triggering Luxembourg tax calculation for ${rowName} = ${numValue}`);
+      
+      // Import and calculate immediately
+      import('../utils/luxembourgTaxCalculator').then(({ LuxembourgTaxCalculator }) => {
+        setPayslipData(currentState => {
+          const monthData = { ...currentState.months[monthIndex] };
+          monthData[rowName] = numValue; // Ensure the new value is included
+          
+          // Calculate gross salary from all components
+          const grossSalary = (monthData['Basic Salary'] || 0) + 
+                             (monthData['Allowances'] || 0) + 
+                             (monthData['Housing Allowance'] || 0) +
+                             (monthData['Transport Allowance'] || 0) +
+                             (monthData['Overtime Pay'] || 0) + 
+                             (monthData['Bonus'] || 0);
+          
+          console.log(`💰 Calculated gross salary: €${grossSalary}`);
+          
+          if (grossSalary > 0) {
+            try {
+              const taxResult = LuxembourgTaxCalculator.calculate({
+                monthlyGrossSalary: grossSalary,
+                taxClass: (currentState.taxClass || 1) as 1 | 2,
+                hasChildren: currentState.hasChildren || false,
+                isOver65: false
+              });
+              
+              const employerContributions = LuxembourgTaxCalculator.calculateEmployerContributions(grossSalary);
+              
+              // Update all calculated fields
+              monthData['Gross Salary'] = grossSalary;
+              monthData['Income Tax'] = taxResult.incomeTax;
+              monthData['Social Security Total'] = taxResult.socialSecurity.total;
+              monthData['Sickness Insurance'] = taxResult.socialSecurity.sickness;
+              monthData['Pension Contribution'] = taxResult.socialSecurity.pension;
+              monthData['Dependency Insurance'] = taxResult.socialSecurity.dependency;
+              monthData['Total Deductions'] = taxResult.incomeTax + taxResult.socialSecurity.total;
+              monthData['Net Salary'] = grossSalary - (taxResult.incomeTax + taxResult.socialSecurity.total);
+              monthData['Employer Cost'] = grossSalary + employerContributions.total;
+              
+              console.log(`✅ Luxembourg taxes calculated - Income Tax: €${taxResult.incomeTax.toFixed(2)}, Net: €${monthData['Net Salary'].toFixed(2)}`);
+              
+              // Recalculate totals for all tax-related rows
+              const taxRows = ['Gross Salary', 'Income Tax', 'Social Security Total', 'Sickness Insurance', 
+                              'Pension Contribution', 'Dependency Insurance', 'Total Deductions', 'Net Salary', 'Employer Cost'];
+              const newTotals = { ...currentState.totals };
+              
+              taxRows.forEach(row => {
+                newTotals[row] = 0;
+                for (let i = 0; i < 12; i++) {
+                  newTotals[row] += currentState.months[i]?.[row] || 0;
+                }
+              });
+              
+              // Add the current month's values
+              taxRows.forEach(row => {
+                newTotals[row] = (newTotals[row] || 0) - (currentState.months[monthIndex]?.[row] || 0) + (monthData[row] || 0);
+              });
+              
+              return {
+                ...currentState,
+                months: {
+                  ...currentState.months,
+                  [monthIndex]: monthData
+                },
+                totals: newTotals
+              };
+            } catch (error) {
+              console.error('Error calculating Luxembourg taxes:', error);
+              return currentState;
+            }
+          }
+          
+          return {
+            ...currentState,
+            months: {
+              ...currentState.months,
+              [monthIndex]: monthData
+            }
+          };
+        });
+      });
+    }
     
     // Save to backend (debounced)
     debouncedSave(monthIndex, rowName, value);
-  }, [debouncedCalculate]);
+  }, [payslipData.taxClass, payslipData.hasChildren]);
 
   // Debounced save to prevent excessive backend calls
   const debouncedSave = useCallback(
