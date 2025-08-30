@@ -278,6 +278,8 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const [selectedTemplate, setSelectedTemplate] = useState<PayslipTemplate | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<PersonProfile | null>(null);
   const [selectedPersonType, setSelectedPersonType] = useState<'all' | 'employee' | 'customer' | 'contractor' | 'freelancer' | 'vendor' | 'consultant' | 'other'>('all');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [templates, setTemplates] = useState<PayslipTemplate[]>([]);
   const [persons, setPersons] = useState<PersonProfile[]>([]);
   const [editMode, setEditMode] = useState(false);
@@ -297,7 +299,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       {
         id: 'info-header',
         sections: [
-          { id: 'period', label: 'Pay Period', value: 'January 2025' },
+          { id: 'period', label: 'Pay Period', value: `${new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}` },
           { id: 'date', label: 'Pay Date', value: new Date().toLocaleDateString() },
           { id: 'method', label: 'Payment Method', value: 'Direct Deposit' }
         ]
@@ -728,74 +730,201 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     }
   };
 
-  // Calculate formulas with Luxembourg tax integration
+  // Luxembourg tax calculations for Basic View - Enhanced version
   useEffect(() => {
     if (!selectedTemplate) return;
     
     const newCalculatedValues: { [fieldId: string]: number } = {};
     
-    // Import Luxembourg tax calculator
-    import('../utils/luxembourgTaxCalculator').then(({ LuxembourgTaxCalculator }) => {
-      safeArray(selectedTemplate.sections).forEach(section => {
-        safeArray(section.fields).forEach(field => {
-          if (field.type === 'formula' && field.formula) {
-            try {
-              let result = 0;
-              
-              // Handle Luxembourg tax calculations
-              if (field.formula.toLowerCase().includes('luxembourg_tax')) {
-                const grossSalary = payslipData.grossSalary || 0;
-                const taxClass = payslipData.taxClass || 1;
-                const hasChildren = payslipData.hasChildren || false;
-                
-                const taxResult = LuxembourgTaxCalculator.calculate({
-                  monthlyGrossSalary: grossSalary,
-                  taxClass: taxClass as 1 | 2,
-                  hasChildren,
-                  isOver65: false
-                });
-                
-                if (field.formula.includes('income_tax')) {
-                  result = taxResult.incomeTax;
-                } else if (field.formula.includes('social_security')) {
-                  result = taxResult.socialSecurity.total;
-                } else if (field.formula.includes('net_salary')) {
-                  result = taxResult.netSalary;
-                } else if (field.formula.includes('sickness')) {
-                  result = taxResult.socialSecurity.sickness;
-                } else if (field.formula.includes('pension')) {
-                  result = taxResult.socialSecurity.pension;
-                } else if (field.formula.includes('dependency')) {
-                  result = taxResult.socialSecurity.dependency;
-                }
-              } else {
-                // Standard formula evaluation
-                let formula = field.formula;
-                
-                // Replace field references with actual values
-                Object.keys(payslipData).forEach(key => {
-                  const value = payslipData[key];
-                  if (typeof value === 'number') {
-                    formula = formula.replace(new RegExp(`\\b${key}\\b`, 'g'), value.toString());
-                  }
-                });
-                
-                // Basic arithmetic evaluation
-                result = eval(formula);
-              }
-              
-              newCalculatedValues[field.id] = typeof result === 'number' ? result : 0;
-            } catch (error) {
-              console.error(`Error calculating formula for ${field.id}:`, error);
-              newCalculatedValues[field.id] = 0;
-            }
-          }
-        });
-      });
+    // Enhanced gross salary calculation - check ALL possible salary sources
+    let grossSalary = 0;
+    
+    // Direct gross salary field (if manually entered)
+    if (payslipData.grossSalary && payslipData.grossSalary > 0) {
+      grossSalary = payslipData.grossSalary;
+    } else {
+      // Calculate from components - check all possible field combinations
+      const basicSalary = payslipData.basicSalary || payslipData.basic || payslipData.salary || payslipData.basePay || 0;
+      const allowances = payslipData.allowances || payslipData.allowance || payslipData.benefits || 0;
+      const housingAllowance = payslipData.housingAllowance || payslipData.housing || 0;
+      const transportAllowance = payslipData.transportAllowance || payslipData.transport || 0;
+      const overtime = payslipData.overtime || payslipData.overtimePay || payslipData.extraHours || 0;
+      const bonus = payslipData.bonus || payslipData.bonuses || payslipData.incentives || 0;
+      const commission = payslipData.commission || payslipData.commissions || 0;
       
-      setCalculatedValues(newCalculatedValues);
-    });
-  }, [payslipData, selectedTemplate, safeArray]);
+      // Additional possible salary components
+      const otherEarnings = payslipData.otherEarnings || payslipData.miscellaneous || payslipData.other || 0;
+      
+      grossSalary = basicSalary + allowances + housingAllowance + transportAllowance + overtime + bonus + commission + otherEarnings;
+    }
+    
+    console.log(`🇱🇺 Basic View: Enhanced calculation - Gross salary: €${grossSalary.toFixed(2)} (Basic: €${payslipData.basicSalary || 0}, Allowances: €${payslipData.allowances || 0}, Overtime: €${payslipData.overtime || 0}, Bonus: €${payslipData.bonus || 0})`);
+    
+    if (grossSalary > 0) {
+      // Import and calculate Luxembourg taxes
+      import('../utils/luxembourgTaxCalculator').then(({ LuxembourgTaxCalculator }) => {
+        try {
+          const taxResult = LuxembourgTaxCalculator.calculate({
+            monthlyGrossSalary: grossSalary,
+            taxClass: (payslipData.taxClass || 1) as 1 | 2,
+            hasChildren: payslipData.hasChildren || false,
+            isOver65: false
+          });
+          
+          const employerContributions = LuxembourgTaxCalculator.calculateEmployerContributions(grossSalary);
+          
+          // Enhanced other deductions calculation
+          const otherDeductions = payslipData.deductions || payslipData.otherDeductions || payslipData.miscDeductions || 0;
+          
+          // Calculate all Luxembourg tax values with improved precision
+          const calculatedTaxValues = {
+            grossSalary: Math.round(grossSalary * 100) / 100,
+            incomeTax: Math.round(taxResult.incomeTax * 100) / 100,
+            socialSecurityTotal: Math.round(taxResult.socialSecurity.total * 100) / 100,
+            sicknessInsurance: Math.round(taxResult.socialSecurity.sickness * 100) / 100,
+            pensionContribution: Math.round(taxResult.socialSecurity.pension * 100) / 100,
+            dependencyInsurance: Math.round(taxResult.socialSecurity.dependency * 100) / 100,
+            totalDeductions: Math.round((taxResult.incomeTax + taxResult.socialSecurity.total + otherDeductions) * 100) / 100,
+            netSalary: Math.round((grossSalary - (taxResult.incomeTax + taxResult.socialSecurity.total + otherDeductions)) * 100) / 100,
+            employerCost: Math.round((grossSalary + employerContributions.total) * 100) / 100
+          };
+          
+          console.log(`✅ Basic View: Luxembourg taxes calculated - Income Tax: €${calculatedTaxValues.incomeTax}, Social Security: €${calculatedTaxValues.socialSecurityTotal}, Net: €${calculatedTaxValues.netSalary}`);
+          
+          // Update payslip data with calculated values - sync with main data
+          setPayslipData(prev => ({
+            ...prev,
+            grossSalary: calculatedTaxValues.grossSalary,
+            tax: calculatedTaxValues.incomeTax,
+            incomeTax: calculatedTaxValues.incomeTax,
+            socialSecurity: calculatedTaxValues.socialSecurityTotal,
+            socialSecurityTotal: calculatedTaxValues.socialSecurityTotal,
+            sickness: calculatedTaxValues.sicknessInsurance,
+            sicknessInsurance: calculatedTaxValues.sicknessInsurance,
+            pension: calculatedTaxValues.pensionContribution,
+            pensionContribution: calculatedTaxValues.pensionContribution,
+            dependency: calculatedTaxValues.dependencyInsurance,
+            dependencyInsurance: calculatedTaxValues.dependencyInsurance,
+            totalDeductions: calculatedTaxValues.totalDeductions,
+            netSalary: calculatedTaxValues.netSalary,
+            employerCost: calculatedTaxValues.employerCost
+          }));
+          
+          // Enhanced field mapping - covers more field label variations
+          safeArray(selectedTemplate.sections).forEach(section => {
+            safeArray(section.fields).forEach(field => {
+              const fieldLabel = field.label.toLowerCase().trim();
+              
+              // Gross Salary matching
+              if (fieldLabel.includes('gross salary') || fieldLabel.includes('total earnings') || fieldLabel.includes('gross pay') || fieldLabel.includes('total pay') || fieldLabel.includes('brutto')) {
+                newCalculatedValues[field.id] = calculatedTaxValues.grossSalary;
+              } 
+              // Income Tax matching
+              else if (fieldLabel.includes('income tax') || fieldLabel.includes('impôt') || fieldLabel.includes('tax') || fieldLabel.includes('withholding')) {
+                newCalculatedValues[field.id] = calculatedTaxValues.incomeTax;
+              } 
+              // Social Security Total matching
+              else if ((fieldLabel.includes('social security') || fieldLabel.includes('social contrib')) && !fieldLabel.includes('sickness') && !fieldLabel.includes('pension') && !fieldLabel.includes('dependency')) {
+                newCalculatedValues[field.id] = calculatedTaxValues.socialSecurityTotal;
+              } 
+              // Sickness Insurance matching
+              else if (fieldLabel.includes('sickness') || fieldLabel.includes('maladie') || fieldLabel.includes('health insurance')) {
+                newCalculatedValues[field.id] = calculatedTaxValues.sicknessInsurance;
+              } 
+              // Pension matching
+              else if (fieldLabel.includes('pension') || fieldLabel.includes('retraite') || fieldLabel.includes('retirement')) {
+                newCalculatedValues[field.id] = calculatedTaxValues.pensionContribution;
+              } 
+              // Dependency Insurance matching
+              else if (fieldLabel.includes('dependency') || fieldLabel.includes('dépendance') || fieldLabel.includes('long-term care')) {
+                newCalculatedValues[field.id] = calculatedTaxValues.dependencyInsurance;
+              } 
+              // Total Deductions matching
+              else if (fieldLabel.includes('total deduction') || fieldLabel.includes('total contrib') || fieldLabel.includes('total taxes')) {
+                newCalculatedValues[field.id] = calculatedTaxValues.totalDeductions;
+              } 
+              // Net Salary matching
+              else if (fieldLabel.includes('net salary') || fieldLabel.includes('net pay') || fieldLabel.includes('take home') || fieldLabel.includes('netto')) {
+                newCalculatedValues[field.id] = calculatedTaxValues.netSalary;
+              } 
+              // Employer Cost matching
+              else if (fieldLabel.includes('employer cost') || fieldLabel.includes('employer contrib') || fieldLabel.includes('total cost')) {
+                newCalculatedValues[field.id] = calculatedTaxValues.employerCost;
+              } 
+              // Custom formulas with enhanced variable substitution
+              else if (field.type === 'formula' && field.formula) {
+                try {
+                  let formula = field.formula;
+                  
+                  // Replace calculated values first
+                  Object.keys(calculatedTaxValues).forEach(key => {
+                    const value = calculatedTaxValues[key as keyof typeof calculatedTaxValues];
+                    formula = formula.replace(new RegExp(`\\b${key}\\b`, 'g'), value.toString());
+                  });
+                  
+                  // Replace payslip data values
+                  Object.keys(payslipData).forEach(key => {
+                    const value = payslipData[key as keyof typeof payslipData];
+                    if (typeof value === 'number') {
+                      formula = formula.replace(new RegExp(`\\b${key}\\b`, 'g'), value.toString());
+                    }
+                  });
+                  
+                  const result = eval(formula);
+                  newCalculatedValues[field.id] = typeof result === 'number' ? Math.round(result * 100) / 100 : 0;
+                } catch (error) {
+                  console.error(`❌ Error calculating formula for ${field.id} (${field.label}):`, error);
+                  newCalculatedValues[field.id] = 0;
+                }
+              }
+            });
+          });
+          
+          setCalculatedValues(newCalculatedValues);
+          console.log(`🎯 Basic View: Set ${Object.keys(newCalculatedValues).length} calculated field values`);
+          
+        } catch (error) {
+          console.error('❌ Error calculating Luxembourg taxes in Basic View:', error);
+          // Set error state or show user feedback
+          setCalculatedValues({});
+        }
+      }).catch(error => {
+        console.error('❌ Error importing Luxembourg Tax Calculator:', error);
+        setCalculatedValues({});
+      });
+    } else {
+      // No gross salary, clear calculated values and update payslip data
+      console.log('⚠️ Basic View: No gross salary detected, clearing calculated values');
+      setCalculatedValues({});
+      setPayslipData(prev => ({
+        ...prev,
+        tax: 0,
+        incomeTax: 0,
+        socialSecurity: 0,
+        socialSecurityTotal: 0,
+        sicknessInsurance: 0,
+        pensionContribution: 0,
+        dependencyInsurance: 0,
+        totalDeductions: 0,
+        netSalary: 0,
+        employerCost: 0
+      }));
+    }
+  }, [
+    // Monitor ALL possible salary input fields
+    payslipData.basicSalary, payslipData.basic, payslipData.salary, payslipData.basePay,
+    payslipData.allowances, payslipData.allowance, payslipData.benefits,
+    payslipData.housingAllowance, payslipData.housing,
+    payslipData.transportAllowance, payslipData.transport,
+    payslipData.overtime, payslipData.overtimePay, payslipData.extraHours,
+    payslipData.bonus, payslipData.bonuses, payslipData.incentives,
+    payslipData.commission, payslipData.commissions,
+    payslipData.otherEarnings, payslipData.miscellaneous, payslipData.other,
+    payslipData.grossSalary, // Manual gross salary override
+    payslipData.deductions, payslipData.otherDeductions, payslipData.miscDeductions,
+    payslipData.taxClass, payslipData.hasChildren, 
+    selectedTemplate, safeArray
+  ]);
 
   // Add new section
   const addSection = () => {
@@ -978,29 +1107,89 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     }
   };
 
-  // Render field input
+  // Enhanced field input renderer with automatic Luxembourg tax field detection
   const renderFieldInput = (field: FieldDefinition) => {
-    const value = calculatedValues[field.id] !== undefined 
-      ? calculatedValues[field.id] 
-      : payslipData[field.id] || '';
+    const fieldLabel = field.label.toLowerCase().trim();
+    const isLuxembourgTaxField = fieldLabel.includes('income tax') || 
+                                fieldLabel.includes('social security') || 
+                                fieldLabel.includes('sickness') || 
+                                fieldLabel.includes('pension') || 
+                                fieldLabel.includes('dependency') || 
+                                fieldLabel.includes('net salary') || 
+                                fieldLabel.includes('total deduction') || 
+                                fieldLabel.includes('employer cost') ||
+                                fieldLabel.includes('gross salary');
+    
+    const calculatedValue = calculatedValues[field.id];
+    const userValue = payslipData[field.id];
+    
+    // Priority: calculated value > user value > default
+    let displayValue: string | number = '';
+    if (calculatedValue !== undefined && calculatedValue !== null) {
+      displayValue = calculatedValue;
+    } else if (userValue !== undefined && userValue !== null && userValue !== '') {
+      displayValue = userValue;
+    }
 
-    if (field.type === 'formula') {
+    // Format currency values for Luxembourg tax fields
+    if (field.type === 'formula' || (field.type === 'number' && isLuxembourgTaxField && typeof displayValue === 'number')) {
       return (
-        <CalculatedValue>
-          {typeof value === 'number' ? value.toLocaleString() : value}
+        <CalculatedValue style={{
+          backgroundColor: calculatedValue !== undefined ? '#e8f5e9' : '#f8f9fa',
+          border: calculatedValue !== undefined ? '2px solid #4caf50' : '1px solid #e9ecef',
+          color: calculatedValue !== undefined ? '#2e7d32' : '#495057',
+          fontWeight: calculatedValue !== undefined ? 'bold' : 'normal'
+        }}>
+          {typeof displayValue === 'number' ? 
+            `€${displayValue.toLocaleString('de-LU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 
+            displayValue || '€0.00'
+          }
+          {calculatedValue !== undefined && (
+            <span style={{ fontSize: '10px', color: '#666', marginLeft: '8px' }}>
+              🇱🇺 Auto-calculated
+            </span>
+          )}
         </CalculatedValue>
       );
     }
 
+    // Handle manual gross salary input (when user wants to override calculation)
+    if (fieldLabel.includes('gross salary') && field.type === 'number') {
+      return (
+        <Input
+          type="number"
+          step="0.01"
+          value={displayValue || ''}
+          onChange={(e) => {
+            const newValue = parseFloat(e.target.value) || 0;
+            handleFieldChange(field.id, newValue);
+          }}
+          placeholder={`${field.label} (€)`}
+          disabled={field.readonly}
+          style={{
+            backgroundColor: calculatedValue !== undefined ? '#f1f8e9' : 'white',
+            borderColor: calculatedValue !== undefined ? '#8bc34a' : '#ddd'
+          }}
+        />
+      );
+    }
+
+    // Standard fields
     return (
       <Input
         type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
-        value={value}
+        step={field.type === 'number' ? '0.01' : undefined}
+        value={displayValue || ''}
         onChange={(e) => handleFieldChange(field.id, 
           field.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value
         )}
-        placeholder={field.label}
+        placeholder={field.type === 'number' && fieldLabel.includes('salary') ? `${field.label} (€)` : field.label}
         disabled={field.readonly}
+        style={{
+          backgroundColor: calculatedValue !== undefined ? '#f1f8e9' : 'white',
+          borderColor: calculatedValue !== undefined ? '#8bc34a' : '#ddd',
+          fontWeight: calculatedValue !== undefined ? 'bold' : 'normal'
+        }}
       />
     );
   };
@@ -1103,6 +1292,85 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               ) : null
             ))}
           </Select>
+        </InputGroup>
+
+        <InputGroup>
+          <Label>📅 Select Year & Month:</Label>
+          <Grid columns={2}>
+            <div>
+              <Label>Year</Label>
+              <Select
+                value={selectedYear}
+                onChange={(e) => {
+                  const year = parseInt(e.target.value);
+                  setSelectedYear(year);
+                  // Update pay period in subHeaders
+                  setPayslipData(prev => ({
+                    ...prev,
+                    subHeaders: prev.subHeaders.map(sh => 
+                      sh.id === 'info-header' ? {
+                        ...sh,
+                        sections: sh.sections.map(s => 
+                          s.id === 'period' ? 
+                            { ...s, value: `${new Date(year, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}` } 
+                            : s
+                        )
+                      } : sh
+                    )
+                  }));
+                }}
+              >
+                {Array.from({ length: 10 }, (_, i) => {
+                  const year = new Date().getFullYear() - 5 + i;
+                  return (
+                    <option key={year} value={year}>{year}</option>
+                  );
+                })}
+              </Select>
+            </div>
+            <div>
+              <Label>Month</Label>
+              <Select
+                value={selectedMonth}
+                onChange={(e) => {
+                  const month = parseInt(e.target.value);
+                  setSelectedMonth(month);
+                  // Update pay period in subHeaders
+                  setPayslipData(prev => ({
+                    ...prev,
+                    subHeaders: prev.subHeaders.map(sh => 
+                      sh.id === 'info-header' ? {
+                        ...sh,
+                        sections: sh.sections.map(s => 
+                          s.id === 'period' ? 
+                            { ...s, value: `${new Date(selectedYear, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}` } 
+                            : s
+                        )
+                      } : sh
+                    )
+                  }));
+                }}
+              >
+                {Array.from({ length: 12 }, (_, i) => {
+                  const monthName = new Date(2025, i).toLocaleDateString('en-US', { month: 'long' });
+                  return (
+                    <option key={i} value={i}>{monthName}</option>
+                  );
+                })}
+              </Select>
+            </div>
+          </Grid>
+          <div style={{
+            marginTop: '8px',
+            padding: '6px 10px',
+            backgroundColor: '#e8f5e9',
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#2e7d32',
+            fontWeight: '500'
+          }}>
+            📅 Pay Period: {new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </div>
         </InputGroup>
 
         <InputGroup>
