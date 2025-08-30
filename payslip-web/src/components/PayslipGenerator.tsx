@@ -736,29 +736,30 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     
     const newCalculatedValues: { [fieldId: string]: number } = {};
     
-    // Enhanced gross salary calculation - check ALL possible salary sources
-    let grossSalary = 0;
+    // Enhanced gross salary calculation - ALL 5 COMPONENTS as requested
+    // Calculate from the 5 main components as requested - check both underscore and camelCase versions
+    const basicSalary = payslipData.basic_salary || payslipData.basicSalary || payslipData.basic || payslipData.salary || payslipData.basePay || 0;
+    const allowances = payslipData.allowances || payslipData.allowance || payslipData.benefits || 0;
+    const overtime = payslipData.overtime || payslipData.overtimePay || payslipData.extraHours || 0;
+    const bonus = payslipData.bonus || payslipData.bonuses || payslipData.incentives || 0;
+    const commission = payslipData.commission || payslipData.commissions || 0;
     
-    // Direct gross salary field (if manually entered)
-    if (payslipData.grossSalary && payslipData.grossSalary > 0) {
-      grossSalary = payslipData.grossSalary;
-    } else {
-      // Calculate from components - check all possible field combinations
-      const basicSalary = payslipData.basicSalary || payslipData.basic || payslipData.salary || payslipData.basePay || 0;
-      const allowances = payslipData.allowances || payslipData.allowance || payslipData.benefits || 0;
-      const housingAllowance = payslipData.housingAllowance || payslipData.housing || 0;
-      const transportAllowance = payslipData.transportAllowance || payslipData.transport || 0;
-      const overtime = payslipData.overtime || payslipData.overtimePay || payslipData.extraHours || 0;
-      const bonus = payslipData.bonus || payslipData.bonuses || payslipData.incentives || 0;
-      const commission = payslipData.commission || payslipData.commissions || 0;
-      
-      // Additional possible salary components
-      const otherEarnings = payslipData.otherEarnings || payslipData.miscellaneous || payslipData.other || 0;
-      
-      grossSalary = basicSalary + allowances + housingAllowance + transportAllowance + overtime + bonus + commission + otherEarnings;
-    }
+    // DEBUG: Log individual component values
+    console.log('🔍 DEBUG: Individual components:', {
+      basicSalary: basicSalary,
+      allowances: allowances,
+      overtime: overtime,
+      bonus: bonus,
+      commission: commission,
+      payslipDataKeys: Object.keys(payslipData),
+      payslipDataValues: payslipData
+    });
     
-    console.log(`🇱🇺 Basic View: Enhanced calculation - Gross salary: €${grossSalary.toFixed(2)} (Basic: €${payslipData.basicSalary || 0}, Allowances: €${payslipData.allowances || 0}, Overtime: €${payslipData.overtime || 0}, Bonus: €${payslipData.bonus || 0})`);
+    // Sum ALL 5 components for total gross salary
+    const grossSalary = basicSalary + allowances + overtime + bonus + commission;
+    console.log('🔍 DEBUG: Calculated gross salary:', grossSalary);
+    
+    console.log(`🇱🇺 Basic View: Enhanced calculation - Gross salary: €${grossSalary.toFixed(2)} (Basic: €${payslipData.basic_salary || payslipData.basicSalary || 0}, Allowances: €${payslipData.allowances || 0}, Overtime: €${payslipData.overtime || 0}, Bonus: €${payslipData.bonus || 0}, Commission: €${payslipData.commission || 0})`);
     
     if (grossSalary > 0) {
       // Import and calculate Luxembourg taxes
@@ -791,10 +792,11 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           
           console.log(`✅ Basic View: Luxembourg taxes calculated - Income Tax: €${calculatedTaxValues.incomeTax}, Social Security: €${calculatedTaxValues.socialSecurityTotal}, Net: €${calculatedTaxValues.netSalary}`);
           
-          // Update payslip data with calculated values - sync with main data
+          // Update payslip data with calculated values - sync with main data (both field name formats)
           setPayslipData(prev => ({
             ...prev,
-            grossSalary: calculatedTaxValues.grossSalary,
+            gross_pay: calculatedTaxValues.grossSalary, // underscore version for template
+            grossSalary: calculatedTaxValues.grossSalary, // camelCase version for backwards compatibility
             tax: calculatedTaxValues.incomeTax,
             incomeTax: calculatedTaxValues.incomeTax,
             socialSecurity: calculatedTaxValues.socialSecurityTotal,
@@ -815,9 +817,14 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             safeArray(section.fields).forEach(field => {
               const fieldLabel = field.label.toLowerCase().trim();
               
-              // Gross Salary matching
+              // Gross Salary matching - check both Luxembourg tax calculated value AND our component sum
               if (fieldLabel.includes('gross salary') || fieldLabel.includes('total earnings') || fieldLabel.includes('gross pay') || fieldLabel.includes('total pay') || fieldLabel.includes('brutto')) {
-                newCalculatedValues[field.id] = calculatedTaxValues.grossSalary;
+                // Use our calculated gross salary (sum of 5 components) instead of tax calculator value
+                newCalculatedValues[field.id] = grossSalary;
+              }
+              // Special handling for gross_pay field with formula
+              else if (field.id === 'gross_pay' && field.type === 'formula') {
+                newCalculatedValues[field.id] = grossSalary;
               } 
               // Income Tax matching
               else if (fieldLabel.includes('income tax') || fieldLabel.includes('impôt') || fieldLabel.includes('tax') || fieldLabel.includes('withholding')) {
@@ -881,7 +888,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           });
           
           setCalculatedValues(newCalculatedValues);
-          console.log(`🎯 Basic View: Set ${Object.keys(newCalculatedValues).length} calculated field values`);
+          console.log(`🎯 Basic View: Set ${Object.keys(newCalculatedValues).length} calculated field values:`, newCalculatedValues);
           
         } catch (error) {
           console.error('❌ Error calculating Luxembourg taxes in Basic View:', error);
@@ -898,6 +905,8 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       setCalculatedValues({});
       setPayslipData(prev => ({
         ...prev,
+        gross_pay: 0, // underscore version for template
+        grossSalary: 0, // camelCase version for backwards compatibility
         tax: 0,
         incomeTax: 0,
         socialSecurity: 0,
@@ -911,16 +920,13 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       }));
     }
   }, [
-    // Monitor ALL possible salary input fields
-    payslipData.basicSalary, payslipData.basic, payslipData.salary, payslipData.basePay,
+    // Monitor the 5 main salary components as requested - both underscore and camelCase versions
+    payslipData.basic_salary, payslipData.basicSalary, payslipData.basic, payslipData.salary, payslipData.basePay,
     payslipData.allowances, payslipData.allowance, payslipData.benefits,
-    payslipData.housingAllowance, payslipData.housing,
-    payslipData.transportAllowance, payslipData.transport,
     payslipData.overtime, payslipData.overtimePay, payslipData.extraHours,
     payslipData.bonus, payslipData.bonuses, payslipData.incentives,
     payslipData.commission, payslipData.commissions,
-    payslipData.otherEarnings, payslipData.miscellaneous, payslipData.other,
-    payslipData.grossSalary, // Manual gross salary override
+    payslipData.gross_pay, payslipData.grossSalary, // Both gross salary field variants
     payslipData.deductions, payslipData.otherDeductions, payslipData.miscDeductions,
     payslipData.taxClass, payslipData.hasChildren, 
     selectedTemplate, safeArray
