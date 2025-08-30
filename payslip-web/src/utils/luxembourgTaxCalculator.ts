@@ -142,6 +142,11 @@ Total Employer Cost: ${FormulaParser.formatCurrency(result.totalCostToEmployer)}
       monthlyGrossSalary
     });
   }
+  
+  // Helper function to get just employer contributions
+  static calculateEmployerContributions(monthlyGrossSalary: number) {
+    return FormulaParser.calculateEmployerSocialSecurity(monthlyGrossSalary);
+  }
 }
 
 export default LuxembourgTaxCalculator;

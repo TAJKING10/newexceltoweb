@@ -6,7 +6,18 @@ import { viewSync } from '../utils/viewSync';
 import { dataSync } from '../utils/dataSync';
 import { PayslipTemplate } from '../types/PayslipTypes';
 import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
+import OptimizedCell from './OptimizedCell';
+// import VirtualizedPayslipTable from './VirtualizedPayslipTable'; // Disabled for now
 import '../styles/print.css';
+
+// Debounce utility function
+function debounce<T extends (...args: any[]) => void>(func: T, delay: number): T {
+  let timeoutId: NodeJS.Timeout;
+  return ((...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  }) as T;
+}
 
 const Container = styled.div`
   padding: 20px;
@@ -329,6 +340,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const [editMode, setEditMode] = useState(false);
   const [editingRowName, setEditingRowName] = useState<string | null>(null);
   const [tempRowName, setTempRowName] = useState<string>('');
+  const [useVirtualization, setUseVirtualization] = useState(true); // Enable virtualization by default
 
   const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
   
@@ -672,69 +684,29 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     }
   }, [safeArray]);
 
-  // Calculate totals with Luxembourg tax integration
+  // Lightweight initialization of essential rows
   useEffect(() => {
-    const months = payslipData.months;
-    const newTotals: any = {};
+    const essentialRows = [
+      'Basic Salary',
+      'Gross Salary', 
+      'Income Tax',
+      'Social Security Total',
+      'Sickness Insurance',
+      'Pension Contribution', 
+      'Dependency Insurance',
+      'Total Deductions',
+      'Net Salary',
+      'Employer Cost'
+    ];
     
-    // Import Luxembourg tax calculator for automatic tax calculations
-    import('../utils/luxembourgTaxCalculator').then(({ LuxembourgTaxCalculator }) => {
-      payslipData.customRows.forEach(row => {
-        // Check if this is a Luxembourg tax-related row
-        const isLuxembourgTaxRow = row.toLowerCase().includes('income tax') || 
-                                  row.toLowerCase().includes('social security') || 
-                                  row.toLowerCase().includes('sickness') ||
-                                  row.toLowerCase().includes('pension') ||
-                                  row.toLowerCase().includes('dependency');
-        
-        if (isLuxembourgTaxRow) {
-          // Calculate Luxembourg taxes automatically based on gross salary
-          newTotals[row] = 0;
-          for (let i = 0; i < 12; i++) {
-            const monthData = months[i];
-            const grossSalary = monthData?.['Gross Salary'] || monthData?.['Basic Salary'] || 0;
-            
-            if (grossSalary > 0) {
-              const taxResult = LuxembourgTaxCalculator.calculate({
-                monthlyGrossSalary: grossSalary,
-                taxClass: (payslipData.taxClass || 1) as 1 | 2,
-                hasChildren: payslipData.hasChildren || false,
-                isOver65: false
-              });
-              
-              let calculatedValue = 0;
-              if (row.toLowerCase().includes('income tax')) {
-                calculatedValue = taxResult.incomeTax;
-              } else if (row.toLowerCase().includes('social security')) {
-                calculatedValue = taxResult.socialSecurity.total;
-              } else if (row.toLowerCase().includes('sickness')) {
-                calculatedValue = taxResult.socialSecurity.sickness;
-              } else if (row.toLowerCase().includes('pension')) {
-                calculatedValue = taxResult.socialSecurity.pension;
-              } else if (row.toLowerCase().includes('dependency')) {
-                calculatedValue = taxResult.socialSecurity.dependency;
-              }
-              
-              // Update the month data with calculated value
-              if (!months[i]) months[i] = {};
-              months[i][row] = calculatedValue;
-              newTotals[row] += calculatedValue;
-            } else {
-              newTotals[row] += months[i]?.[row] || 0;
-            }
-          }
-        } else {
-          // Standard calculation for non-tax rows
-          newTotals[row] = 0;
-          for (let i = 0; i < 12; i++) {
-            newTotals[row] += months[i]?.[row] || 0;
-          }
-        }
-      });
-      
-      setPayslipData(prev => ({ ...prev, totals: newTotals, months }));
-    });
-  }, [payslipData.months, payslipData.customRows, payslipData.taxClass, payslipData.hasChildren]);
+    const missingRows = essentialRows.filter(row => !payslipData.customRows.includes(row));
+    if (missingRows.length > 0) {
+      setPayslipData(prev => ({ 
+        ...prev, 
+        customRows: [...prev.customRows, ...missingRows]
+      }));
+    }
+  }, [payslipData.customRows]);
 
   // Filtered persons based on type
   const filteredPersons = React.useMemo(() => {
@@ -744,28 +716,79 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       : safePeople.filter(person => person && person.type === selectedPersonType);
   }, [selectedPersonType, persons, safeArray]);
 
-  // Handle cell value change with data synchronization
-  const handleCellChange = (monthIndex: number, rowName: string, value: string) => {
+  // Optimized cell change - only local updates, no saving
+  const handleCellChange = useCallback((monthIndex: number, rowName: string, value: string) => {
     const numValue = parseFloat(value) || 0;
-    const newData = {
-      ...payslipData,
-      months: {
-        ...payslipData.months,
-        [monthIndex]: {
-          ...payslipData.months[monthIndex],
-          [rowName]: numValue
-        }
+    
+    // Import optimized data manager
+    import('../utils/optimizedDataManager').then(({ OptimizedDataManager }) => {
+      // Update only the specific cell
+      const newState = OptimizedDataManager.updateCell(payslipData, monthIndex, rowName, numValue);
+      setPayslipData(newState);
+    });
+  }, [payslipData]);
+
+  // Debounced calculation trigger
+  const debouncedCalculate = useCallback(
+    debounce((monthIndex: number, rowName: string) => {
+      import('../utils/optimizedDataManager').then(({ OptimizedDataManager }) => {
+        setPayslipData(currentState => {
+          // Calculate Luxembourg taxes for this month if it's a salary field
+          const isSalaryField = rowName.toLowerCase().includes('salary') || 
+                               rowName.toLowerCase().includes('basic') ||
+                               rowName.toLowerCase().includes('allowance') ||
+                               rowName.toLowerCase().includes('overtime') ||
+                               rowName.toLowerCase().includes('bonus');
+
+          if (isSalaryField) {
+            const monthData = currentState.months[monthIndex] || {};
+            const updatedMonthData = OptimizedDataManager.calculateLuxembourgTaxes(
+              monthData, 
+              currentState.taxClass || 1, 
+              currentState.hasChildren || false
+            );
+
+            // Update the month with calculated values
+            const newState = {
+              ...currentState,
+              months: {
+                ...currentState.months,
+                [monthIndex]: updatedMonthData
+              }
+            };
+
+            // Recalculate totals for dependent rows
+            const dependentRows = OptimizedDataManager.getDependentRows(rowName);
+            return OptimizedDataManager.recalculateTotals(newState, dependentRows);
+          }
+
+          // For non-salary fields, just recalculate totals
+          return OptimizedDataManager.recalculateTotals(currentState, [rowName]);
+        });
+      });
+    }, 300),
+    [payslipData.taxClass, payslipData.hasChildren]
+  );
+
+  // Cell commit - save to backend and trigger calculations
+  const handleCellCommit = useCallback((monthIndex: number, rowName: string, value: string) => {
+    // Trigger debounced calculations
+    debouncedCalculate(monthIndex, rowName);
+    
+    // Save to backend (debounced)
+    debouncedSave(monthIndex, rowName, value);
+  }, [debouncedCalculate]);
+
+  // Debounced save to prevent excessive backend calls
+  const debouncedSave = useCallback(
+    debounce((monthIndex: number, rowName: string, value: string) => {
+      if (selectedTemplate) {
+        dataSync.saveData(selectedTemplate.id, payslipData, selectedPerson?.id);
+        console.log(`💾 Excel View: Data saved for ${rowName} month ${monthIndex}`);
       }
-    };
-    
-    setPayslipData(newData);
-    
-    // Synchronize data across views
-    if (selectedTemplate) {
-      dataSync.saveData(selectedTemplate.id, newData, selectedPerson?.id);
-      console.log(`🔄 Excel View: Data synced for ${rowName} month ${monthIndex} in template ${selectedTemplate.name}`);
-    }
-  };
+    }, 500),
+    [selectedTemplate, selectedPerson, payslipData]
+  );
 
   // Handle person selection - create fresh personalized template
   const handlePersonChange = (personId: string) => {
@@ -1346,6 +1369,8 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             color: '#1565c0'
           }}>
             💡 When you enter a gross salary, Income Tax, Social Security, Sickness, Pension, and Dependency contributions are automatically calculated using Luxembourg 2025 rates
+            <br />
+            🇱🇺 = Auto-calculated Luxembourg tax field (read-only) | ✏️ = Editable input field
           </div>
         </InputGroup>
 
@@ -2180,15 +2205,29 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                       </div>
                     )}
                   </Cell>
-                  {monthNames.map((_, monthIndex) => (
-                    <Cell key={monthIndex} isEditable>
-                      <CellInput
-                        type="number"
+                  {monthNames.map((_, monthIndex) => {
+                    // Determine if this field is auto-calculated
+                    const isCalculatedField = row.toLowerCase().includes('income tax') ||
+                                            row.toLowerCase().includes('social security') ||
+                                            row.toLowerCase().includes('sickness') ||
+                                            row.toLowerCase().includes('pension') ||
+                                            row.toLowerCase().includes('dependency') ||
+                                            row.toLowerCase().includes('net salary') ||
+                                            row.toLowerCase().includes('total deductions') ||
+                                            row.toLowerCase().includes('employer cost');
+                    
+                    return (
+                      <OptimizedCell
+                        key={`${monthIndex}-${row}`}
                         value={payslipData.months[monthIndex]?.[row] || 0}
-                        onChange={(e) => handleCellChange(monthIndex, row, e.target.value)}
+                        monthIndex={monthIndex}
+                        rowName={row}
+                        isCalculated={isCalculatedField}
+                        onCellChange={handleCellChange}
+                        onCellCommit={handleCellCommit}
                       />
-                    </Cell>
-                  ))}
+                    );
+                  })}
                   <Cell isTotal>
                     {(payslipData.totals[row] || 0).toLocaleString()}
                   </Cell>
@@ -2368,15 +2407,29 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                     </div>
                   )}
                 </Cell>
-                {monthNames.map((_, monthIndex) => (
-                  <Cell key={monthIndex} isEditable>
-                    <CellInput
-                      type="number"
+                {monthNames.map((_, monthIndex) => {
+                  // Determine if this field is auto-calculated
+                  const isCalculatedField = row.toLowerCase().includes('income tax') ||
+                                          row.toLowerCase().includes('social security') ||
+                                          row.toLowerCase().includes('sickness') ||
+                                          row.toLowerCase().includes('pension') ||
+                                          row.toLowerCase().includes('dependency') ||
+                                          row.toLowerCase().includes('net salary') ||
+                                          row.toLowerCase().includes('total deductions') ||
+                                          row.toLowerCase().includes('employer cost');
+                  
+                  return (
+                    <OptimizedCell
+                      key={`${monthIndex}-${row}-loose`}
                       value={payslipData.months[monthIndex]?.[row] || 0}
-                      onChange={(e) => handleCellChange(monthIndex, row, e.target.value)}
+                      monthIndex={monthIndex}
+                      rowName={row}
+                      isCalculated={isCalculatedField}
+                      onCellChange={handleCellChange}
+                      onCellCommit={handleCellCommit}
                     />
-                  </Cell>
-                ))}
+                  );
+                })}
                 <Cell isTotal>
                   {(payslipData.totals[row] || 0).toLocaleString()}
                 </Cell>
