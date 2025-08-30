@@ -309,6 +309,10 @@ interface MonthlyPayslipState {
     [key: string]: number;
   };
   
+  // Luxembourg tax configuration
+  taxClass?: number;
+  hasChildren?: boolean;
+  
   customRows: string[];
   groups: PayslipGroup[];
   header: CustomHeader;
@@ -351,6 +355,8 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     months: {},
     totals: {},
     customRows: [...defaultRows],
+    taxClass: 1,
+    hasChildren: false,
     groups: [
       {
         id: 'earnings',
@@ -666,20 +672,69 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     }
   }, [safeArray]);
 
-  // Calculate totals whenever monthly data changes
+  // Calculate totals with Luxembourg tax integration
   useEffect(() => {
     const months = payslipData.months;
     const newTotals: any = {};
     
-    payslipData.customRows.forEach(row => {
-      newTotals[row] = 0;
-      for (let i = 0; i < 12; i++) {
-        newTotals[row] += months[i]?.[row] || 0;
-      }
+    // Import Luxembourg tax calculator for automatic tax calculations
+    import('../utils/luxembourgTaxCalculator').then(({ LuxembourgTaxCalculator }) => {
+      payslipData.customRows.forEach(row => {
+        // Check if this is a Luxembourg tax-related row
+        const isLuxembourgTaxRow = row.toLowerCase().includes('income tax') || 
+                                  row.toLowerCase().includes('social security') || 
+                                  row.toLowerCase().includes('sickness') ||
+                                  row.toLowerCase().includes('pension') ||
+                                  row.toLowerCase().includes('dependency');
+        
+        if (isLuxembourgTaxRow) {
+          // Calculate Luxembourg taxes automatically based on gross salary
+          newTotals[row] = 0;
+          for (let i = 0; i < 12; i++) {
+            const monthData = months[i];
+            const grossSalary = monthData?.['Gross Salary'] || monthData?.['Basic Salary'] || 0;
+            
+            if (grossSalary > 0) {
+              const taxResult = LuxembourgTaxCalculator.calculate({
+                monthlyGrossSalary: grossSalary,
+                taxClass: (payslipData.taxClass || 1) as 1 | 2,
+                hasChildren: payslipData.hasChildren || false,
+                isOver65: false
+              });
+              
+              let calculatedValue = 0;
+              if (row.toLowerCase().includes('income tax')) {
+                calculatedValue = taxResult.incomeTax;
+              } else if (row.toLowerCase().includes('social security')) {
+                calculatedValue = taxResult.socialSecurity.total;
+              } else if (row.toLowerCase().includes('sickness')) {
+                calculatedValue = taxResult.socialSecurity.sickness;
+              } else if (row.toLowerCase().includes('pension')) {
+                calculatedValue = taxResult.socialSecurity.pension;
+              } else if (row.toLowerCase().includes('dependency')) {
+                calculatedValue = taxResult.socialSecurity.dependency;
+              }
+              
+              // Update the month data with calculated value
+              if (!months[i]) months[i] = {};
+              months[i][row] = calculatedValue;
+              newTotals[row] += calculatedValue;
+            } else {
+              newTotals[row] += months[i]?.[row] || 0;
+            }
+          }
+        } else {
+          // Standard calculation for non-tax rows
+          newTotals[row] = 0;
+          for (let i = 0; i < 12; i++) {
+            newTotals[row] += months[i]?.[row] || 0;
+          }
+        }
+      });
+      
+      setPayslipData(prev => ({ ...prev, totals: newTotals, months }));
     });
-    
-    setPayslipData(prev => ({ ...prev, totals: newTotals }));
-  }, [payslipData.months, payslipData.customRows]);
+  }, [payslipData.months, payslipData.customRows, payslipData.taxClass, payslipData.hasChildren]);
 
   // Filtered persons based on type
   const filteredPersons = React.useMemo(() => {
@@ -815,6 +870,8 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       months: freshMonths,
       totals: freshTotals,
       customRows: [...defaultRows],
+      taxClass: 1,
+      hasChildren: false,
       groups: [
         {
           id: 'earnings',
@@ -1232,6 +1289,66 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       <Title>📊 Annual Excel View - Enhanced Editor</Title>
       
       <ControlPanel>
+        {/* Luxembourg Tax Configuration */}
+        <InputGroup>
+          <Label>🇱🇺 Luxembourg Tax Configuration</Label>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(3, 1fr)', 
+            gap: '15px' 
+          }}>
+            <div>
+              <Label>Tax Class</Label>
+              <Select
+                value={payslipData.taxClass || 1}
+                onChange={(e) => setPayslipData(prev => ({ 
+                  ...prev, 
+                  taxClass: parseInt(e.target.value) 
+                }))}
+              >
+                <option value={1}>Class 1 - Single</option>
+                <option value={2}>Class 2 - Married/Civil Partner</option>
+              </Select>
+            </div>
+            <div>
+              <Label>Has Children</Label>
+              <Select
+                value={payslipData.hasChildren ? 'yes' : 'no'}
+                onChange={(e) => setPayslipData(prev => ({ 
+                  ...prev, 
+                  hasChildren: e.target.value === 'yes' 
+                }))}
+              >
+                <option value="no">No</option>
+                <option value="yes">Yes (Tax Credits Apply)</option>
+              </Select>
+            </div>
+            <div>
+              <Label>Auto-Calculate Luxembourg Taxes</Label>
+              <div style={{
+                padding: '8px 12px',
+                backgroundColor: '#e8f5e9',
+                borderRadius: '4px',
+                fontSize: '11px',
+                color: '#2e7d32',
+                textAlign: 'center'
+              }}>
+                ✅ Active for tax rows
+              </div>
+            </div>
+          </div>
+          <div style={{
+            marginTop: '8px',
+            padding: '8px 12px',
+            backgroundColor: '#e3f2fd',
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#1565c0'
+          }}>
+            💡 When you enter a gross salary, Income Tax, Social Security, Sickness, Pension, and Dependency contributions are automatically calculated using Luxembourg 2025 rates
+          </div>
+        </InputGroup>
+
         <InputGroup>
           <Label>Person Type Filter:</Label>
           <Select 

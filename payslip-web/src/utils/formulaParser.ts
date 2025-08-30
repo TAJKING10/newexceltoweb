@@ -127,24 +127,148 @@ export class FormulaParser {
     return typeof value === 'number' ? value : parseFloat(value) || 0;
   }
 
-  // Format number as currency
-  static formatCurrency(value: number, currency: string = '$'): string {
-    return `${currency}${value.toFixed(2)}`;
+  // Format number as currency (Luxembourg uses Euro)
+  static formatCurrency(value: number, currency: string = '€'): string {
+    return `${value.toFixed(2)} ${currency}`;
   }
 
-  // Common payroll calculations
-  static calculateTax(grossSalary: number, taxRate: number): number {
-    return grossSalary * taxRate;
+  // Luxembourg payroll calculations (2025)
+  static calculateLuxembourgIncomeTax(grossSalary: number, taxClass: number = 1): number {
+    const annualSalary = grossSalary * 12;
+    let tax = 0;
+    
+    // Luxembourg tax brackets for 2025
+    const brackets = [
+      { min: 0, max: 13230, rate: 0 },
+      { min: 13230, max: 15456, rate: 0.08 },
+      { min: 15456, max: 17682, rate: 0.09 },
+      { min: 17682, max: 19908, rate: 0.10 },
+      { min: 19908, max: 22134, rate: 0.11 },
+      { min: 22134, max: 24360, rate: 0.12 },
+      { min: 24360, max: 26586, rate: 0.14 },
+      { min: 26586, max: 28812, rate: 0.16 },
+      { min: 28812, max: 31038, rate: 0.18 },
+      { min: 31038, max: 33264, rate: 0.20 },
+      { min: 33264, max: 35490, rate: 0.22 },
+      { min: 35490, max: 37716, rate: 0.24 },
+      { min: 37716, max: 39942, rate: 0.26 },
+      { min: 39942, max: 42168, rate: 0.28 },
+      { min: 42168, max: 44394, rate: 0.30 },
+      { min: 44394, max: 46620, rate: 0.32 },
+      { min: 46620, max: 48846, rate: 0.34 },
+      { min: 48846, max: 51072, rate: 0.36 },
+      { min: 51072, max: 53298, rate: 0.38 },
+      { min: 53298, max: 234870, rate: 0.40 },
+      { min: 234870, max: Infinity, rate: 0.42 }
+    ];
+
+    for (const bracket of brackets) {
+      if (annualSalary > bracket.min) {
+        const taxableAmount = Math.min(annualSalary, bracket.max) - bracket.min;
+        tax += taxableAmount * bracket.rate;
+      }
+    }
+
+    // Apply solidarity tax (7% or 9% based on income)
+    const solidarityRate = (taxClass === 1 && annualSalary > 150000) || 
+                          (taxClass === 2 && annualSalary > 300000) ? 0.09 : 0.07;
+    tax += tax * solidarityRate;
+
+    return tax / 12; // Return monthly tax
   }
 
-  static calculateSocialSecurity(baseSalary: number, rate: number = 0.062): number {
-    // US Social Security rate is typically 6.2%
-    return baseSalary * rate;
+  static calculateLuxembourgSocialSecurity(grossSalary: number): {
+    sickness: number;
+    pension: number;
+    dependency: number;
+    total: number;
+  } {
+    // Employee contribution rates for 2025
+    const sicknessRate = 0.028; // 2.8%
+    const pensionRate = 0.08;   // 8%
+    const dependencyRate = 0.014; // 1.4%
+
+    const sickness = grossSalary * sicknessRate;
+    const pension = grossSalary * pensionRate;
+    const dependency = grossSalary * dependencyRate;
+
+    return {
+      sickness,
+      pension,
+      dependency,
+      total: sickness + pension + dependency
+    };
   }
 
-  static calculateMedicare(grossSalary: number, rate: number = 0.0145): number {
-    // US Medicare rate is typically 1.45%
-    return grossSalary * rate;
+  static calculateEmployerSocialSecurity(grossSalary: number): {
+    sicknessAndCash: number;
+    accident: number;
+    health: number;
+    mutuality: number;
+    pension: number;
+    total: number;
+  } {
+    // Employer contribution rates for 2025
+    const sicknessAndCashRate = 0.0305; // 3.05%
+    const accidentRate = 0.01;          // 1%
+    const healthRate = 0.0014;          // 0.14%
+    const mutualityRate = 0.015;        // 1.5%
+    const pensionRate = 0.08;           // 8%
+
+    const sicknessAndCash = grossSalary * sicknessAndCashRate;
+    const accident = grossSalary * accidentRate;
+    const health = grossSalary * healthRate;
+    const mutuality = grossSalary * mutualityRate;
+    const pension = grossSalary * pensionRate;
+
+    return {
+      sicknessAndCash,
+      accident,
+      health,
+      mutuality,
+      pension,
+      total: sicknessAndCash + accident + health + mutuality + pension
+    };
+  }
+
+  static calculateNetSalary(
+    grossSalary: number, 
+    taxClass: number = 1,
+    hasChildren: boolean = false
+  ): {
+    grossSalary: number;
+    incomeTax: number;
+    socialSecurity: number;
+    netSalary: number;
+    breakdown: {
+      sickness: number;
+      pension: number;
+      dependency: number;
+    };
+  } {
+    const incomeTax = this.calculateLuxembourgIncomeTax(grossSalary, taxClass);
+    const socialSecurity = this.calculateLuxembourgSocialSecurity(grossSalary);
+    
+    // Apply tax credits for children or single parents
+    let adjustedTax = incomeTax;
+    if (hasChildren && taxClass === 1) {
+      // Single parent tax credit up to €3,504 for 2025
+      adjustedTax = Math.max(0, incomeTax - 292); // €3,504 / 12 months
+    }
+
+    const netSalary = grossSalary - adjustedTax - socialSecurity.total;
+
+    return {
+      grossSalary,
+      incomeTax: adjustedTax,
+      socialSecurity: socialSecurity.total,
+      netSalary,
+      breakdown: {
+        sickness: socialSecurity.sickness,
+        pension: socialSecurity.pension,
+        dependency: socialSecurity.dependency
+      }
+    };
   }
 
   // Generate JavaScript calculation function from Excel formulas

@@ -14,7 +14,10 @@
       "Bash(start http://localhost:3000)",
       "Bash(curl:*)",
       "Bash(rm:*)",
-      "Bash(PORT=3009 npm start)"
+      "Bash(PORT=3009 npm start)",
+      "WebFetch(domain:www.calculatrice.lu)",
+      "WebSearch",
+      "WebFetch(domain:lu.icalculator.com)"
     ],
     "deny": [],
     "ask": []

@@ -656,7 +656,10 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       bonus: 0,
       deductions: 0,
       tax: 0,
-      netSalary: 0
+      netSalary: 0,
+      grossSalary: 0,
+      taxClass: 1,
+      hasChildren: false
     }));
   };
 
@@ -725,39 +728,73 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     }
   };
 
-  // Calculate formulas
+  // Calculate formulas with Luxembourg tax integration
   useEffect(() => {
     if (!selectedTemplate) return;
     
     const newCalculatedValues: { [fieldId: string]: number } = {};
     
-    safeArray(selectedTemplate.sections).forEach(section => {
-      safeArray(section.fields).forEach(field => {
-        if (field.type === 'formula' && field.formula) {
-          try {
-            // Simple formula evaluation (expand as needed)
-            let formula = field.formula;
-            
-            // Replace field references with actual values
-            Object.keys(payslipData).forEach(key => {
-              const value = payslipData[key];
-              if (typeof value === 'number') {
-                formula = formula.replace(new RegExp(`\\b${key}\\b`, 'g'), value.toString());
+    // Import Luxembourg tax calculator
+    import('../utils/luxembourgTaxCalculator').then(({ LuxembourgTaxCalculator }) => {
+      safeArray(selectedTemplate.sections).forEach(section => {
+        safeArray(section.fields).forEach(field => {
+          if (field.type === 'formula' && field.formula) {
+            try {
+              let result = 0;
+              
+              // Handle Luxembourg tax calculations
+              if (field.formula.toLowerCase().includes('luxembourg_tax')) {
+                const grossSalary = payslipData.grossSalary || 0;
+                const taxClass = payslipData.taxClass || 1;
+                const hasChildren = payslipData.hasChildren || false;
+                
+                const taxResult = LuxembourgTaxCalculator.calculate({
+                  monthlyGrossSalary: grossSalary,
+                  taxClass: taxClass as 1 | 2,
+                  hasChildren,
+                  isOver65: false
+                });
+                
+                if (field.formula.includes('income_tax')) {
+                  result = taxResult.incomeTax;
+                } else if (field.formula.includes('social_security')) {
+                  result = taxResult.socialSecurity.total;
+                } else if (field.formula.includes('net_salary')) {
+                  result = taxResult.netSalary;
+                } else if (field.formula.includes('sickness')) {
+                  result = taxResult.socialSecurity.sickness;
+                } else if (field.formula.includes('pension')) {
+                  result = taxResult.socialSecurity.pension;
+                } else if (field.formula.includes('dependency')) {
+                  result = taxResult.socialSecurity.dependency;
+                }
+              } else {
+                // Standard formula evaluation
+                let formula = field.formula;
+                
+                // Replace field references with actual values
+                Object.keys(payslipData).forEach(key => {
+                  const value = payslipData[key];
+                  if (typeof value === 'number') {
+                    formula = formula.replace(new RegExp(`\\b${key}\\b`, 'g'), value.toString());
+                  }
+                });
+                
+                // Basic arithmetic evaluation
+                result = eval(formula);
               }
-            });
-            
-            // Basic arithmetic evaluation
-            const result = eval(formula);
-            newCalculatedValues[field.id] = typeof result === 'number' ? result : 0;
-          } catch (error) {
-            console.error(`Error calculating formula for ${field.id}:`, error);
-            newCalculatedValues[field.id] = 0;
+              
+              newCalculatedValues[field.id] = typeof result === 'number' ? result : 0;
+            } catch (error) {
+              console.error(`Error calculating formula for ${field.id}:`, error);
+              newCalculatedValues[field.id] = 0;
+            }
           }
-        }
+        });
       });
+      
+      setCalculatedValues(newCalculatedValues);
     });
-    
-    setCalculatedValues(newCalculatedValues);
   }, [payslipData, selectedTemplate, safeArray]);
 
   // Add new section
@@ -973,6 +1010,53 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       <Title>📝 Basic View - Enhanced Editor</Title>
       
       <ControlPanel>
+        {/* Luxembourg Tax Configuration */}
+        <InputGroup>
+          <Label>🇱🇺 Luxembourg Tax Configuration</Label>
+          <Grid columns={3}>
+            <div>
+              <Label>Tax Class</Label>
+              <Select
+                value={payslipData.taxClass || 1}
+                onChange={(e) => setPayslipData(prev => ({ ...prev, taxClass: parseInt(e.target.value) }))}
+              >
+                <option value={1}>Class 1 - Single</option>
+                <option value={2}>Class 2 - Married/Civil Partner</option>
+              </Select>
+            </div>
+            <div>
+              <Label>Has Children</Label>
+              <Select
+                value={payslipData.hasChildren ? 'yes' : 'no'}
+                onChange={(e) => setPayslipData(prev => ({ ...prev, hasChildren: e.target.value === 'yes' }))}
+              >
+                <option value="no">No</option>
+                <option value="yes">Yes (Tax Credits Apply)</option>
+              </Select>
+            </div>
+            <div>
+              <Label>Gross Salary (€)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={payslipData.grossSalary || 0}
+                onChange={(e) => setPayslipData(prev => ({ ...prev, grossSalary: parseFloat(e.target.value) || 0 }))}
+                placeholder="Monthly gross salary"
+              />
+            </div>
+          </Grid>
+          <div style={{
+            marginTop: '8px',
+            padding: '8px 12px',
+            backgroundColor: '#e8f5e9',
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#2e7d32'
+          }}>
+            💡 Tax calculations use Luxembourg 2025 rates including solidarity tax and social security contributions
+          </div>
+        </InputGroup>
+
         <InputGroup>
           <Label>Person Type Filter:</Label>
           <Select 
