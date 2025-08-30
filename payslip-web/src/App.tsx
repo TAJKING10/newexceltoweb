@@ -5,11 +5,233 @@ import MonthlyPayslipGenerator from './components/MonthlyPayslipGenerator';
 import EnhancedTemplateBuilder from './components/EnhancedTemplateBuilder';
 import PersonManagement from './components/PersonManagement';
 import ErrorBoundary from './components/ErrorBoundary';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LoginScreen } from './components/auth/LoginScreen';
+import { AdminDashboard } from './components/admin/AdminDashboard';
 import { theme } from './styles/theme';
 
-function App() {
+const AppContent: React.FC = () => {
+  const { user, profile, loading, isAdmin, isActive } = useAuth();
   const [currentView, setCurrentView] = useState<'basic' | 'excel' | 'template' | 'persons'>('persons');
 
+  const getFeatureText = (view: string) => {
+    const features = {
+      persons: 'Universal database • Employees • Customers • Contractors • Search & filter • History tracking',
+      template: 'Expandable sections • Custom fields • Dynamic tables • Drag & drop',
+      excel: 'Monthly columns (Jan-Dec) • Annual totals • Person selection • Template support • Real-time calculations',
+      basic: 'Simple interface • Quick setup • Easy editing • Form-based'
+    };
+    return features[view as keyof typeof features] || '';
+  };
+
+  if (loading) {
+    return (
+      <LoadingContainer>
+        <LoadingSpinner />
+        <LoadingText>Loading Universal Payslip Platform...</LoadingText>
+      </LoadingContainer>
+    );
+  }
+
+  // Not authenticated - show login
+  if (!user || !profile) {
+    return <LoginScreen />;
+  }
+
+  // Admin user - show admin dashboard
+  if (isAdmin) {
+    return <AdminDashboard />;
+  }
+
+  // Employee user but not active - show pending/inactive message
+  if (!isActive) {
+    return (
+      <StatusContainer>
+        <StatusCard>
+          <StatusIcon>⏳</StatusIcon>
+          <StatusTitle>Account {profile.status}</StatusTitle>
+          <StatusMessage>
+            {profile.status === 'pending' 
+              ? 'Your account is pending approval. Please contact your administrator.'
+              : 'Your account has been deactivated. Please contact your administrator.'}
+          </StatusMessage>
+        </StatusCard>
+      </StatusContainer>
+    );
+  }
+
+  // Active employee - show regular app interface
+  return (
+    <AppContainer>
+      <Header>
+        <HeaderContent>
+          <Title>🚀 Universal Payslip Platform</Title>
+          <UserSection>
+            <UserWelcome>Welcome, {profile.full_name || profile.email}</UserWelcome>
+          </UserSection>
+          <NavigationTabs>
+            <NavTab 
+              isActive={currentView === 'persons'}
+              onClick={() => setCurrentView('persons')}
+              title="Universal person management for employees, customers, contractors, and more"
+            >
+              <span>👥</span>
+              <span>Person Management</span>
+            </NavTab>
+            
+            <NavTab 
+              isActive={currentView === 'template'}
+              onClick={() => setCurrentView('template')}
+              title="Build custom payslip templates with drag & drop"
+            >
+              <span>🎨</span>
+              <span>Template Builder</span>
+            </NavTab>
+            
+            <NavTab 
+              isActive={currentView === 'excel'}
+              onClick={() => setCurrentView('excel')}
+              title="Annual payslip with monthly columns and totals"
+            >
+              <span>📊</span>
+              <span>Annual Excel View</span>
+            </NavTab>
+            
+            <NavTab 
+              isActive={currentView === 'basic'}
+              onClick={() => setCurrentView('basic')}
+              title="Simple form-based payslip"
+            >
+              <span>📝</span>
+              <span>Basic View</span>
+            </NavTab>
+          </NavigationTabs>
+          
+          <FeatureBanner>
+            <FeatureText>
+              <strong>✨ Key Features:</strong> {getFeatureText(currentView)}
+            </FeatureText>
+          </FeatureBanner>
+        </HeaderContent>
+      </Header>
+      
+      <MainContent className="animate-fadeIn">
+        <ErrorBoundary 
+          onError={(error, errorInfo) => {
+            console.error('App Error Boundary:', error, errorInfo);
+          }}
+        >
+          {currentView === 'persons' && (
+            <PersonManagement />
+          )}
+          
+          {currentView === 'template' && (
+            <EnhancedTemplateBuilder />
+          )}
+          
+          {currentView === 'excel' && (
+            <MonthlyPayslipGenerator />
+          )}
+          
+          {currentView === 'basic' && (
+            <PayslipGenerator />
+          )}
+        </ErrorBoundary>
+      </MainContent>
+    </AppContainer>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+
+// Loading components
+const LoadingContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: ${theme.colors.gradients.primary};
+  gap: ${theme.spacing[4]};
+`;
+
+const LoadingSpinner = styled.div`
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const LoadingText = styled.div`
+  color: white;
+  font-size: ${theme.typography.fontSize.lg};
+  font-weight: ${theme.typography.fontWeight.semibold};
+`;
+
+// Status components
+const StatusContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${theme.colors.background.secondary};
+  padding: ${theme.spacing[4]};
+`;
+
+const StatusCard = styled.div`
+  background: white;
+  border-radius: ${theme.borderRadius['2xl']};
+  padding: ${theme.spacing[8]};
+  text-align: center;
+  max-width: 400px;
+  box-shadow: ${theme.shadows.lg};
+  border: 1px solid ${theme.colors.border.light};
+`;
+
+const StatusIcon = styled.div`
+  font-size: ${theme.typography.fontSize['4xl']};
+  margin-bottom: ${theme.spacing[4]};
+`;
+
+const StatusTitle = styled.h2`
+  margin: 0 0 ${theme.spacing[3]} 0;
+  color: ${theme.colors.text.primary};
+  font-size: ${theme.typography.fontSize.xl};
+  font-weight: ${theme.typography.fontWeight.bold};
+  text-transform: capitalize;
+`;
+
+const StatusMessage = styled.p`
+  margin: 0;
+  color: ${theme.colors.text.secondary};
+  font-size: ${theme.typography.fontSize.sm};
+  line-height: ${theme.typography.lineHeight.relaxed};
+`;
+
+const UserSection = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: ${theme.spacing[4]};
+`;
+
+const UserWelcome = styled.div`
+  color: ${theme.colors.text.primary};
+  font-size: ${theme.typography.fontSize.sm};
+  font-weight: ${theme.typography.fontWeight.medium};
+`;
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -218,94 +440,5 @@ const MainContent = styled.main`
     padding: ${theme.spacing[4]};
   }
 `;
-
-const getFeatureText = (view: string) => {
-  const features = {
-    persons: 'Universal database • Employees • Customers • Contractors • Search & filter • History tracking',
-    template: 'Expandable sections • Custom fields • Dynamic tables • Drag & drop',
-    excel: 'Monthly columns (Jan-Dec) • Annual totals • Person selection • Template support • Real-time calculations',
-    basic: 'Simple interface • Quick setup • Easy editing • Form-based'
-  };
-  return features[view as keyof typeof features] || '';
-};
-
-  return (
-    <AppContainer>
-      <Header>
-        <HeaderContent>
-          <Title>🚀 Universal Payslip Platform</Title>
-          <NavigationTabs>
-            <NavTab 
-              isActive={currentView === 'persons'}
-              onClick={() => setCurrentView('persons')}
-              title="Universal person management for employees, customers, contractors, and more"
-            >
-              <span>👥</span>
-              <span>Person Management</span>
-            </NavTab>
-            
-            
-            <NavTab 
-              isActive={currentView === 'template'}
-              onClick={() => setCurrentView('template')}
-              title="Build custom payslip templates with drag & drop"
-            >
-              <span>🎨</span>
-              <span>Template Builder</span>
-            </NavTab>
-            
-            <NavTab 
-              isActive={currentView === 'excel'}
-              onClick={() => setCurrentView('excel')}
-              title="Annual payslip with monthly columns and totals"
-            >
-              <span>📊</span>
-              <span>Annual Excel View</span>
-            </NavTab>
-            
-            <NavTab 
-              isActive={currentView === 'basic'}
-              onClick={() => setCurrentView('basic')}
-              title="Simple form-based payslip"
-            >
-              <span>📝</span>
-              <span>Basic View</span>
-            </NavTab>
-          </NavigationTabs>
-          
-          <FeatureBanner>
-            <FeatureText>
-              <strong>✨ Key Features:</strong> {getFeatureText(currentView)}
-            </FeatureText>
-          </FeatureBanner>
-        </HeaderContent>
-      </Header>
-      
-      <MainContent className="animate-fadeIn">
-        <ErrorBoundary 
-          onError={(error, errorInfo) => {
-            console.error('App Error Boundary:', error, errorInfo);
-          }}
-        >
-          {currentView === 'persons' && (
-            <PersonManagement />
-          )}
-          
-          {currentView === 'template' && (
-            <EnhancedTemplateBuilder />
-          )}
-          
-          {currentView === 'excel' && (
-            <MonthlyPayslipGenerator />
-          )}
-          
-          {currentView === 'basic' && (
-            <PayslipGenerator />
-          )}
-        </ErrorBoundary>
-      </MainContent>
-    </AppContainer>
-  );
-}
 
 export default App;

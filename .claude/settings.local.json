@@ -18,7 +18,9 @@
       "WebFetch(domain:www.calculatrice.lu)",
       "WebSearch",
       "WebFetch(domain:lu.icalculator.com)",
-      "Bash(start http://localhost:3001)"
+      "Bash(start http://localhost:3001)",
+      "Bash(claude mcp add supabase:*)",
+      "Bash(claude mcp:*)"
     ],
     "deny": [],
     "ask": []
