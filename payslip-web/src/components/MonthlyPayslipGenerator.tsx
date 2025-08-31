@@ -550,10 +550,35 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       
       // Load templates from unified sync service
       const loadedTemplates = templateSync.getAllTemplates();
-      const loadedPersons = personManager.getAllPersons();
-
       setTemplates(safeArray(loadedTemplates));
-      setPersons(safeArray(loadedPersons));
+
+      // Load persons from Supabase asynchronously
+      const loadPersonsAsync = async () => {
+        try {
+          console.log('📊 Excel View: Loading persons from Supabase...');
+          const loadedPersons = await personManager.getAllPersonsAsync();
+          setPersons(safeArray(loadedPersons));
+          console.log(`✅ Excel View: Loaded ${loadedPersons.length} persons from database`);
+          
+          // Set default person if available
+          if (safeArray(loadedPersons).length > 0) {
+            const person = loadedPersons[0];
+            setSelectedPerson(person);
+            setPayslipData(prev => ({
+              ...prev,
+              personName: person.personalInfo?.fullName || 'Unknown',
+              personId: person.workInfo?.personId || 'N/A',
+              department: person.workInfo?.department || 'N/A',
+              position: person.workInfo?.position || person.workInfo?.title || 'N/A'
+            }));
+          }
+        } catch (error) {
+          console.error('❌ Excel View: Error loading persons from database:', error);
+          setPersons([]);
+        }
+      };
+      
+      loadPersonsAsync();
       
       // Debug: Log templates found
       console.log(`✅ Excel View: Loaded ${loadedTemplates.length} synchronized templates`);
@@ -569,18 +594,6 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       } else if (safeArray(loadedTemplates).length > 0) {
         setSelectedTemplate(loadedTemplates[0]);
         console.log('✅ Excel View: Default template set to:', loadedTemplates[0].name);
-      }
-
-      if (safeArray(loadedPersons).length > 0) {
-        setSelectedPerson(loadedPersons[0]);
-        const person = loadedPersons[0];
-        setPayslipData(prev => ({
-          ...prev,
-          personName: person.personalInfo?.fullName || 'Unknown',
-          personId: person.workInfo?.personId || 'N/A',
-          department: person.workInfo?.department || 'N/A',
-          position: person.workInfo?.position || person.workInfo?.title || 'N/A'
-        }));
       }
 
       // Subscribe to template changes from other views
@@ -604,7 +617,8 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
       const unsubscribePersonSync = viewSync.onPersonChange((personId) => {
         if (personId) {
-          const person = loadedPersons.find(p => p.id === personId);
+          // Use persons state instead of loadedPersons since it's async loaded
+          const person = persons.find((p: any) => p.id === personId);
           if (person && (!selectedPerson || selectedPerson.id !== personId)) {
             console.log('📊 Excel View: Received cross-view person selection:', person.personalInfo?.fullName);
             setSelectedPerson(person);
@@ -639,7 +653,8 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
       const syncedPersonId = viewSync.getSelectedPerson();
       if (syncedPersonId) {
-        const syncedPerson = loadedPersons.find(p => p.id === syncedPersonId);
+        // Use persons state instead of loadedPersons since it's async loaded
+        const syncedPerson = persons.find((p: any) => p.id === syncedPersonId);
         if (syncedPerson) {
           setSelectedPerson(syncedPerson);
           handlePersonChange(syncedPersonId);

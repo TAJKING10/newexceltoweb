@@ -451,10 +451,28 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       
       // Load templates from unified sync service
       const loadedTemplates = templateSync.getAllTemplates();
-      const loadedPersons = personManager.getAllPersons();
-      
       setTemplates(safeArray(loadedTemplates));
-      setPersons(safeArray(loadedPersons));
+      
+      // Load persons from Supabase asynchronously
+      const loadPersonsAsync = async () => {
+        try {
+          console.log('📝 Basic View: Loading persons from Supabase...');
+          const loadedPersons = await personManager.getAllPersonsAsync();
+          setPersons(safeArray(loadedPersons));
+          console.log(`✅ Basic View: Loaded ${loadedPersons.length} persons from database`);
+          
+          // Set default person if available
+          if (safeArray(loadedPersons).length > 0) {
+            setSelectedPerson(loadedPersons[0]);
+            populatePersonData(loadedPersons[0]);
+          }
+        } catch (error) {
+          console.error('❌ Basic View: Error loading persons from database:', error);
+          setPersons([]);
+        }
+      };
+      
+      loadPersonsAsync();
       
       // Debug: Log templates found
       console.log(`✅ Basic View: Loaded ${loadedTemplates.length} synchronized templates`);
@@ -474,11 +492,6 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         console.log('✅ Basic View: Default template set to:', loadedTemplates[0].name);
       }
       
-      if (safeArray(loadedPersons).length > 0) {
-        setSelectedPerson(loadedPersons[0]);
-        populatePersonData(loadedPersons[0]);
-      }
-
       // Subscribe to template changes from other views
       const unsubscribeTemplateSync = templateSync.subscribe(() => {
         console.log('📝 Basic View: Received template sync notification');
@@ -501,7 +514,8 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
       const unsubscribePersonSync = viewSync.onPersonChange((personId) => {
         if (personId) {
-          const person = loadedPersons.find(p => p.id === personId);
+          // Use persons state instead of loadedPersons since it's async loaded
+          const person = persons.find((p: any) => p.id === personId);
           if (person && (!selectedPerson || selectedPerson.id !== personId)) {
             console.log('📝 Basic View: Received cross-view person selection:', person.personalInfo?.fullName);
             setSelectedPerson(person);
@@ -530,7 +544,8 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
       const syncedPersonId = viewSync.getSelectedPerson();
       if (syncedPersonId) {
-        const syncedPerson = loadedPersons.find(p => p.id === syncedPersonId);
+        // Use persons state instead of loadedPersons since it's async loaded
+        const syncedPerson = persons.find((p: any) => p.id === syncedPersonId);
         if (syncedPerson) {
           setSelectedPerson(syncedPerson);
           handlePersonChange(syncedPersonId);

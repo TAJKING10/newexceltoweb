@@ -2,6 +2,7 @@
 
 import { PersonProfile, PersonCreationData, PersonUpdateData, PersonFilters, PersonStats, PersonType, DEFAULT_PERSON, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 import { AuditLog } from '../types/EmployeeTypes';
+import { supabasePersonManager } from './supabasePersonManager';
 
 export class PersonManager {
   private persons: Map<string, PersonProfile> = new Map();
@@ -9,46 +10,40 @@ export class PersonManager {
   private currentUser = 'admin@company.com';
 
   constructor() {
-    this.loadFromStorage();
-    this.initializeSampleData();
+    // No longer loading from localStorage - will use Supabase directly
+    console.log('📊 PersonManager: Using Supabase backend for person data');
   }
 
   // Person CRUD Operations
-  createPerson(personData: PersonCreationData): string {
-    const id = `person-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    const person: PersonProfile = {
-      id,
-      type: personData.type || 'other',
-      personalInfo: {
-        ...DEFAULT_PERSON.personalInfo,
-        ...personData.personalInfo,
-        fullName: personData.personalInfo?.fullName || 
-                 `${personData.personalInfo?.firstName || ''} ${personData.personalInfo?.lastName || ''}`.trim()
-      },
-      workInfo: {
-        ...DEFAULT_PERSON.workInfo,
-        ...personData.workInfo,
-        personId: personData.workInfo?.personId || this.generatePersonId(personData.type || 'other')
-      },
-      compensation: {
-        ...DEFAULT_PERSON.compensation,
-        ...personData.compensation
-      },
-      benefits: personData.benefits,
-      documents: personData.documents || [],
-      customFields: personData.customFields || {},
-      createdDate: new Date(),
-      lastModified: new Date(),
-      createdBy: this.currentUser,
-      modifiedBy: this.currentUser,
-      tags: personData.tags || [],
-      notes: personData.notes || ''
-    };
+  async createPerson(personData: PersonCreationData): Promise<string | null> {
+    try {
+      const id = await supabasePersonManager.createPerson(personData);
+      if (id) {
+        console.log('✅ PersonManager: Created person in Supabase:', id);
+      } else {
+        console.error('❌ PersonManager: Failed to create person in Supabase');
+      }
+      return id;
+    } catch (error) {
+      console.error('❌ PersonManager: Error creating person:', error);
+      return null;
+    }
+  }
 
-    this.persons.set(id, person);
-    this.saveToStorage();
-    this.logActivity('create', id, person);
+  // Legacy sync version for compatibility
+  createPersonSync(personData: PersonCreationData): string {
+    // This is a temporary compatibility method
+    // In practice, you should use the async version
+    console.warn('⚠️ PersonManager: Using legacy sync method. Consider using async createPerson instead.');
+    
+    const id = `temp-${Date.now()}`;
+    supabasePersonManager.createPerson(personData).then(realId => {
+      if (realId) {
+        console.log('✅ PersonManager: Async creation completed:', realId);
+      }
+    }).catch(error => {
+      console.error('❌ PersonManager: Async creation failed:', error);
+    });
     
     return id;
   }
@@ -128,9 +123,23 @@ export class PersonManager {
   }
 
   getAllPersons(): PersonProfile[] {
-    return Array.from(this.persons.values()).sort((a, b) => 
-      a.personalInfo.fullName.localeCompare(b.personalInfo.fullName)
-    );
+    // This is the sync version - it returns empty array initially
+    // The async version should be used for proper data loading
+    console.warn('⚠️ PersonManager: Using sync getAllPersons. Use async getAllPersonsAsync for fresh data.');
+    return [];
+  }
+
+  async getAllPersonsAsync(): Promise<PersonProfile[]> {
+    try {
+      const persons = await supabasePersonManager.getAllPersons();
+      console.log(`✅ PersonManager: Loaded ${persons.length} persons from Supabase`);
+      return persons.sort((a, b) => 
+        a.personalInfo.fullName.localeCompare(b.personalInfo.fullName)
+      );
+    } catch (error) {
+      console.error('❌ PersonManager: Error loading persons from Supabase:', error);
+      return [];
+    }
   }
 
   getPersonsByType(type: PersonType): PersonProfile[] {

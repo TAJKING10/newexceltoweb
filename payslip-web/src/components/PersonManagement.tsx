@@ -462,9 +462,16 @@ const PersonManagement: React.FC = () => {
     filterPersons();
   }, [persons, filters, selectedType, searchTerm]);
 
-  const loadPersons = () => {
-    const allPersons = personManager.getAllPersons();
-    setPersons(allPersons);
+  const loadPersons = async () => {
+    try {
+      console.log('🔄 PersonManagement: Loading persons from Supabase...');
+      const allPersons = await personManager.getAllPersonsAsync();
+      setPersons(allPersons);
+      console.log(`✅ PersonManagement: Loaded ${allPersons.length} persons`);
+    } catch (error) {
+      console.error('❌ PersonManagement: Error loading persons:', error);
+      setPersons([]);
+    }
   };
 
   const loadStats = () => {
