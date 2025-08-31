@@ -139,18 +139,23 @@ CREATE TRIGGER update_admin_settings_updated_at BEFORE UPDATE ON public.admin_se
 -- Create audit trigger function
 CREATE OR REPLACE FUNCTION audit_trigger_function()
 RETURNS TRIGGER AS $$
+DECLARE
+  current_user_id uuid;
 BEGIN
+  -- Get current user ID, handle null case
+  current_user_id := COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000000'::uuid);
+  
   IF TG_OP = 'DELETE' THEN
     INSERT INTO public.audit_logs(table_name, record_id, action, old_data, user_id)
-    VALUES (TG_TABLE_NAME, OLD.id, TG_OP, row_to_json(OLD), auth.uid());
+    VALUES (TG_TABLE_NAME, OLD.id, TG_OP, row_to_json(OLD), current_user_id);
     RETURN OLD;
   ELSIF TG_OP = 'UPDATE' THEN
     INSERT INTO public.audit_logs(table_name, record_id, action, old_data, new_data, user_id)
-    VALUES (TG_TABLE_NAME, NEW.id, TG_OP, row_to_json(OLD), row_to_json(NEW), auth.uid());
+    VALUES (TG_TABLE_NAME, NEW.id, TG_OP, row_to_json(OLD), row_to_json(NEW), current_user_id);
     RETURN NEW;
   ELSIF TG_OP = 'INSERT' THEN
     INSERT INTO public.audit_logs(table_name, record_id, action, new_data, user_id)
-    VALUES (TG_TABLE_NAME, NEW.id, TG_OP, row_to_json(NEW), auth.uid());
+    VALUES (TG_TABLE_NAME, NEW.id, TG_OP, row_to_json(NEW), current_user_id);
     RETURN NEW;
   END IF;
   RETURN NULL;
@@ -169,7 +174,7 @@ BEGIN
   -- Only allow admins to modify salary, employee_id, and owner_id
   IF NOT EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE id = auth.uid() AND role = 'admin' AND status = 'active'
+    WHERE id = auth.uid()::uuid AND role = 'admin' AND status = 'active'
   ) THEN
     -- If not admin, preserve sensitive fields from OLD values
     NEW.salary = OLD.salary;

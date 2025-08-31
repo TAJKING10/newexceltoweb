@@ -13,9 +13,14 @@ ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
+  -- Handle null auth.uid() gracefully
+  IF auth.uid() IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  
   RETURN EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE id = auth.uid() 
+    WHERE id = auth.uid()::uuid 
     AND role = 'admin'
     AND status = 'active'
   );
@@ -26,7 +31,12 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION owns_record(owner_id uuid)
 RETURNS BOOLEAN AS $$
 BEGIN
-  RETURN auth.uid() = owner_id OR is_admin();
+  -- Handle null auth.uid() gracefully
+  IF auth.uid() IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  
+  RETURN auth.uid()::uuid = owner_id OR is_admin();
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -35,7 +45,7 @@ CREATE POLICY "Admins can view all profiles" ON public.profiles
   FOR SELECT USING (is_admin());
 
 CREATE POLICY "Users can view their own profile" ON public.profiles
-  FOR SELECT USING (auth.uid() = id);
+  FOR SELECT USING (auth.uid() IS NOT NULL AND auth.uid()::uuid = id);
 
 CREATE POLICY "Admins can insert profiles" ON public.profiles
   FOR INSERT WITH CHECK (is_admin());
@@ -44,7 +54,7 @@ CREATE POLICY "Admins can update all profiles" ON public.profiles
   FOR UPDATE USING (is_admin());
 
 CREATE POLICY "Users can update their own profile" ON public.profiles
-  FOR UPDATE USING (auth.uid() = id AND NOT (role = 'admin'));
+  FOR UPDATE USING (auth.uid() IS NOT NULL AND auth.uid()::uuid = id AND NOT (role = 'admin'));
 
 CREATE POLICY "Admins can delete profiles" ON public.profiles
   FOR DELETE USING (is_admin());
@@ -54,12 +64,12 @@ CREATE POLICY "Admin full access to employees" ON public.employees
   FOR ALL USING (is_admin());
 
 CREATE POLICY "Employees can view their own data" ON public.employees
-  FOR SELECT USING (user_id = auth.uid());
+  FOR SELECT USING (auth.uid() IS NOT NULL AND user_id = auth.uid()::uuid);
 
 -- Note: RLS policies cannot access OLD/NEW values like triggers can
 -- Instead, we'll handle sensitive field protection in the application layer
 CREATE POLICY "Employees can update their own basic data" ON public.employees
-  FOR UPDATE USING (user_id = auth.uid());
+  FOR UPDATE USING (auth.uid() IS NOT NULL AND user_id = auth.uid()::uuid);
 
 -- Payslips table policies
 CREATE POLICY "Admin full access to payslips" ON public.payslips
@@ -67,9 +77,9 @@ CREATE POLICY "Admin full access to payslips" ON public.payslips
 
 CREATE POLICY "Employees can view their own payslips" ON public.payslips
   FOR SELECT USING (
-    EXISTS (
+    auth.uid() IS NOT NULL AND EXISTS (
       SELECT 1 FROM public.employees e 
-      WHERE e.id = employee_id AND e.user_id = auth.uid()
+      WHERE e.id = employee_id AND e.user_id = auth.uid()::uuid
     )
   );
 
@@ -149,11 +159,20 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION create_admin_setting(key text, value jsonb, description_text text DEFAULT NULL)
 RETURNS void AS $$
 BEGIN
+  -- Ensure user is authenticated and is admin
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'User not authenticated';
+  END IF;
+  
+  IF NOT is_admin() THEN
+    RAISE EXCEPTION 'Only admins can modify settings';
+  END IF;
+  
   INSERT INTO public.admin_settings (setting_key, setting_value, description, updated_by)
-  VALUES (key, value, description_text, auth.uid())
+  VALUES (key, value, description_text, auth.uid()::uuid)
   ON CONFLICT (setting_key) DO UPDATE SET
     setting_value = EXCLUDED.setting_value,
     description = COALESCE(EXCLUDED.description, admin_settings.description),
-    updated_by = auth.uid();
+    updated_by = auth.uid()::uuid;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

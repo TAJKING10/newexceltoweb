@@ -370,6 +370,10 @@ REACT_APP_SUPABASE_ANON_KEY=your-production-anon-key
 - ✅ **Fixed**: Replaced invalid RLS policy with proper trigger-based sensitive field protection
 - **Solution**: Use the corrected migration files (OLD/NEW only work in triggers, not RLS policies)
 
+**Error: "operator does not exist: uuid = text"**
+- ✅ **Fixed**: Added explicit type casting `auth.uid()::uuid` to match UUID column types
+- **Solution**: Use the corrected migration files with proper type casting
+
 ### Migration File Summary
 
 - **`000_test_migrations.sql`** - Validation script (run last to test setup)

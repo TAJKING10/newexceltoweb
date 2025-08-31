@@ -20,7 +20,10 @@
       "WebFetch(domain:lu.icalculator.com)",
       "Bash(start http://localhost:3001)",
       "Bash(claude mcp add supabase:*)",
-      "Bash(claude mcp:*)"
+      "Bash(claude mcp:*)",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration"
     ],
     "deny": [],
     "ask": []
