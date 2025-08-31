@@ -391,40 +391,38 @@ export const EmployeeManagement: React.FC = () => {
     setFormLoading(true);
 
     try {
-      // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.email,
-        password: formData.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: formData.full_name,
-          role: 'employee'
-        }
-      });
+      // Create user using admin function
+      const { data: result, error: functionError } = await supabase
+        .rpc('admin_create_user', {
+          user_email: formData.email,
+          user_password: formData.password,
+          user_full_name: formData.full_name,
+          user_role: 'employee'
+        });
 
-      if (authError) throw authError;
+      if (functionError) throw functionError;
 
-      // Create employee record
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create user');
+      }
+
+      // Update employee record with additional details
       const { error: employeeError } = await supabase
         .from('employees')
-        .insert({
-          user_id: authData.user.id,
+        .update({
           employee_id: formData.employee_id,
           department: formData.department || null,
           position: formData.position || null,
           hire_date: formData.hire_date || null,
           salary: formData.salary ? parseFloat(formData.salary) : null,
-          phone: formData.phone || null,
-          owner_id: authData.user.id
-        });
+          phone: formData.phone || null
+        })
+        .eq('user_id', result.user_id);
 
       if (employeeError) throw employeeError;
 
-      // Update profile status to active
-      await supabase
-        .from('profiles')
-        .update({ status: 'active' })
-        .eq('id', authData.user.id);
+      // Profile is already created as active by our function
+      // No need to update status separately
 
       await fetchEmployees();
       setShowCreateModal(false);
@@ -454,22 +452,49 @@ export const EmployeeManagement: React.FC = () => {
   };
 
   const handleResetPassword = async (employee: Employee) => {
-    if (!window.confirm(`Reset password for ${employee.profile.email}?`)) return;
+    const newPassword = prompt(`Enter new password for ${employee.profile.email}:`, 'TempPass123!');
+    if (!newPassword) return;
 
     try {
-      // Generate temporary password
-      const tempPassword = Math.random().toString(36).slice(-8);
-      
-      const { error } = await supabase.auth.admin.updateUserById(employee.user_id, {
-        password: tempPassword
-      });
+      const { data: result, error } = await supabase
+        .rpc('admin_reset_password', {
+          user_id: employee.user_id,
+          new_password: newPassword
+        });
 
       if (error) throw error;
 
-      alert(`Password reset successfully. New password: ${tempPassword}\nPlease share this with the employee securely.`);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to reset password');
+      }
+
+      alert(`Password reset successfully for ${employee.profile.email}`);
     } catch (error: any) {
       console.error('Error resetting password:', error);
       alert(`Error resetting password: ${error.message}`);
+    }
+  };
+
+  const handleDeleteEmployee = async (employee: Employee) => {
+    if (!window.confirm(`Are you sure you want to delete ${employee.profile.full_name}? This action cannot be undone.`)) return;
+
+    try {
+      const { data: result, error } = await supabase
+        .rpc('admin_delete_user', {
+          user_id: employee.user_id
+        });
+
+      if (error) throw error;
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete user');
+      }
+
+      alert(`Employee deleted successfully`);
+      await fetchEmployees();
+    } catch (error: any) {
+      console.error('Error deleting employee:', error);
+      alert(`Error deleting employee: ${error.message}`);
     }
   };
 
@@ -585,6 +610,12 @@ export const EmployeeManagement: React.FC = () => {
                 onClick={() => handleResetPassword(employee)}
               >
                 Reset Password
+              </SmallButton>
+              <SmallButton 
+                variant="danger"
+                onClick={() => handleDeleteEmployee(employee)}
+              >
+                Delete
               </SmallButton>
             </EmployeeActions>
           </EmployeeCard>
