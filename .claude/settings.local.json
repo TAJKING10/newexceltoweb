@@ -29,7 +29,11 @@
       "Bash(PORT=8081 npm start)",
       "Bash(PORT=3018 npm start)",
       "Bash(PORT=3021 npm start)",
-      "Bash(PORT=3030 npm start)"
+      "Bash(PORT=3030 npm start)",
+      "Bash(PORT=3031 npm start)",
+      "Bash(PORT=3032 npm start)",
+      "Bash(PORT=3033 npm start)",
+      "Bash(PORT=3034 npm start)"
     ],
     "deny": [],
     "ask": []

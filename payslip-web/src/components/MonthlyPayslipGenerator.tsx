@@ -1078,6 +1078,12 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         result = await supabasePayslipService.loadAnnualPayslipViewByName(personName, currentYear);
       }
       
+      // If both fail, try loading the most recent data for this year (ultimate fallback)
+      if (!result.success) {
+        console.log('📂 Ultimate fallback: Loading most recent data for year:', currentYear);
+        result = await supabasePayslipService.loadMostRecentAnnualPayslipView(currentYear);
+      }
+      
       if (result.success && result.data) {
         console.log('✅ Successfully loaded personalized data from database');
         setPayslipData(result.data);

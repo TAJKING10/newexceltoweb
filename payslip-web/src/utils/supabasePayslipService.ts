@@ -56,29 +56,6 @@ export interface SavedPayslipView {
 }
 
 class SupabasePayslipService {
-  /**
-   * Helper function to validate UUID format
-   */
-  private isValidUUID(str: string): boolean {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(str);
-  }
-
-  /**
-   * Helper function to convert template ID to UUID if needed
-   */
-  private async convertTemplateIdToUUID(templateId: string): Promise<string | null> {
-    if (!templateId) return null;
-    
-    // If it's already a UUID, return as is
-    if (this.isValidUUID(templateId)) {
-      return templateId;
-    }
-    
-    // For non-UUID template IDs, we'll return null to avoid UUID constraint issues
-    // The template_name will still be saved for reference
-    return null;
-  }
 
   /**
    * Save annual payslip view to database
@@ -94,9 +71,6 @@ class SupabasePayslipService {
       // Generate view name
       const viewName = `${selectedPerson?.personalInfo?.fullName || selectedPerson?.name || 'Unknown'} - Annual ${payslipData.year || new Date().getFullYear()}`;
 
-      // Handle template ID conversion
-      const templateUUID = selectedTemplate?.id ? await this.convertTemplateIdToUUID(selectedTemplate.id) : null;
-
       // Prepare data for saving
       const saveData: Partial<SavedPayslipView> = {
         view_name: viewName,
@@ -109,7 +83,7 @@ class SupabasePayslipService {
         employee_id: selectedPerson?.workInfo?.personId || selectedPerson?.employeeId || null,
         department: selectedPerson?.workInfo?.department || selectedPerson?.department || null,
         position: selectedPerson?.workInfo?.position || selectedPerson?.position || null,
-        template_id: templateUUID || undefined, // Will be undefined for non-UUID template IDs
+        template_id: selectedTemplate?.id || null, // Now accepts text template IDs directly
         template_name: selectedTemplate?.name || null,
         payslip_year: payslipData.year || new Date().getFullYear(),
         generation_date: new Date().toISOString().split('T')[0],
@@ -143,8 +117,7 @@ class SupabasePayslipService {
         person: selectedPerson?.personalInfo?.fullName || selectedPerson?.name,
         year: payslipData.year,
         template: selectedTemplate?.name,
-        templateId: selectedTemplate?.id,
-        convertedTemplateId: templateUUID
+        templateId: selectedTemplate?.id
       });
 
       // Check if a view already exists for this person and year
@@ -215,7 +188,11 @@ class SupabasePayslipService {
 
       console.log('📂 Loading payslip data for person:', personId, 'year:', year);
 
-      const { data, error } = await supabase
+      // Try multiple approaches to find the saved data
+      let data, error;
+      
+      // First try: exact person_id match
+      ({ data, error } = await supabase
         .from('saved_payslip_views')
         .select('*')
         .eq('owner_id', user.id)
@@ -223,7 +200,20 @@ class SupabasePayslipService {
         .eq('payslip_year', year)
         .eq('view_type', 'annual')
         .order('updated_at', { ascending: false })
-        .limit(1);
+        .limit(1));
+
+      // If no exact match, try loading by any matching criteria for this user/year
+      if ((!data || data.length === 0) && !error) {
+        console.log('📂 No exact person_id match, trying broader search...');
+        ({ data, error } = await supabase
+          .from('saved_payslip_views')
+          .select('*')
+          .eq('owner_id', user.id)
+          .eq('payslip_year', year)
+          .eq('view_type', 'annual')
+          .order('updated_at', { ascending: false })
+          .limit(1));
+      }
 
       if (error) {
         console.error('❌ Error loading payslip view:', error);
@@ -236,7 +226,13 @@ class SupabasePayslipService {
       }
 
       const savedView = data[0];
-      console.log('✅ Successfully loaded annual payslip view from database');
+      console.log('✅ Successfully loaded annual payslip view from database:', {
+        view_name: savedView.view_name,
+        person_name: savedView.person_name,
+        saved_person_id: savedView.person_id,
+        requested_person_id: personId,
+        year: savedView.payslip_year
+      });
       return { success: true, data: savedView.payslip_data };
 
     } catch (error: any) {
@@ -284,6 +280,52 @@ class SupabasePayslipService {
 
     } catch (error: any) {
       console.error('❌ Error in loadAnnualPayslipViewByName:', error);
+      return { success: false, error: error.message || 'Unknown error occurred' };
+    }
+  }
+
+  /**
+   * Load the most recent annual payslip view for current user and year (fallback method)
+   */
+  async loadMostRecentAnnualPayslipView(year: number): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      console.log('📂 Loading most recent payslip data for year:', year);
+
+      const { data, error } = await supabase
+        .from('saved_payslip_views')
+        .select('*')
+        .eq('owner_id', user.id)
+        .eq('payslip_year', year)
+        .eq('view_type', 'annual')
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('❌ Error loading most recent payslip view:', error);
+        return { success: false, error: error.message };
+      }
+
+      if (!data || data.length === 0) {
+        console.log('ℹ️ No saved data found for this year');
+        return { success: false, error: 'No saved data found' };
+      }
+
+      const savedView = data[0];
+      console.log('✅ Successfully loaded most recent annual payslip view:', {
+        view_name: savedView.view_name,
+        person_name: savedView.person_name,
+        year: savedView.payslip_year
+      });
+      return { success: true, data: savedView.payslip_data };
+
+    } catch (error: any) {
+      console.error('❌ Error in loadMostRecentAnnualPayslipView:', error);
       return { success: false, error: error.message || 'Unknown error occurred' };
     }
   }
