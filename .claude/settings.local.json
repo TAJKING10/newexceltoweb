@@ -26,7 +26,10 @@
       "mcp__supabase__apply_migration",
       "Bash(start http://localhost:3009)",
       "mcp__supabase__list_tables",
-      "Bash(PORT=8081 npm start)"
+      "Bash(PORT=8081 npm start)",
+      "Bash(PORT=3018 npm start)",
+      "Bash(PORT=3021 npm start)",
+      "Bash(PORT=3030 npm start)"
     ],
     "deny": [],
     "ask": []

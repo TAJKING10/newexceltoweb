@@ -4,6 +4,7 @@ import { personManager } from '../utils/personManager';
 import { templateSync } from '../utils/templateSync';
 import { viewSync } from '../utils/viewSync';
 import { dataSync } from '../utils/dataSync';
+import { supabasePayslipService } from '../utils/supabasePayslipService';
 import { PayslipTemplate } from '../types/PayslipTypes';
 import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 import OptimizedCell from './OptimizedCell';
@@ -622,7 +623,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           if (person && (!selectedPerson || selectedPerson.id !== personId)) {
             console.log('📊 Excel View: Received cross-view person selection:', person.personalInfo?.fullName);
             setSelectedPerson(person);
-            handlePersonChange(personId);
+            handlePersonChange(personId).catch(console.error);
           }
         }
       });
@@ -902,17 +903,22 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   );
 
   // Handle person selection - create fresh personalized template
-  const handlePersonChange = (personId: string) => {
+  const handlePersonChange = async (personId: string) => {
     const person = safeArray(filteredPersons).find(p => p.id === personId);
     if (person) {
       setSelectedPerson(person);
       
-      // Create fresh personalized template for this user
-      const personalizedData = createFreshPersonalizedTemplate(person);
-      setPayslipData(personalizedData);
+      // Get person name for fallback loading
+      const personName = person.personalInfo?.fullName;
       
-      // Try to load existing data for this person
-      loadPersonalizedData(person.id);
+      // Try to load existing data from database first
+      const hasLoadedData = await loadPersonalizedData(person.id, payslipData.year, personName);
+      
+      // If no saved data found, create fresh template with person details
+      if (!hasLoadedData) {
+        const personalizedData = createFreshPersonalizedTemplate(person);
+        setPayslipData(personalizedData);
+      }
     }
   };
 
@@ -1057,16 +1063,32 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     };
   };
 
-  // Load personalized data if exists
-  const loadPersonalizedData = (personId: string) => {
+  // Load personalized data from Supabase database
+  const loadPersonalizedData = async (personId: string, year?: number, personName?: string) => {
     try {
-      const savedData = localStorage.getItem(`annual-payslip-${personId}`);
-      if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        setPayslipData(parsedData);
+      const currentYear = year || payslipData.year || new Date().getFullYear();
+      console.log(`📂 Loading data for person ${personId}, year ${currentYear}`);
+      
+      // First try loading by person ID
+      let result = await supabasePayslipService.loadAnnualPayslipView(personId, currentYear);
+      
+      // If that fails and we have a person name, try loading by name as fallback
+      if (!result.success && personName) {
+        console.log('📂 Fallback: Loading by person name:', personName);
+        result = await supabasePayslipService.loadAnnualPayslipViewByName(personName, currentYear);
+      }
+      
+      if (result.success && result.data) {
+        console.log('✅ Successfully loaded personalized data from database');
+        setPayslipData(result.data);
+        return true;
+      } else {
+        console.log('ℹ️ No saved data found in database, using template defaults');
+        return false;
       }
     } catch (error) {
-      console.error('Error loading personalized data:', error);
+      console.error('Error loading personalized data from database:', error);
+      return false;
     }
   };
 
@@ -1408,13 +1430,30 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     window.print();
   };
 
-  // Save function
-  const handleSave = () => {
+  // Save function - now saves to Supabase database
+  const handleSave = async () => {
+    if (!selectedPerson) {
+      alert('Please select a person first!');
+      return;
+    }
+    
     try {
-      localStorage.setItem(`annual-payslip-${payslipData.personId}`, JSON.stringify(payslipData));
-      alert('Payslip data saved successfully!');
+      const result = await supabasePayslipService.saveAnnualPayslipView(
+        payslipData, 
+        selectedPerson, 
+        selectedTemplate
+      );
+      
+      if (result.success) {
+        alert('✅ Annual payslip data saved to database successfully!');
+        console.log('💾 Saved to database with ID:', result.id);
+      } else {
+        alert(`❌ Error saving to database: ${result.error}`);
+        console.error('Database save error:', result.error);
+      }
     } catch (error) {
-      alert('Error saving payslip data');
+      console.error('Save error:', error);
+      alert('❌ Error saving payslip data to database');
     }
   };
 
@@ -1512,7 +1551,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             value={selectedPerson?.id || ''} 
             onChange={(e) => {
               const personId = e.target.value;
-              handlePersonChange(personId);
+              handlePersonChange(personId).catch(console.error);
               // Sync person selection across views
               if (personId) {
                 viewSync.setSelectedPerson(personId);
@@ -1644,8 +1683,8 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               if (selectedPerson && window.confirm(`Reset all data for ${selectedPerson.personalInfo?.fullName}? This will create a completely fresh template with all values at 0.`)) {
                 const freshData = createFreshPersonalizedTemplate(selectedPerson);
                 setPayslipData(freshData);
-                // Remove saved data
-                localStorage.removeItem(`annual-payslip-${selectedPerson.id}`);
+                // Note: Database records remain for audit trail
+                console.log('🔄 Reset to fresh template - database records preserved for audit');
               }
             }}
             style={{
