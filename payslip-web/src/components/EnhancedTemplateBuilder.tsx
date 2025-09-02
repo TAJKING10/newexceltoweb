@@ -3,6 +3,8 @@ import { PayslipTemplate, TemplateSubHeader, SectionDefinition, FieldDefinition 
 import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 import { personManager } from '../utils/personManager';
 import { templateSync } from '../utils/templateSync';
+import { supabaseTemplateService } from '../utils/supabaseTemplateService';
+import { templateCleanup } from '../utils/templateCleanup';
 
 interface EnhancedTemplateBuilderProps {
   onTemplateSelect?: (template: PayslipTemplate) => void;
@@ -17,6 +19,8 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
   const [selectedPersonType, setSelectedPersonType] = useState<'all' | 'employee' | 'customer' | 'contractor' | 'freelancer' | 'vendor' | 'consultant' | 'other'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   // Safe array getter with fallback
   const safeArray = useCallback(<T,>(arr: T[] | undefined | null): T[] => {
@@ -27,19 +31,20 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
   const loadPersons = useCallback(() => {
     try {
       const loadedPersons = personManager.getAllPersons();
-      setPersons(safeArray(loadedPersons));
-      if (safeArray(loadedPersons).length > 0) {
+      const safePersons = Array.isArray(loadedPersons) ? loadedPersons : [];
+      setPersons(safePersons);
+      if (safePersons.length > 0) {
         setSelectedPerson(loadedPersons[0]);
       }
     } catch (error) {
       console.error('Error loading persons:', error);
       setPersons([]);
     }
-  }, [safeArray]);
+  }, []);
 
   // Create basic template with safe structure
   const createBasicTemplate = useCallback((): PayslipTemplate => ({
-    id: 'basic-template',
+    id: 'default-basic-template',
     name: '📝 Basic Payslip Template',
     version: '1.0',
     description: 'Simple payslip template with essential fields - ready to use with one click',
@@ -140,11 +145,11 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     isEditable: true,
     createdDate: new Date(),
     lastModified: new Date()
-  }), [safeArray]);
+  }), []);
 
   // Create advanced template with safe structure  
   const createAdvancedTemplate = useCallback((): PayslipTemplate => ({
-    id: 'custom-template',
+    id: 'default-advanced-template',
     name: '⚡ Advanced Payslip Template',
     version: '1.0',
     description: 'Comprehensive payslip template with advanced features - works in both Basic and Excel views',
@@ -316,40 +321,78 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     isEditable: true,
     createdDate: new Date(),
     lastModified: new Date()
-  }), [safeArray]);
+  }), []);
 
-  // Initialize default templates if none exist
+  // Create the 2 default templates (without adding to sync here)
   const initializeDefaultTemplates = useCallback(() => {
     const basicTemplate = createBasicTemplate();
     const advancedTemplate = createAdvancedTemplate();
     
-    // Add default templates to sync
-    templateSync.addTemplate(basicTemplate);
-    templateSync.addTemplate(advancedTemplate);
-    
+    console.log('🎨 Creating 2 default templates: Basic and Advanced');
     return [basicTemplate, advancedTemplate];
   }, [createBasicTemplate, createAdvancedTemplate]);
 
-  // Load templates using unified sync service
-  const loadTemplates = useCallback(() => {
+  // Load templates from database with clean initialization
+  const loadTemplates = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    
     try {
-      console.log('🎨 Template Builder: Loading templates via TemplateSync');
-      let loadedTemplates = templateSync.getAllTemplates();
+      console.log('🎨 Template Builder: Loading templates from database');
       
-      // If no templates exist, initialize with defaults
-      if (loadedTemplates.length === 0) {
-        console.log('🎨 Template Builder: No templates found, initializing defaults');
-        loadedTemplates = initializeDefaultTemplates();
+      // Try to load from database first
+      const dbResult = await supabaseTemplateService.getAllTemplates();
+      let loadedTemplates: PayslipTemplate[] = [];
+      
+      if (dbResult.success && dbResult.data && dbResult.data.length > 0) {
+        loadedTemplates = dbResult.data;
+        console.log(`📊 Template Builder: Loaded ${loadedTemplates.length} templates from database`);
+      } else {
+        // No database templates found, create and save the 2 default templates
+        console.log('🎨 Template Builder: No database templates found, initializing 2 default templates');
+        
+        const defaultTemplates = initializeDefaultTemplates();
+        
+        // Save each default template to database
+        for (const template of defaultTemplates) {
+          try {
+            const saveResult = await supabaseTemplateService.saveTemplate(template);
+            if (saveResult.success) {
+              console.log(`✅ Saved default template "${template.name}" to database`);
+            } else {
+              console.warn(`⚠️ Failed to save default template "${template.name}":`, saveResult.error);
+            }
+          } catch (error) {
+            console.error(`❌ Error saving default template "${template.name}":`, error);
+          }
+        }
+        
+        loadedTemplates = defaultTemplates;
       }
       
+      // Clear local storage to avoid duplicates and sync from database
+      templateSync.clearAllTemplates();
+      loadedTemplates.forEach(template => {
+        templateSync.addTemplate(template);
+      });
+      
       setTemplates(loadedTemplates);
-      console.log(`✅ Template Builder: Loaded ${loadedTemplates.length} synchronized templates`);
+      console.log(`✅ Template Builder: Loaded ${loadedTemplates.length} templates total`);
+      
     } catch (error) {
       console.error('Error loading templates:', error);
       setError('Failed to load templates');
-      setTemplates([]);
+      
+      // Fallback: create 2 default templates locally only
+      try {
+        console.log('🔄 Template Builder: Using fallback - creating 2 default templates locally');
+        const fallbackTemplates = initializeDefaultTemplates();
+        setTemplates(fallbackTemplates);
+        setError('Templates loaded locally only (database connection issue)');
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        setTemplates([]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -369,27 +412,62 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     return unsubscribe;
   }, [loadTemplates, loadPersons]);
 
-  // Safe template update function using unified sync
-  const saveTemplate = useCallback((template: PayslipTemplate) => {
+  // Enhanced template save function with database support
+  const saveTemplate = useCallback(async (template: PayslipTemplate) => {
     if (!template || !template.id) return;
+    
+    setIsSaving(true);
+    setSaveMessage(null);
+    
     try {
-      console.log('🎨 Template Builder: Saving template via TemplateSync:', template.name);
+      console.log('🎨 Template Builder: Saving template to database and sync:', template.name);
       
       // Update local state immediately for responsiveness
       const updatedTemplates = safeArray(templates).map(t => t.id === template.id ? template : t);
       setTemplates(updatedTemplates);
       
-      // Save via unified sync service (this will notify all other views)
-      templateSync.addTemplate(template);
+      // Save to database first
+      const dbResult = await supabaseTemplateService.saveTemplate(template);
+      
+      if (dbResult.success) {
+        console.log('✅ Template Builder: Template saved to database successfully');
+        setSaveMessage(`✅ Template "${template.name}" saved successfully!`);
+        
+        // Also save to sync service for offline access
+        templateSync.addTemplate(template);
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setSaveMessage(null), 3000);
+        
+      } else {
+        console.warn('⚠️ Database save failed, saving to local sync only:', dbResult.error);
+        setSaveMessage(`⚠️ Saved locally only. Database: ${dbResult.error}`);
+        
+        // Fallback to sync service only
+        templateSync.addTemplate(template);
+        
+        // Clear warning message after 5 seconds
+        setTimeout(() => setSaveMessage(null), 5000);
+      }
       
       console.log('✅ Template Builder: Template saved and synchronized');
+      
     } catch (error) {
       console.error('Error saving template:', error);
       setError('Failed to save template');
+      setSaveMessage(`❌ Save failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setSaveMessage(null), 5000);
+    } finally {
+      setIsSaving(false);
     }
   }, [templates, safeArray]);
 
-  const createNewTemplate = useCallback(() => {
+  const createNewTemplate = useCallback(async () => {
+    setIsSaving(true);
+    setSaveMessage(null);
+    
     try {
       const newTemplate: PayslipTemplate = {
         ...createBasicTemplate(),
@@ -400,20 +478,48 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
         description: 'Custom payslip template'
       };
       
-      console.log('🎨 Template Builder: Creating new template via TemplateSync');
+      console.log('🎨 Template Builder: Creating new template in database and sync');
       
       // Update local state immediately
       const updatedTemplates = [...safeArray(templates), newTemplate];
       setTemplates(updatedTemplates);
       setCurrentTemplate(newTemplate);
       
-      // Save via unified sync service (this will make it available in all views)
-      templateSync.addTemplate(newTemplate);
+      // Save to database first
+      const dbResult = await supabaseTemplateService.saveTemplate(newTemplate);
+      
+      if (dbResult.success) {
+        console.log('✅ Template Builder: New template created in database successfully');
+        setSaveMessage(`✅ New template "${newTemplate.name}" created successfully!`);
+        
+        // Also save to sync service for offline access
+        templateSync.addTemplate(newTemplate);
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setSaveMessage(null), 3000);
+        
+      } else {
+        console.warn('⚠️ Database creation failed, saving to local sync only:', dbResult.error);
+        setSaveMessage(`⚠️ Template created locally only. Database: ${dbResult.error}`);
+        
+        // Fallback to sync service only
+        templateSync.addTemplate(newTemplate);
+        
+        // Clear warning message after 5 seconds
+        setTimeout(() => setSaveMessage(null), 5000);
+      }
       
       console.log('✅ Template Builder: New template created and synchronized');
+      
     } catch (error) {
       console.error('Error creating template:', error);
       setError('Failed to create template');
+      setSaveMessage(`❌ Create failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setSaveMessage(null), 5000);
+    } finally {
+      setIsSaving(false);
     }
   }, [templates, createBasicTemplate, safeArray]);
 
@@ -741,6 +847,111 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
     return field?.value || `[${field?.type || 'text'}]`;
   }, [selectedPerson]);
 
+  // Delete template function
+  const deleteTemplate = useCallback(async (templateId: string, templateName: string) => {
+    if (!window.confirm(`Are you sure you want to delete the template "${templateName}"? This action cannot be undone.`)) {
+      return;
+    }
+    
+    setIsSaving(true);
+    setSaveMessage(null);
+    
+    try {
+      console.log('🗑️ Template Builder: Deleting template:', templateName);
+      
+      // Delete from database first
+      const dbResult = await supabaseTemplateService.deleteTemplate(templateId);
+      
+      if (dbResult.success) {
+        console.log('✅ Template Builder: Template deleted from database successfully');
+        setSaveMessage(`✅ Template "${templateName}" deleted successfully!`);
+        
+        // Also delete from sync service
+        templateSync.deleteTemplate(templateId);
+        
+        // Update local state
+        const updatedTemplates = safeArray(templates).filter(t => t.id !== templateId);
+        setTemplates(updatedTemplates);
+        
+        // If deleted template was currently selected, clear it
+        if (currentTemplate?.id === templateId) {
+          setCurrentTemplate(null);
+          setActiveTab('templates');
+        }
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setSaveMessage(null), 3000);
+        
+      } else {
+        console.warn('⚠️ Database deletion failed, removing from local only:', dbResult.error);
+        setSaveMessage(`⚠️ Removed locally only. Database: ${dbResult.error}`);
+        
+        // Fallback to sync service only
+        templateSync.deleteTemplate(templateId);
+        const updatedTemplates = safeArray(templates).filter(t => t.id !== templateId);
+        setTemplates(updatedTemplates);
+        
+        if (currentTemplate?.id === templateId) {
+          setCurrentTemplate(null);
+          setActiveTab('templates');
+        }
+        
+        // Clear warning message after 5 seconds
+        setTimeout(() => setSaveMessage(null), 5000);
+      }
+      
+      console.log('✅ Template Builder: Template deleted and synchronized');
+      
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      setSaveMessage(`❌ Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setSaveMessage(null), 5000);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [templates, safeArray, currentTemplate]);
+
+  // Reset templates to exactly 2 default templates
+  const resetTemplates = useCallback(async () => {
+    if (!window.confirm('Are you sure you want to reset all templates? This will remove all custom templates and keep only the 2 default templates (Basic and Advanced). This action cannot be undone.')) {
+      return;
+    }
+    
+    setIsSaving(true);
+    setSaveMessage(null);
+    
+    try {
+      console.log('🔄 Template Builder: Resetting to 2 default templates');
+      
+      // Clear everything and reset
+      const resetResult = await templateCleanup.resetToDefaultTemplates();
+      
+      if (resetResult.success) {
+        setSaveMessage('✅ Templates reset successfully! Reloading...');
+        
+        // Reload templates after reset
+        setTimeout(async () => {
+          await loadTemplates();
+          setSaveMessage('✅ Reset complete - now showing 2 default templates');
+          setTimeout(() => setSaveMessage(null), 3000);
+        }, 1000);
+        
+      } else {
+        setSaveMessage(`❌ Reset failed: ${resetResult.error}`);
+        setTimeout(() => setSaveMessage(null), 5000);
+      }
+      
+    } catch (error) {
+      console.error('Error resetting templates:', error);
+      setSaveMessage(`❌ Reset failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setTimeout(() => setSaveMessage(null), 5000);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [loadTemplates]);
+
   // Styles
   const fieldStyle = {
     width: '100%',
@@ -822,8 +1033,35 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
           🎨 Enhanced Template Builder
         </h1>
         <p style={{ color: '#666', margin: 0 }}>
-          Create and customize payslip templates with headers, sections, and styling
+          Create and customize payslip templates with headers, sections, and styling - Auto-saved to database
         </p>
+        
+        {/* Save Status Indicator */}
+        {(isSaving || saveMessage) && (
+          <div style={{
+            marginTop: '15px',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            backgroundColor: saveMessage?.includes('✅') ? '#e8f5e8' : 
+                           saveMessage?.includes('⚠️') ? '#fff3e0' : 
+                           saveMessage?.includes('❌') ? '#ffebee' : '#e3f2fd',
+            color: saveMessage?.includes('✅') ? '#2e7d32' : 
+                   saveMessage?.includes('⚠️') ? '#e65100' : 
+                   saveMessage?.includes('❌') ? '#c62828' : '#1565c0',
+            border: `1px solid ${saveMessage?.includes('✅') ? '#4caf50' : 
+                                saveMessage?.includes('⚠️') ? '#ff9800' : 
+                                saveMessage?.includes('❌') ? '#f44336' : '#2196f3'}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}>
+            {isSaving && <span>💾 Saving...</span>}
+            {saveMessage && <span>{saveMessage}</span>}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -853,25 +1091,44 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <div>
-              <h2>📋 Available Templates</h2>
+              <h2>📋 Available Templates ({safeArray(templates).length})</h2>
               <p style={{ color: '#666', margin: '5px 0 0 0', fontSize: '14px' }}>
                 Ready-to-use templates with all features functional. Click "📋 Use Template" to get started immediately!
               </p>
             </div>
-            <button
-              onClick={createNewTemplate}
-              style={{
-                padding: '12px 20px',
-                backgroundColor: '#1565c0',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-            >
-              + Create New Template
-            </button>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                onClick={resetTemplates}
+                style={{
+                  padding: '12px 20px',
+                  backgroundColor: isSaving ? '#ccc' : '#ff9800',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: isSaving ? 'not-allowed' : 'pointer',
+                  fontWeight: 'bold'
+                }}
+                disabled={isSaving}
+                title="Reset to 2 default templates (Basic and Advanced)"
+              >
+                🔄 Reset to 2 Templates
+              </button>
+              <button
+                onClick={createNewTemplate}
+                style={{
+                  padding: '12px 20px',
+                  backgroundColor: isSaving ? '#ccc' : '#1565c0',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: isSaving ? 'not-allowed' : 'pointer',
+                  fontWeight: 'bold'
+                }}
+                disabled={isSaving}
+              >
+                + Create New Template
+              </button>
+            </div>
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
@@ -914,7 +1171,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                     {template.type === 'advanced' && <div style={{ color: '#e65100', fontWeight: 'bold', marginTop: '5px' }}>⚡ Perfect for: Complex payslips - works in Basic & Excel view</div>}
                   </div>
                   
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                       onClick={() => {
                         setCurrentTemplate(template);
@@ -922,6 +1179,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                       }}
                       style={{
                         flex: 1,
+                        minWidth: '70px',
                         padding: '8px 12px',
                         backgroundColor: '#1565c0',
                         color: 'white',
@@ -930,6 +1188,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                         cursor: 'pointer',
                         fontSize: '12px'
                       }}
+                      disabled={isSaving}
                     >
                       ✏️ Edit
                     </button>
@@ -937,6 +1196,7 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                       onClick={() => handleTemplateUse(template)}
                       style={{
                         flex: 1,
+                        minWidth: '70px',
                         padding: '8px 12px',
                         backgroundColor: '#4caf50',
                         color: 'white',
@@ -946,8 +1206,25 @@ export const EnhancedTemplateBuilder: React.FC<EnhancedTemplateBuilderProps> = (
                         fontSize: '12px',
                         fontWeight: 'bold'
                       }}
+                      disabled={isSaving}
                     >
                       📋 Use Template
+                    </button>
+                    <button
+                      onClick={() => deleteTemplate(template.id, template.name)}
+                      style={{
+                        padding: '8px 10px',
+                        backgroundColor: '#f44336',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                      disabled={isSaving}
+                      title={`Delete template "${template.name}"`}
+                    >
+                      🗑️
                     </button>
                   </div>
                 </div>
