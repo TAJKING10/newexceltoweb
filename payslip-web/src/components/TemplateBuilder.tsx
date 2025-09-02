@@ -8,6 +8,7 @@ import {
   COMMON_FIELDS
 } from '../types/PayslipTypes';
 import { templateManager } from '../utils/templateManager';
+import { supabaseTemplateService } from '../utils/supabaseTemplateService';
 
 const Container = styled.div`
   padding: 20px;
@@ -238,6 +239,8 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
   const [draggedField, setDraggedField] = useState<FieldDefinition | null>(null);
   const [showAddSection, setShowAddSection] = useState(false);
   const [showAddTable, setShowAddTable] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (templateId) {
@@ -296,22 +299,99 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
     }
   }, [templateId]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+      }
+    };
+  }, [autoSaveTimeout]);
+
+  // Debounced auto-save function - fail-fast and non-blocking
+  const debouncedAutoSave = (template: PayslipTemplate) => {
+    if (autoSaveTimeout) {
+      clearTimeout(autoSaveTimeout);
+    }
+    
+    const timeoutId = setTimeout(() => {
+      // Save to local storage immediately
+      if (templateId) {
+        templateManager.updateTemplate(templateId, {
+          type: 'UPDATE_TEMPLATE_SETTINGS',
+          updates: template
+        });
+      } else {
+        templateManager.createTemplate(template);
+      }
+      
+      // Background save to Supabase - fire and forget
+      backgroundSave(template);
+    }, 1000);
+    
+    setAutoSaveTimeout(timeoutId);
+  };
+
   const handleSaveTemplate = () => {
     if (!template) return;
     
+    // Show immediate feedback but don't block UI
+    setSaveMessage('💾 Saving template...');
+    
+    // Save to local storage immediately for responsiveness
     if (templateId) {
-      // Update existing template
       templateManager.updateTemplate(templateId, {
         type: 'UPDATE_TEMPLATE_SETTINGS',
         updates: template
       });
     } else {
-      // Create new template
       templateManager.createTemplate(template);
     }
     
     if (onSave) {
       onSave(template);
+    }
+    
+    // Do background save to Supabase without blocking
+    backgroundSave(template);
+  };
+
+  const backgroundSave = async (template: PayslipTemplate) => {
+    // Create a timeout promise for fail-fast behavior
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Save timeout after 8 seconds')), 8000);
+    });
+    
+    try {
+      console.log('🎨 Background: Saving template to database (8s timeout):', template.name);
+      console.log('🔍 Template data:', {
+        id: template.id,
+        sections: template.sections?.length || 0,
+        name: template.name
+      });
+      
+      // Race between the save operation and timeout
+      const dbResult = await Promise.race([
+        supabaseTemplateService.saveTemplate(template),
+        timeoutPromise
+      ]) as any;
+      
+      console.log('📊 Save result:', dbResult);
+      
+      if (dbResult && dbResult.success) {
+        console.log('✅ Background: Template saved to database successfully');
+        setSaveMessage(`✅ Template "${template.name}" saved to database!`);
+        setTimeout(() => setSaveMessage(null), 2000);
+      } else {
+        console.warn('⚠️ Background: Database save failed:', dbResult?.error || 'Unknown error');
+        setSaveMessage(`⚠️ Saved locally. DB: ${dbResult?.error || 'error'}`);
+        setTimeout(() => setSaveMessage(null), 4000);
+      }
+    } catch (error) {
+      console.error('Background save error (failed fast):', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      setSaveMessage(`⚠️ Saved locally. Issue: ${errorMsg.substring(0, 30)}`);
+      setTimeout(() => setSaveMessage(null), 4000);
     }
   };
 
@@ -329,10 +409,16 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
       collapsed: false,
     };
 
-    setTemplate(prev => prev ? {
-      ...prev,
-      sections: [...prev.sections, newSection]
-    } : null);
+    const updatedTemplate = {
+      ...template,
+      sections: [...template.sections, newSection],
+      lastModified: new Date()
+    };
+    
+    setTemplate(updatedTemplate);
+    
+    // Auto-save to Supabase with debouncing
+    debouncedAutoSave(updatedTemplate);
   };
 
   const handleAddTable = () => {
@@ -352,10 +438,16 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
       canRemoveRows: true,
     };
 
-    setTemplate(prev => prev ? {
-      ...prev,
-      tables: [...prev.tables, newTable]
-    } : null);
+    const updatedTemplate = {
+      ...template,
+      tables: [...template.tables, newTable],
+      lastModified: new Date()
+    };
+    
+    setTemplate(updatedTemplate);
+    
+    // Auto-save to Supabase with debouncing
+    debouncedAutoSave(updatedTemplate);
   };
 
   const handleRemoveSection = (sectionId: string) => {
@@ -401,20 +493,26 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
   const handleUpdateSection = (sectionId: string, updates: Partial<SectionDefinition>) => {
     if (!template) return;
     
-    setTemplate(prev => prev ? {
-      ...prev,
-      sections: prev.sections.map(section =>
+    const updatedTemplate = {
+      ...template,
+      sections: template.sections.map(section =>
         section.id === sectionId ? { ...section, ...updates } : section
-      )
-    } : null);
+      ),
+      lastModified: new Date()
+    };
+    
+    setTemplate(updatedTemplate);
+    
+    // Auto-save to Supabase with debouncing
+    debouncedAutoSave(updatedTemplate);
   };
 
   const handleUpdateField = (sectionId: string, fieldId: string, updates: Partial<FieldDefinition>) => {
     if (!template) return;
     
-    setTemplate(prev => prev ? {
-      ...prev,
-      sections: prev.sections.map(section =>
+    const updatedTemplate = {
+      ...template,
+      sections: template.sections.map(section =>
         section.id === sectionId
           ? {
               ...section,
@@ -423,8 +521,14 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
               )
             }
           : section
-      )
-    } : null);
+      ),
+      lastModified: new Date()
+    };
+    
+    setTemplate(updatedTemplate);
+    
+    // Auto-save to Supabase with debouncing
+    debouncedAutoSave(updatedTemplate);
   };
 
   const handleDragStart = (field: FieldDefinition) => {
@@ -452,8 +556,11 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
       <Header>
         <Title>Template Builder</Title>
         <ButtonGroup>
-          <Button variant="success" onClick={handleSaveTemplate}>
-            Save Template
+          <Button 
+            variant="success" 
+            onClick={handleSaveTemplate}
+          >
+            💾 Save Template
           </Button>
           <Button variant="secondary">
             Preview
@@ -465,6 +572,32 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
             Add Table
           </Button>
         </ButtonGroup>
+        
+        {/* Save Status Indicator */}
+        {saveMessage && (
+          <div style={{
+            marginTop: '15px',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            backgroundColor: saveMessage?.includes('✅') ? '#e8f5e8' : 
+                           saveMessage?.includes('⚠️') ? '#fff3e0' : 
+                           saveMessage?.includes('❌') ? '#ffebee' : '#e3f2fd',
+            color: saveMessage?.includes('✅') ? '#2e7d32' : 
+                   saveMessage?.includes('⚠️') ? '#e65100' : 
+                   saveMessage?.includes('❌') ? '#c62828' : '#1565c0',
+            border: `1px solid ${saveMessage?.includes('✅') ? '#4caf50' : 
+                                saveMessage?.includes('⚠️') ? '#ff9800' : 
+                                saveMessage?.includes('❌') ? '#f44336' : '#2196f3'}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}>
+            <span>{saveMessage}</span>
+          </div>
+        )}
       </Header>
 
       <TemplateArea>
@@ -534,7 +667,16 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
             <FieldLabel>Template Name:</FieldLabel>
             <FieldInput
               value={template.name}
-              onChange={(e) => setTemplate(prev => prev ? { ...prev, name: e.target.value } : null)}
+              onChange={(e) => {
+                const updatedTemplate = {
+                  ...template,
+                  name: e.target.value,
+                  lastModified: new Date()
+                };
+                setTemplate(updatedTemplate);
+                // Auto-save template name changes with debouncing
+                debouncedAutoSave(updatedTemplate);
+              }}
             />
           </div>
 
