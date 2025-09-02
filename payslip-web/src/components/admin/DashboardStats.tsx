@@ -8,7 +8,27 @@ interface Stats {
   activeEmployees: number;
   pendingEmployees: number;
   totalPayslips: number;
+  totalTemplates: number;
+  monthlyPayslips: number;
+  totalRevenue: number;
+  avgSalary: number;
   recentActivity: DashboardActivityItem[];
+  monthlyStats: MonthlyStats[];
+  departmentStats: DepartmentStats[];
+}
+
+interface MonthlyStats {
+  month: string;
+  payslips: number;
+  revenue: number;
+  employees: number;
+}
+
+interface DepartmentStats {
+  department: string;
+  employees: number;
+  avgSalary: number;
+  totalSalary: number;
 }
 
 interface DashboardActivityItem {
@@ -27,8 +47,62 @@ const Container = styled.div`
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: ${theme.spacing[4]};
+  margin-bottom: ${theme.spacing[6]};
+`;
+
+const ChartsContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${theme.spacing[6]};
+  margin-bottom: ${theme.spacing[6]};
+  
+  @media (max-width: ${theme.breakpoints.lg}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ChartCard = styled.div`
+  background: white;
+  border-radius: ${theme.borderRadius.xl};
+  padding: ${theme.spacing[6]};
+  border: 1px solid ${theme.colors.border.light};
+  box-shadow: ${theme.shadows.sm};
+`;
+
+const ChartTitle = styled.h3`
+  margin: 0 0 ${theme.spacing[4]} 0;
+  color: ${theme.colors.text.primary};
+  font-size: ${theme.typography.fontSize.lg};
+  font-weight: ${theme.typography.fontWeight.semibold};
+`;
+
+const MetricsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${theme.spacing[3]};
+`;
+
+const MetricItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${theme.spacing[3]};
+  background: ${theme.colors.background.secondary};
+  border-radius: ${theme.borderRadius.md};
+`;
+
+const MetricName = styled.span`
+  font-size: ${theme.typography.fontSize.sm};
+  color: ${theme.colors.text.secondary};
+  font-weight: ${theme.typography.fontWeight.medium};
+`;
+
+const MetricValue = styled.span`
+  font-size: ${theme.typography.fontSize.lg};
+  color: ${theme.colors.text.primary};
+  font-weight: ${theme.typography.fontWeight.bold};
 `;
 
 const StatCard = styled.div`
@@ -194,6 +268,74 @@ export const DashboardStats: React.FC = () => {
 
       if (payslipError) throw payslipError;
 
+      // Fetch template stats
+      const { count: templateCount, error: templateError } = await supabase
+        .from('templates')
+        .select('*', { count: 'exact', head: true });
+
+      if (templateError) throw templateError;
+
+      // Fetch this month's payslips
+      const currentMonth = new Date();
+      const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      const { count: monthlyPayslipCount, error: monthlyPayslipError } = await supabase
+        .from('payslips')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startOfMonth.toISOString());
+
+      if (monthlyPayslipError) throw monthlyPayslipError;
+
+      // Fetch salary statistics
+      const { data: salaryData, error: salaryError } = await supabase
+        .from('employees')
+        .select('salary, department')
+        .not('salary', 'is', null);
+
+      if (salaryError) throw salaryError;
+
+      const totalRevenue = salaryData?.reduce((sum, emp) => sum + (emp.salary || 0), 0) || 0;
+      const avgSalary = salaryData && salaryData.length > 0 
+        ? totalRevenue / salaryData.length 
+        : 0;
+
+      // Calculate department statistics
+      const departmentMap = new Map<string, { employees: number; totalSalary: number }>();
+      salaryData?.forEach(emp => {
+        const dept = emp.department || 'Unassigned';
+        const current = departmentMap.get(dept) || { employees: 0, totalSalary: 0 };
+        departmentMap.set(dept, {
+          employees: current.employees + 1,
+          totalSalary: current.totalSalary + (emp.salary || 0)
+        });
+      });
+
+      const departmentStats: DepartmentStats[] = Array.from(departmentMap.entries()).map(([dept, stats]) => ({
+        department: dept,
+        employees: stats.employees,
+        totalSalary: stats.totalSalary,
+        avgSalary: stats.employees > 0 ? stats.totalSalary / stats.employees : 0
+      }));
+
+      // Generate monthly statistics for the last 6 months
+      const monthlyStats: MonthlyStats[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - i, 1);
+        const nextDate = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+        
+        const { count: monthPayslips } = await supabase
+          .from('payslips')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', date.toISOString())
+          .lt('created_at', nextDate.toISOString());
+
+        monthlyStats.push({
+          month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          payslips: monthPayslips || 0,
+          revenue: totalRevenue, // This would be calculated per month in real scenario
+          employees: totalEmployees
+        });
+      }
+
       // Fetch recent activity
       const { data: activityData, error: activityError } = await supabase
         .from('audit_logs')
@@ -203,7 +345,7 @@ export const DashboardStats: React.FC = () => {
           profiles!audit_logs_user_id_fkey (full_name, email)
         `)
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(8);
 
       if (activityError) throw activityError;
 
@@ -220,7 +362,13 @@ export const DashboardStats: React.FC = () => {
         activeEmployees,
         pendingEmployees,
         totalPayslips: payslipCount || 0,
-        recentActivity
+        totalTemplates: templateCount || 0,
+        monthlyPayslips: monthlyPayslipCount || 0,
+        totalRevenue,
+        avgSalary,
+        recentActivity,
+        monthlyStats,
+        departmentStats
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -325,7 +473,90 @@ export const DashboardStats: React.FC = () => {
             <StatIcon>📄</StatIcon>
           </StatHeader>
         </StatCard>
+
+        <StatCard>
+          <StatHeader>
+            <div>
+              <StatValue>{stats.totalTemplates}</StatValue>
+              <StatLabel>Templates</StatLabel>
+              <StatChange positive={true}>
+                Available designs
+              </StatChange>
+            </div>
+            <StatIcon>🎨</StatIcon>
+          </StatHeader>
+        </StatCard>
+
+        <StatCard>
+          <StatHeader>
+            <div>
+              <StatValue>{stats.monthlyPayslips}</StatValue>
+              <StatLabel>This Month</StatLabel>
+              <StatChange positive={true}>
+                Current month payslips
+              </StatChange>
+            </div>
+            <StatIcon>📅</StatIcon>
+          </StatHeader>
+        </StatCard>
+
+        <StatCard>
+          <StatHeader>
+            <div>
+              <StatValue>€{Math.round(stats.avgSalary).toLocaleString()}</StatValue>
+              <StatLabel>Average Salary</StatLabel>
+              <StatChange positive={true}>
+                Per employee annually
+              </StatChange>
+            </div>
+            <StatIcon>💰</StatIcon>
+          </StatHeader>
+        </StatCard>
+
+        <StatCard>
+          <StatHeader>
+            <div>
+              <StatValue>€{Math.round(stats.totalRevenue / 1000)}K</StatValue>
+              <StatLabel>Total Payroll</StatLabel>
+              <StatChange positive={true}>
+                Annual payroll costs
+              </StatChange>
+            </div>
+            <StatIcon>💳</StatIcon>
+          </StatHeader>
+        </StatCard>
       </StatsGrid>
+
+      <ChartsContainer>
+        <ChartCard>
+          <ChartTitle>📊 Monthly Payslip Trends</ChartTitle>
+          <MetricsList>
+            {stats.monthlyStats.map((month, index) => (
+              <MetricItem key={index}>
+                <MetricName>{month.month}</MetricName>
+                <MetricValue>{month.payslips} payslips</MetricValue>
+              </MetricItem>
+            ))}
+          </MetricsList>
+        </ChartCard>
+
+        <ChartCard>
+          <ChartTitle>🏢 Department Overview</ChartTitle>
+          <MetricsList>
+            {stats.departmentStats.slice(0, 5).map((dept, index) => (
+              <MetricItem key={index}>
+                <div>
+                  <MetricName>{dept.department}</MetricName>
+                  <div style={{fontSize: '12px', color: theme.colors.text.tertiary}}>
+                    {dept.employees} employees • Avg €{Math.round(dept.avgSalary).toLocaleString()}
+                  </div>
+                </div>
+                <MetricValue>€{Math.round(dept.totalSalary / 1000)}K</MetricValue>
+              </MetricItem>
+            ))}
+          </MetricsList>
+        </ChartCard>
+      </ChartsContainer>
 
       <ActivitySection>
         <ActivityHeader>Recent Activity</ActivityHeader>

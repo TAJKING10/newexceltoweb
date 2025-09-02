@@ -6,6 +6,8 @@ import { EmployeeManagement } from './EmployeeManagement';
 import { SystemSettings } from './SystemSettings';
 import { AuditLogs } from './AuditLogs';
 import { DashboardStats } from './DashboardStats';
+import { TemplateManagement } from './TemplateManagement';
+import { ReportsAnalytics } from './ReportsAnalytics';
 
 const DashboardContainer = styled.div`
   min-height: 100vh;
@@ -152,7 +154,7 @@ const MainContent = styled.main`
   padding: ${theme.spacing[8]};
 `;
 
-type TabType = 'overview' | 'employees' | 'settings' | 'audit';
+type TabType = 'overview' | 'employees' | 'templates' | 'reports' | 'settings' | 'audit';
 
 export const AdminDashboard: React.FC = () => {
   const { profile, signOut } = useAuth();
@@ -186,6 +188,10 @@ export const AdminDashboard: React.FC = () => {
         return <DashboardStats />;
       case 'employees':
         return <EmployeeManagement />;
+      case 'templates':
+        return <TemplateManagement />;
+      case 'reports':
+        return <ReportsAnalytics />;
       case 'settings':
         return <SystemSettings />;
       case 'audit':
@@ -239,6 +245,18 @@ export const AdminDashboard: React.FC = () => {
             onClick={() => setActiveTab('employees')}
           >
             👥 Employee Management
+          </NavTab>
+          <NavTab
+            isActive={activeTab === 'templates'}
+            onClick={() => setActiveTab('templates')}
+          >
+            🎨 Template Management
+          </NavTab>
+          <NavTab
+            isActive={activeTab === 'reports'}
+            onClick={() => setActiveTab('reports')}
+          >
+            📊 Reports & Analytics
           </NavTab>
           <NavTab
             isActive={activeTab === 'settings'}

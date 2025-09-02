@@ -47,7 +47,8 @@
       "Bash(PORT=3041 npm start)",
       "Bash(start http://localhost:3041)",
       "Bash(PORT=3045 npm start)",
-      "Bash(start http://localhost:3045)"
+      "Bash(start http://localhost:3045)",
+      "Bash(PORT=3046 npm start)"
     ],
     "deny": [],
     "ask": []
