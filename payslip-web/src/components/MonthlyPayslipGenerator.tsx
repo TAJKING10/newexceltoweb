@@ -902,7 +902,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     [selectedTemplate, selectedPerson, payslipData]
   );
 
-  // Handle person selection - create fresh personalized template
+  // Handle person selection - load data immediately and show empty values if no database record
   const handlePersonChange = async (personId: string) => {
     const person = safeArray(filteredPersons).find(p => p.id === personId);
     if (person) {
@@ -911,13 +911,16 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       // Get person name for fallback loading
       const personName = person.personalInfo?.fullName;
       
+      console.log(`👤 Person changed to: ${personName} (ID: ${personId})`);
+      
       // Try to load existing data from database first
       const hasLoadedData = await loadPersonalizedData(person.id, payslipData.year, personName);
       
-      // If no saved data found, create fresh template with person details
+      // If no saved data found, create empty template (not template defaults)
       if (!hasLoadedData) {
-        const personalizedData = createFreshPersonalizedTemplate(person);
-        setPayslipData(personalizedData);
+        console.log('📄 No database record found - creating empty payslip');
+        const emptyData = createEmptyPersonalizedTemplate(person);
+        setPayslipData(emptyData);
       }
     }
   };
@@ -981,6 +984,87 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       alert('❌ Error applying template. Please try again.');
     }
   }, [safeArray, selectedPerson, payslipData]);
+
+  // Create empty personalized template with zero values (for people without database records)
+  const createEmptyPersonalizedTemplate = (person: PersonProfile): MonthlyPayslipState => {
+    const emptyMonths: any = {};
+    const emptyTotals: any = {};
+    
+    // Initialize all months with 0 values
+    for (let i = 0; i < 12; i++) {
+      emptyMonths[i] = {};
+      defaultRows.forEach(row => {
+        emptyMonths[i][row] = 0; // Everything starts at 0
+      });
+    }
+    
+    // All totals start at 0
+    defaultRows.forEach(row => {
+      emptyTotals[row] = 0;
+    });
+
+    return {
+      // Basic person info but empty financial data
+      personName: person.personalInfo?.fullName || '',
+      personId: person.workInfo?.personId || '',
+      department: person.workInfo?.department || '',
+      position: person.workInfo?.position || person.workInfo?.title || '',
+      year: new Date().getFullYear(),
+      months: emptyMonths,
+      totals: emptyTotals,
+      customRows: [...defaultRows],
+      taxClass: 1,
+      hasChildren: false,
+      groups: [
+        {
+          id: 'earnings',
+          name: 'EARNINGS',
+          rows: ['Basic Salary', 'Housing Allowance', 'Transport Allowance', 'Overtime Pay', 'Bonus'],
+          isCollapsed: false
+        },
+        {
+          id: 'summary',
+          name: 'SUMMARY',
+          rows: ['Gross Salary'],
+          isCollapsed: false
+        },
+        {
+          id: 'deductions',
+          name: 'DEDUCTIONS',
+          rows: ['Income Tax', 'Social Security', 'Health Insurance', 'Total Deductions'],
+          isCollapsed: false
+        },
+        {
+          id: 'final',
+          name: 'NET PAY',
+          rows: ['Net Salary'],
+          isCollapsed: false
+        }
+      ],
+      header: {
+        id: 'main-header',
+        title: `ANNUAL PAYSLIP REPORT - ${person.personalInfo?.fullName || 'Employee'}`,
+        subtitle: `${PERSON_TYPE_CONFIG[person.type]?.label || person.type} Annual Statement`,
+        companyInfo: {
+          name: 'Universal Company Ltd.',
+          address: '123 Business Street, City, State 12345',
+          phone: '+1 (555) 123-4567',
+          email: 'hr@company.com'
+        }
+      },
+      subHeaders: [
+        {
+          id: 'info-header',
+          sections: [
+            { id: 'year', label: 'Year', value: new Date().getFullYear().toString() },
+            { id: 'type', label: 'Person Type', value: PERSON_TYPE_CONFIG[person.type]?.label || person.type },
+            { id: 'department', label: 'Department', value: person.workInfo?.department || 'N/A' },
+            { id: 'generated', label: 'Generated On', value: new Date().toLocaleDateString() }
+          ]
+        }
+      ]
+    };
+  };
 
   // Create fresh personalized template for user
   const createFreshPersonalizedTemplate = (person: PersonProfile): MonthlyPayslipState => {

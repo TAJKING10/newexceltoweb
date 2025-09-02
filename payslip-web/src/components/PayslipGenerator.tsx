@@ -4,6 +4,7 @@ import { personManager } from '../utils/personManager';
 import { templateSync } from '../utils/templateSync';
 import { viewSync } from '../utils/viewSync';
 import { dataSync } from '../utils/dataSync';
+import { supabasePayslipService } from '../utils/supabasePayslipService';
 import { PayslipTemplate, SectionDefinition, FieldDefinition } from '../types/PayslipTypes';
 import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 
@@ -283,6 +284,8 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const [templates, setTemplates] = useState<PayslipTemplate[]>([]);
   const [persons, setPersons] = useState<PersonProfile[]>([]);
   const [editMode, setEditMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const [payslipData, setPayslipData] = useState<CustomPayslipData>({
     header: {
@@ -315,6 +318,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   }, []);
 
   // Force create essential templates for Basic View
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const createBasicViewTemplates = useCallback(() => {
     const basicTemplate: PayslipTemplate = {
       id: 'basic-view-template',
@@ -698,38 +702,111 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   };
 
   // Handle person selection - create fresh personalized payslip
-  const handlePersonChange = (personId: string) => {
+  const handlePersonChange = async (personId: string) => {
     const person = safeArray(filteredPersons).find(p => p.id === personId);
     if (person) {
       setSelectedPerson(person);
       
-      // Re-initialize template with personalization if template is selected
-      if (selectedTemplate) {
-        initializeFromTemplate(selectedTemplate, person);
+      // Try to load existing personalized payslip for this person first
+      const loaded = await loadPersonalizedPayslip(person.id);
+      
+      if (!loaded) {
+        // No existing data found, create fresh personalized payslip
+        console.log('🔄 No saved data found, creating fresh personalized payslip...');
+        
+        // Re-initialize template with personalization if template is selected
+        if (selectedTemplate) {
+          initializeFromTemplate(selectedTemplate, person);
+        }
+        
+        // Populate common editable fields only
+        populatePersonData(person);
+        
+        // Save the initial personalized state to backend
+        if (selectedTemplate) {
+          setTimeout(() => {
+            handleSaveToBackend(true); // Silent save after initialization
+          }, 1000);
+        }
+      } else {
+        console.log('✅ Successfully loaded existing payslip data from backend');
       }
-      
-      // Populate common editable fields only
-      populatePersonData(person);
-      
-      // Try to load existing personalized payslip for this person
-      loadPersonalizedPayslip(person.id);
     }
   };
 
-  // Load personalized payslip if exists
-  const loadPersonalizedPayslip = (personId: string) => {
+  // Load personalized payslip from Supabase backend
+  const loadPersonalizedPayslip = async (personId: string) => {
     try {
-      const savedPayslip = localStorage.getItem(`basic-payslip-${personId}`);
-      if (savedPayslip) {
-        const parsedPayslip = JSON.parse(savedPayslip);
-        setPayslipData(parsedPayslip);
+      console.log('📂 Loading personalized payslip from Supabase backend...');
+      
+      // Try to load from backend first
+      const result = await supabasePayslipService.loadBasicPayslipView(personId, selectedYear, selectedMonth);
+      
+      if (result.success && result.data) {
+        console.log('✅ Successfully loaded payslip from backend');
+        setPayslipData(result.data.payslipData);
+        setCalculatedValues(result.data.calculatedValues || {});
+        
+        // Also update header and subHeaders if available
+        if (result.data.headerData) {
+          setPayslipData(prev => ({
+            ...prev,
+            header: {
+              ...prev.header,
+              ...result.data.headerData
+            }
+          }));
+        }
+        
+        if (result.data.subHeaders) {
+          setPayslipData(prev => ({
+            ...prev,
+            subHeaders: result.data.subHeaders
+          }));
+        }
+        
+        return true; // Successfully loaded from backend
+      } else {
+        console.log('ℹ️ No saved payslip found in backend, will use fresh template');
+        
+        // Fallback to localStorage for migration purposes
+        const savedPayslip = localStorage.getItem(`basic-payslip-${personId}`);
+        if (savedPayslip) {
+          console.log('📂 Found legacy data in localStorage, migrating...');
+          const parsedPayslip = JSON.parse(savedPayslip);
+          setPayslipData(parsedPayslip);
+          
+          // Save to backend for future use
+          await handleSaveToBackend(true);
+          
+          // Remove localStorage data after successful migration
+          localStorage.removeItem(`basic-payslip-${personId}`);
+          console.log('✅ Successfully migrated localStorage data to backend');
+          return true;
+        }
+        
+        return false; // No saved data found anywhere
       }
     } catch (error) {
-      console.error('Error loading personalized payslip:', error);
+      console.error('❌ Error loading personalized payslip:', error);
+      
+      // Fallback to localStorage
+      try {
+        const savedPayslip = localStorage.getItem(`basic-payslip-${personId}`);
+        if (savedPayslip) {
+          const parsedPayslip = JSON.parse(savedPayslip);
+          setPayslipData(parsedPayslip);
+          return true;
+        }
+      } catch (localError) {
+        console.error('❌ Error loading from localStorage fallback:', localError);
+      }
+      
+      return false;
     }
   };
 
-  // Handle field value change with data synchronization
+  // Handle field value change with data synchronization and auto-save
   const handleFieldChange = (fieldId: string, value: any) => {
     const newData = {
       ...payslipData,
@@ -742,6 +819,21 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     if (selectedTemplate) {
       dataSync.saveData(selectedTemplate.id, newData, selectedPerson?.id);
       console.log(`🔄 Basic View: Data synced for field ${fieldId} in template ${selectedTemplate.name}`);
+    }
+
+    // Auto-save to backend after a short delay (debounced)
+    if (selectedPerson && selectedTemplate) {
+      // Clear existing timeout
+      if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+      }
+      
+      // Set new timeout for auto-save
+      const newTimeout = setTimeout(() => {
+        handleSaveToBackend(true); // Silent save
+      }, 2000); // Save 2 seconds after last change
+      
+      setAutoSaveTimeout(newTimeout);
     }
   };
 
@@ -1118,15 +1210,85 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     window.print();
   };
 
-  // Save function
-  const handleSave = () => {
+  // Save function - Backend Save to Supabase
+  const handleSaveToBackend = async (silent: boolean = false) => {
     try {
-      localStorage.setItem(`basic-payslip-${selectedPerson?.id || 'unknown'}`, JSON.stringify(payslipData));
-      alert('Payslip saved successfully!');
-    } catch (error) {
-      alert('Error saving payslip');
+      if (!selectedPerson || !selectedTemplate) {
+        if (!silent) alert('⚠️ Please select a person and template before saving');
+        return { success: false, error: 'Missing person or template' };
+      }
+
+      if (!silent) {
+        setIsSaving(true);
+        console.log('💾 Saving payslip to Supabase backend...');
+      }
+
+      const result = await supabasePayslipService.saveBasicPayslipView(
+        payslipData,
+        selectedPerson,
+        selectedTemplate,
+        selectedYear,
+        selectedMonth,
+        calculatedValues
+      );
+
+      if (result.success) {
+        if (!silent) {
+          alert('✅ Payslip saved successfully to backend!');
+          console.log('✅ Successfully saved to backend with ID:', result.id);
+        }
+        
+        // Also save to localStorage as backup
+        try {
+          localStorage.setItem(`basic-payslip-${selectedPerson.id}`, JSON.stringify(payslipData));
+        } catch (localError) {
+          console.warn('⚠️ Failed to save localStorage backup:', localError);
+        }
+        
+        return result;
+      } else {
+        if (!silent) {
+          alert(`❌ Failed to save payslip: ${result.error}`);
+          console.error('❌ Backend save failed:', result.error);
+        }
+        
+        // Fallback to localStorage only
+        try {
+          localStorage.setItem(`basic-payslip-${selectedPerson.id}`, JSON.stringify(payslipData));
+          if (!silent) alert('⚠️ Saved to local storage as fallback');
+        } catch (localError) {
+          if (!silent) alert('❌ Complete save failure - unable to save anywhere');
+        }
+        
+        return result;
+      }
+    } catch (error: any) {
+      console.error('❌ Error in handleSaveToBackend:', error);
+      
+      if (!silent) {
+        alert(`❌ Error saving payslip: ${error.message}`);
+      }
+      
+      // Fallback to localStorage
+      try {
+        if (selectedPerson) {
+          localStorage.setItem(`basic-payslip-${selectedPerson.id}`, JSON.stringify(payslipData));
+          if (!silent) alert('⚠️ Saved to local storage as fallback');
+        }
+      } catch (localError) {
+        if (!silent) alert('❌ Complete save failure');
+      }
+      
+      return { success: false, error: error.message };
+    } finally {
+      if (!silent) {
+        setIsSaving(false);
+      }
     }
   };
+
+  // Legacy save function for backwards compatibility
+  const handleSave = () => handleSaveToBackend(false);
 
   // Enhanced field input renderer with automatic Luxembourg tax field detection
   const renderFieldInput = (field: FieldDefinition) => {
@@ -1709,8 +1871,35 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           {editMode ? '📝 Exit Edit Mode' : '🎨 Edit Mode'}
         </EditModeToggle>
 
-        <SaveButton onClick={handleSave}>💾 Save</SaveButton>
+        <SaveButton 
+          onClick={handleSave} 
+          disabled={isSaving}
+          style={{ 
+            opacity: isSaving ? 0.6 : 1,
+            cursor: isSaving ? 'wait' : 'pointer' 
+          }}
+        >
+          {isSaving ? '💾 Saving...' : '💾 Save to Backend'}
+        </SaveButton>
         <PrintButton onClick={handlePrint}>🖨️ Print</PrintButton>
+
+        {/* Auto-save Status */}
+        {selectedPerson && selectedTemplate && (
+          <div style={{
+            position: 'absolute',
+            top: '20px',
+            right: '260px',
+            padding: '8px 12px',
+            backgroundColor: '#e8f5e9',
+            border: '1px solid #4caf50',
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#2e7d32',
+            fontWeight: 'bold'
+          }}>
+            🔄 Auto-save enabled
+          </div>
+        )}
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '30px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
