@@ -26,7 +26,7 @@ const Container = styled.div`
 
 const Header = styled.div`
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: ${theme.spacing[4]};
@@ -82,8 +82,8 @@ const LogItem = styled.div`
 
 const LogHeader = styled.div`
   display: flex;
-  justify-content: between;
-  align-items: start;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: ${theme.spacing[2]};
 `;
 
@@ -201,8 +201,10 @@ export const AuditLogs: React.FC = () => {
   const fetchLogs = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('Fetching audit logs with filters:', filters);
       
-      let query = supabase
+      // First, try to fetch with profiles join
+      let { data, error } = await supabase
         .from('audit_logs')
         .select(`
           *,
@@ -211,27 +213,68 @@ export const AuditLogs: React.FC = () => {
         .order('created_at', { ascending: false })
         .limit(50);
 
+      // If foreign key join fails, fetch without it
+      if (error) {
+        console.warn('Foreign key join failed, fetching audit logs without profiles join:', error);
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('audit_logs')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        if (fallbackError) throw fallbackError;
+        data = fallbackData;
+      }
+
+      if (!data) {
+        console.log('No audit logs data returned');
+        setLogs([]);
+        return;
+      }
+
+      console.log('Raw audit logs data:', data);
+
+      // Apply filters
+      let filteredData = data;
+      
       if (filters.action !== 'all') {
-        query = query.eq('action', filters.action);
+        filteredData = filteredData.filter(log => log.action === filters.action);
       }
       
       if (filters.table !== 'all') {
-        query = query.eq('table_name', filters.table);
+        filteredData = filteredData.filter(log => log.table_name === filters.table);
       }
 
-      const { data, error } = await query;
+      // Format logs with user information
+      const formattedLogs: AuditLog[] = await Promise.all(
+        filteredData.map(async (log) => {
+          // If we have profiles data from the join, use it
+          let userInfo = log.profiles;
+          
+          // If not, try to fetch user info separately
+          if (!userInfo && log.user_id) {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('full_name, email')
+              .eq('id', log.user_id)
+              .single();
+            userInfo = profileData;
+          }
 
-      if (error) throw error;
+          return {
+            ...log,
+            user_name: userInfo?.full_name || userInfo?.email || 'Unknown User',
+            user_email: userInfo?.email || 'Unknown'
+          };
+        })
+      );
 
-      const formattedLogs: AuditLog[] = data?.map(log => ({
-        ...log,
-        user_name: log.profiles?.full_name || log.profiles?.email || 'Unknown User',
-        user_email: log.profiles?.email
-      })) || [];
-
+      console.log('Formatted audit logs:', formattedLogs);
       setLogs(formattedLogs);
     } catch (error) {
       console.error('Error fetching audit logs:', error);
+      // Set empty array on error so user sees the empty state
+      setLogs([]);
     } finally {
       setLoading(false);
     }
@@ -267,7 +310,7 @@ export const AuditLogs: React.FC = () => {
   return (
     <Container>
       <Header>
-        <Title>Audit Logs</Title>
+        <Title>Audit Logs ({logs.length} entries)</Title>
         <Filters>
           <Select
             value={filters.action}
