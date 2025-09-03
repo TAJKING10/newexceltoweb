@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { supabase } from '../../supabaseClient';
 import { theme } from '../../styles/theme';
+import { InitializeSystem } from './InitializeSystem';
 
 interface Template {
   id: string;
@@ -453,13 +454,17 @@ export const TemplateManagement: React.FC = () => {
       </Header>
 
       {filteredTemplates.length === 0 ? (
-        <EmptyState>
-          <EmptyIcon>🎨</EmptyIcon>
-          <EmptyTitle>No Templates Found</EmptyTitle>
-          <EmptyDescription>
-            {searchTerm ? 'No templates match your search criteria.' : 'No templates available. Create your first template to get started.'}
-          </EmptyDescription>
-        </EmptyState>
+        searchTerm ? (
+          <EmptyState>
+            <EmptyIcon>🔍</EmptyIcon>
+            <EmptyTitle>No Templates Found</EmptyTitle>
+            <EmptyDescription>
+              No templates match your search criteria. Try adjusting your search terms.
+            </EmptyDescription>
+          </EmptyState>
+        ) : (
+          <InitializeSystem />
+        )
       ) : (
         <TemplateGrid>
           {filteredTemplates.map(template => (

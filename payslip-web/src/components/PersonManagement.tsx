@@ -192,26 +192,26 @@ const Input = styled.input`
   }
 `;
 
-const Select = styled.select`
-  padding: ${theme.spacing[3]} ${theme.spacing[4]};
-  border: 2px solid ${theme.colors.border.light};
-  border-radius: ${theme.borderRadius.lg};
-  font-size: ${theme.typography.fontSize.sm};
-  font-family: ${theme.typography.fontFamily.primary};
-  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
-  background: white;
-  cursor: pointer;
-  
-  &:focus {
-    outline: none;
-    border-color: ${theme.colors.primary.main};
-    box-shadow: 0 0 0 3px ${theme.colors.primary[100]};
-  }
-  
-  &:hover {
-    border-color: ${theme.colors.primary.light};
-  }
-`;
+// const Select = styled.select`
+//   padding: ${theme.spacing[3]} ${theme.spacing[4]};
+//   border: 2px solid ${theme.colors.border.light};
+//   border-radius: ${theme.borderRadius.lg};
+//   font-size: ${theme.typography.fontSize.sm};
+//   font-family: ${theme.typography.fontFamily.primary};
+//   transition: all ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
+//   background: white;
+//   cursor: pointer;
+//   
+//   &:focus {
+//     outline: none;
+//     border-color: ${theme.colors.primary.main};
+//     box-shadow: 0 0 0 3px ${theme.colors.primary[100]};
+//   }
+//   
+//   &:hover {
+//     border-color: ${theme.colors.primary.light};
+//   }
+// `;
 
 const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'success' | 'danger' }>`
   padding: ${theme.spacing[3]} ${theme.spacing[5]};

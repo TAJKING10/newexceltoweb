@@ -154,21 +154,6 @@ const Cell = styled.div<{
   }
 `;
 
-const CellInput = styled.input`
-  width: 100%;
-  border: none;
-  background: transparent;
-  font-size: 14px;
-  font-family: inherit;
-  text-align: center;
-  color: inherit;
-  
-  &:focus {
-    outline: 2px solid #1976d2;
-    background-color: white;
-    color: #333;
-  }
-`;
 
 const PrintButton = styled.button`
   position: absolute;
@@ -341,7 +326,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const [editMode, setEditMode] = useState(false);
   const [editingRowName, setEditingRowName] = useState<string | null>(null);
   const [tempRowName, setTempRowName] = useState<string>('');
-  const [useVirtualization, setUseVirtualization] = useState(true); // Enable virtualization by default
+  // const [useVirtualization, setUseVirtualization] = useState(true); // Enable virtualization by default
 
   const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
   
@@ -451,6 +436,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
 
   // Force create essential templates immediately
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const createEssentialTemplates = useCallback(() => {
     const basicTemplate = {
       id: 'basic-monthly-template',
@@ -750,6 +736,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   }, []);
 
   // Debounced calculation trigger
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const debouncedCalculate = useCallback(
     debounce((monthIndex: number, rowName: string) => {
       import('../utils/optimizedDataManager').then(({ OptimizedDataManager }) => {

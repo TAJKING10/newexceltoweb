@@ -255,7 +255,10 @@ export const DashboardStats: React.FC = () => {
         .select('id, status, role')
         .eq('role', 'employee');
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.warn('Error fetching profiles:', profilesError);
+        // Continue with empty data instead of throwing
+      }
 
       const totalEmployees = profiles?.length || 0;
       const activeEmployees = profiles?.filter(p => p.status === 'active').length || 0;
@@ -266,14 +269,20 @@ export const DashboardStats: React.FC = () => {
         .from('payslips')
         .select('*', { count: 'exact', head: true });
 
-      if (payslipError) throw payslipError;
+      if (payslipError) {
+        console.warn('Error fetching payslips:', payslipError);
+        // Continue with zero count
+      }
 
       // Fetch template stats
       const { count: templateCount, error: templateError } = await supabase
         .from('templates')
         .select('*', { count: 'exact', head: true });
 
-      if (templateError) throw templateError;
+      if (templateError) {
+        console.warn('Error fetching templates:', templateError);
+        // Continue with zero count
+      }
 
       // Fetch this month's payslips
       const currentMonth = new Date();
@@ -283,7 +292,10 @@ export const DashboardStats: React.FC = () => {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', startOfMonth.toISOString());
 
-      if (monthlyPayslipError) throw monthlyPayslipError;
+      if (monthlyPayslipError) {
+        console.warn('Error fetching monthly payslips:', monthlyPayslipError);
+        // Continue with zero count
+      }
 
       // Fetch salary statistics
       const { data: salaryData, error: salaryError } = await supabase
@@ -291,7 +303,10 @@ export const DashboardStats: React.FC = () => {
         .select('salary, department')
         .not('salary', 'is', null);
 
-      if (salaryError) throw salaryError;
+      if (salaryError) {
+        console.warn('Error fetching salary data:', salaryError);
+        // Continue with empty array
+      }
 
       const totalRevenue = salaryData?.reduce((sum, emp) => sum + (emp.salary || 0), 0) || 0;
       const avgSalary = salaryData && salaryData.length > 0 
@@ -322,18 +337,28 @@ export const DashboardStats: React.FC = () => {
         const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - i, 1);
         const nextDate = new Date(date.getFullYear(), date.getMonth() + 1, 1);
         
-        const { count: monthPayslips } = await supabase
-          .from('payslips')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', date.toISOString())
-          .lt('created_at', nextDate.toISOString());
+        try {
+          const { count: monthPayslips } = await supabase
+            .from('payslips')
+            .select('*', { count: 'exact', head: true })
+            .gte('created_at', date.toISOString())
+            .lt('created_at', nextDate.toISOString());
 
-        monthlyStats.push({
-          month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-          payslips: monthPayslips || 0,
-          revenue: totalRevenue, // This would be calculated per month in real scenario
-          employees: totalEmployees
-        });
+          monthlyStats.push({
+            month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            payslips: monthPayslips || 0,
+            revenue: totalRevenue, // This would be calculated per month in real scenario
+            employees: totalEmployees
+          });
+        } catch (error) {
+          console.warn('Error fetching monthly stats for', date, error);
+          monthlyStats.push({
+            month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            payslips: 0,
+            revenue: 0,
+            employees: 0
+          });
+        }
       }
 
       // Fetch recent activity
@@ -347,7 +372,10 @@ export const DashboardStats: React.FC = () => {
         .order('created_at', { ascending: false })
         .limit(8);
 
-      if (activityError) throw activityError;
+      if (activityError) {
+        console.warn('Error fetching activity data:', activityError);
+        // Continue with empty array
+      }
 
       const recentActivity: DashboardActivityItem[] = activityData?.map((item: any) => ({
         id: item.id,
@@ -372,6 +400,20 @@ export const DashboardStats: React.FC = () => {
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
+      // Set default values if everything fails
+      setStats({
+        totalEmployees: 0,
+        activeEmployees: 0,
+        pendingEmployees: 0,
+        totalPayslips: 0,
+        totalTemplates: 0,
+        monthlyPayslips: 0,
+        totalRevenue: 0,
+        avgSalary: 0,
+        recentActivity: [],
+        monthlyStats: [],
+        departmentStats: []
+      });
     } finally {
       setLoading(false);
     }
