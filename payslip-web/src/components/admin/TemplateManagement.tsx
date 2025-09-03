@@ -10,9 +10,11 @@ interface Template {
   description?: string;
   template_data: any;
   is_default: boolean;
+  is_active: boolean;
+  owner_id: string;
   created_at: string;
   updated_at: string;
-  created_by: string;
+  created_by?: string; // Added for compatibility
   usage_count?: number;
   creator?: {
     full_name?: string;
@@ -297,38 +299,63 @@ export const TemplateManagement: React.FC = () => {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
+      console.log('Starting to fetch templates...');
       
-      // Fetch templates with creator information and usage stats
-      const { data, error } = await supabase
-        .from('templates')
-        .select(`
-          *,
-          creator:profiles!templates_created_by_fkey (
-            full_name, email
-          )
-        `)
+      // Fetch all active templates from payslip_templates
+      const { data: templateData, error: templateError } = await supabase
+        .from('payslip_templates')
+        .select('*')
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (templateError) {
+        console.error('Error fetching templates:', templateError);
+        throw templateError;
+      }
 
-      // Get usage counts for each template
+      console.log('Raw template data:', templateData);
+
+      if (!templateData || templateData.length === 0) {
+        console.log('No templates found');
+        setTemplates([]);
+        return;
+      }
+
+      // Get usage counts and creator info for each template
       const templatesWithUsage = await Promise.all(
-        (data || []).map(async (template) => {
+        templateData.map(async (template) => {
+          // Get usage count
           const { count } = await supabase
             .from('payslips')
             .select('*', { count: 'exact', head: true })
             .eq('template_id', template.id);
 
+          // Try to get creator info if owner_id exists
+          let creator = null;
+          if (template.owner_id) {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('full_name, email')
+              .eq('id', template.owner_id)
+              .single();
+            creator = profileData;
+          }
+
           return {
             ...template,
-            usage_count: count || 0
+            usage_count: count || 0,
+            created_by: template.owner_id,
+            creator: creator || { full_name: 'Unknown', email: 'unknown@example.com' }
           };
         })
       );
 
+      console.log('Templates with usage data:', templatesWithUsage);
       setTemplates(templatesWithUsage);
     } catch (error) {
       console.error('Error fetching templates:', error);
+      // Set empty array on error so we don't show loading forever
+      setTemplates([]);
     } finally {
       setLoading(false);
     }
@@ -338,13 +365,13 @@ export const TemplateManagement: React.FC = () => {
     try {
       // First, remove default status from all templates
       await supabase
-        .from('templates')
+        .from('payslip_templates')
         .update({ is_default: false })
         .neq('id', '');
 
       // Then set the selected template as default
       const { error } = await supabase
-        .from('templates')
+        .from('payslip_templates')
         .update({ is_default: true })
         .eq('id', templateId);
 
@@ -360,13 +387,14 @@ export const TemplateManagement: React.FC = () => {
   const handleDuplicateTemplate = async (template: Template) => {
     try {
       const { error } = await supabase
-        .from('templates')
+        .from('payslip_templates')
         .insert({
           name: `${template.name} (Copy)`,
           description: template.description,
           template_data: template.template_data,
           is_default: false,
-          created_by: template.created_by
+          is_active: true,
+          owner_id: template.created_by
         });
 
       if (error) throw error;
@@ -384,9 +412,10 @@ export const TemplateManagement: React.FC = () => {
     }
 
     try {
+      // Instead of hard deleting, mark as inactive
       const { error } = await supabase
-        .from('templates')
-        .delete()
+        .from('payslip_templates')
+        .update({ is_active: false })
         .eq('id', template.id);
 
       if (error) throw error;
@@ -436,7 +465,7 @@ export const TemplateManagement: React.FC = () => {
   return (
     <Container>
       <Header>
-        <Title>Template Management</Title>
+        <Title>Template Management ({templates.length} templates)</Title>
         <Actions>
           <SearchInput
             type="text"
