@@ -13,11 +13,37 @@ import { theme } from './styles/theme';
 const AppContent: React.FC = () => {
   const { user, profile, loading, isAdmin, isActive, signOut } = useAuth();
   const [currentView, setCurrentView] = useState<'basic' | 'excel' | 'template' | 'persons'>('persons');
+  const [viewLoading, setViewLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      console.error('Error signing out:', error);
+    try {
+      setViewLoading(true);
+      const { error } = await signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        setError('Failed to sign out. Please try again.');
+      }
+    } catch (err) {
+      console.error('Unexpected error during sign out:', err);
+      setError('Unexpected error occurred.');
+    } finally {
+      setViewLoading(false);
+    }
+  };
+
+  const handleViewChange = async (view: 'basic' | 'excel' | 'template' | 'persons') => {
+    try {
+      setViewLoading(true);
+      setError(null);
+      setCurrentView(view);
+      // Small delay to ensure smooth transition
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (err) {
+      console.error('Error changing view:', err);
+      setError('Failed to load view. Please try again.');
+    } finally {
+      setViewLoading(false);
     }
   };
 
@@ -82,7 +108,8 @@ const AppContent: React.FC = () => {
           <NavigationTabs>
             <NavTab 
               isActive={currentView === 'persons'}
-              onClick={() => setCurrentView('persons')}
+              onClick={() => handleViewChange('persons')}
+              disabled={viewLoading}
               title="Universal person management for employees, customers, contractors, and more"
             >
               <span>👥</span>
@@ -91,7 +118,8 @@ const AppContent: React.FC = () => {
             
             <NavTab 
               isActive={currentView === 'template'}
-              onClick={() => setCurrentView('template')}
+              onClick={() => handleViewChange('template')}
+              disabled={viewLoading}
               title="Build custom payslip templates with drag & drop"
             >
               <span>🎨</span>
@@ -100,7 +128,8 @@ const AppContent: React.FC = () => {
             
             <NavTab 
               isActive={currentView === 'excel'}
-              onClick={() => setCurrentView('excel')}
+              onClick={() => handleViewChange('excel')}
+              disabled={viewLoading}
               title="Annual payslip with monthly columns and totals"
             >
               <span>📊</span>
@@ -109,7 +138,8 @@ const AppContent: React.FC = () => {
             
             <NavTab 
               isActive={currentView === 'basic'}
-              onClick={() => setCurrentView('basic')}
+              onClick={() => handleViewChange('basic')}
+              disabled={viewLoading}
               title="Simple form-based payslip"
             >
               <span>📝</span>
@@ -126,9 +156,27 @@ const AppContent: React.FC = () => {
       </Header>
       
       <MainContent className="animate-fadeIn">
+        {error && (
+          <ErrorMessage>
+            <ErrorIcon>⚠️</ErrorIcon>
+            <ErrorText>{error}</ErrorText>
+            <ErrorButton onClick={() => setError(null)}>
+              Dismiss
+            </ErrorButton>
+          </ErrorMessage>
+        )}
+        
+        {viewLoading && (
+          <LoadingOverlay>
+            <LoadingSpinner />
+            <LoadingText>Loading view...</LoadingText>
+          </LoadingOverlay>
+        )}
+        
         <ErrorBoundary 
           onError={(error, errorInfo) => {
             console.error('App Error Boundary:', error, errorInfo);
+            setError('An unexpected error occurred. Please try refreshing the page.');
           }}
         >
           {currentView === 'persons' && (
@@ -327,14 +375,14 @@ const NavigationTabs = styled.div`
   }
 `;
 
-const NavTab = styled.button<{ isActive: boolean }>`
+const NavTab = styled.button<{ isActive: boolean; disabled?: boolean }>`
   padding: ${theme.spacing[3]} ${theme.spacing[5]};
   border: none;
   border-radius: ${theme.borderRadius.xl};
   font-size: ${theme.typography.fontSize.sm};
   font-weight: ${theme.typography.fontWeight.semibold};
   font-family: ${theme.typography.fontFamily.primary};
-  cursor: pointer;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
   position: relative;
   overflow: hidden;
@@ -345,6 +393,7 @@ const NavTab = styled.button<{ isActive: boolean }>`
   min-height: 48px;
   white-space: nowrap;
   user-select: none;
+  opacity: ${props => props.disabled ? 0.6 : 1};
   
   background: ${props => props.isActive 
     ? theme.colors.gradients.primary 
@@ -374,7 +423,7 @@ const NavTab = styled.button<{ isActive: boolean }>`
     pointer-events: none;
   }
   
-  &:hover {
+  &:hover:not(:disabled) {
     background: ${props => props.isActive 
       ? theme.colors.gradients.primary 
       : theme.colors.primary[50]};
@@ -394,7 +443,7 @@ const NavTab = styled.button<{ isActive: boolean }>`
     }
   }
   
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(-1px) scale(1.01);
     box-shadow: ${props => props.isActive 
       ? `${theme.shadows.md}, ${theme.shadows.glow}` 
@@ -418,7 +467,7 @@ const NavTab = styled.button<{ isActive: boolean }>`
   }
 
   @media (hover: none) {
-    &:hover {
+    &:hover:not(:disabled) {
       transform: none;
       box-shadow: ${props => props.isActive 
         ? `${theme.shadows.md}, ${theme.shadows.glow}` 
@@ -472,10 +521,78 @@ const MainContent = styled.main`
   max-width: 1400px;
   margin: 0 auto;
   padding: ${theme.spacing[6]};
+  position: relative;
   
   @media (max-width: ${theme.breakpoints.md}) {
     padding: ${theme.spacing[4]};
   }
+`;
+
+const ErrorMessage = styled.div`
+  background: ${theme.colors.error.light}20;
+  border: 1px solid ${theme.colors.error.light};
+  border-radius: ${theme.borderRadius.xl};
+  padding: ${theme.spacing[4]};
+  margin-bottom: ${theme.spacing[4]};
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing[3]};
+  animation: slideDown 0.3s ease-out;
+  
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+`;
+
+const ErrorIcon = styled.div`
+  font-size: ${theme.typography.fontSize.lg};
+  flex-shrink: 0;
+`;
+
+const ErrorText = styled.div`
+  color: ${theme.colors.error.dark};
+  font-size: ${theme.typography.fontSize.sm};
+  font-weight: ${theme.typography.fontWeight.medium};
+  flex: 1;
+`;
+
+const ErrorButton = styled.button`
+  background: ${theme.colors.error.main};
+  color: white;
+  border: none;
+  padding: ${theme.spacing[2]} ${theme.spacing[3]};
+  border-radius: ${theme.borderRadius.lg};
+  font-size: ${theme.typography.fontSize.xs};
+  font-weight: ${theme.typography.fontWeight.medium};
+  cursor: pointer;
+  transition: all ${theme.animation.duration.normal};
+  
+  &:hover {
+    background: ${theme.colors.error.dark};
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const LoadingOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: ${theme.spacing[3]};
+  z-index: ${theme.zIndex.modal};
+  border-radius: ${theme.borderRadius.xl};
 `;
 
 export default App;
