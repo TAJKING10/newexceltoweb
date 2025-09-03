@@ -11,8 +11,15 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { theme } from './styles/theme';
 
 const AppContent: React.FC = () => {
-  const { user, profile, loading, isAdmin, isActive } = useAuth();
+  const { user, profile, loading, isAdmin, isActive, signOut } = useAuth();
   const [currentView, setCurrentView] = useState<'basic' | 'excel' | 'template' | 'persons'>('persons');
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   const getFeatureText = (view: string) => {
     const features = {
@@ -68,6 +75,9 @@ const AppContent: React.FC = () => {
           <Title>🚀 Universal Payslip Platform</Title>
           <UserSection>
             <UserWelcome>Welcome, {profile.full_name || profile.email}</UserWelcome>
+            <SignOutButton onClick={handleSignOut}>
+              🚪 Sign Out
+            </SignOutButton>
           </UserSection>
           <NavigationTabs>
             <NavTab 
@@ -224,6 +234,8 @@ const StatusMessage = styled.p`
 const UserSection = styled.div`
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: ${theme.spacing[4]};
   margin-bottom: ${theme.spacing[4]};
 `;
 
@@ -231,6 +243,31 @@ const UserWelcome = styled.div`
   color: ${theme.colors.text.primary};
   font-size: ${theme.typography.fontSize.sm};
   font-weight: ${theme.typography.fontWeight.medium};
+`;
+
+const SignOutButton = styled.button`
+  background: ${theme.colors.error.main};
+  color: white;
+  border: none;
+  padding: ${theme.spacing[2]} ${theme.spacing[4]};
+  border-radius: ${theme.borderRadius.lg};
+  font-size: ${theme.typography.fontSize.sm};
+  font-weight: ${theme.typography.fontWeight.medium};
+  cursor: pointer;
+  transition: all ${theme.animation.duration.normal};
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing[2]};
+  
+  &:hover {
+    background: ${theme.colors.error.dark};
+    transform: translateY(-1px);
+    box-shadow: ${theme.shadows.sm};
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
 `;
 
 const AppContainer = styled.div`
