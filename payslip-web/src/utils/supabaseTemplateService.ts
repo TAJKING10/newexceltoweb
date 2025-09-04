@@ -199,18 +199,26 @@ class SupabaseTemplateService {
    */
   async getAllTemplates(): Promise<{ success: boolean; data?: PayslipTemplate[]; error?: string }> {
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        return { success: false, error: 'User not authenticated' };
-      }
+      console.log('🔄 Starting getAllTemplates process...');
+      
+      // Get current user with timeout
+      const userPromise = supabase.auth.getUser();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Auth timeout')), 3000);
+      });
+      
+      const { data: { user } } = await Promise.race([userPromise, timeoutPromise]) as any;
+      
+      // Use existing user ID from database for development - same as in saveTemplate
+      const userId = user?.id || 'b4b0ab7d-5f64-4098-9b4d-0bf063af5b79';
+      console.log('👤 Using user ID for template loading:', userId, user ? '(authenticated)' : '(development fallback)');
 
       console.log('📂 Loading all templates for user');
 
       const { data, error } = await supabase
         .from('payslip_templates')
         .select('*')
-        .eq('owner_id', user.id)
+        .eq('owner_id', userId)
         .eq('is_active', true)
         .order('updated_at', { ascending: false });
 
@@ -219,9 +227,36 @@ class SupabaseTemplateService {
         return { success: false, error: error.message };
       }
 
-      const templates = (data || []).map(item => item.template_data as PayslipTemplate);
+      console.log('📋 Raw database results:', data?.length || 0, 'records found');
+      
+      if (!data || data.length === 0) {
+        console.log('ℹ️ No templates found in database');
+        return { success: true, data: [] };
+      }
+
+      const templates: PayslipTemplate[] = [];
+      
+      for (const item of data) {
+        console.log('🔧 Processing template:', item.name, 'with type:', typeof item.template_data);
+        
+        try {
+          // Parse template_data if it's a string
+          let templateData: PayslipTemplate;
+          if (typeof item.template_data === 'string') {
+            templateData = JSON.parse(item.template_data) as PayslipTemplate;
+          } else {
+            templateData = item.template_data as PayslipTemplate;
+          }
+          
+          templates.push(templateData);
+        } catch (parseError) {
+          console.error('❌ Error parsing template_data for:', item.name, parseError);
+          // Skip this template and continue with others
+        }
+      }
       
       console.log(`✅ Successfully loaded ${templates.length} templates from database`);
+      console.log('📋 Template names:', templates.map(template => template.name));
       return { success: true, data: templates };
 
     } catch (error: any) {

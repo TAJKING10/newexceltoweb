@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import PayslipGenerator from './components/PayslipGenerator';
 import MonthlyPayslipGenerator from './components/MonthlyPayslipGenerator';
-import EnhancedTemplateBuilder from './components/EnhancedTemplateBuilder';
+import OptimizedTemplateBuilder from './components/OptimizedTemplateBuilder';
+import { TemplateBuilderCleanup } from './components/TemplateBuilderCleanup';
 import PersonManagement from './components/PersonManagement';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -36,9 +37,34 @@ const AppContent: React.FC = () => {
     try {
       setViewLoading(true);
       setError(null);
+      
+      // Force cleanup of template builder if leaving it
+      if (currentView === 'template' && view !== 'template') {
+        console.log('🧹 App: Leaving template builder, forcing cleanup...');
+        
+        // Abort any ongoing operations
+        if ((window as any).__templateBuilderController) {
+          (window as any).__templateBuilderController.abort();
+          delete (window as any).__templateBuilderController;
+        }
+        
+        // Force garbage collection if available
+        if (window.gc) {
+          window.gc();
+        }
+        
+        console.log('✅ App: Template builder cleanup complete');
+      }
+      
+      // Add loading delay for template builder
+      const loadingDelay = view === 'template' ? 500 : 200;
+      await new Promise(resolve => setTimeout(resolve, loadingDelay));
+      
       setCurrentView(view);
-      // Small delay to ensure smooth transition
+      
+      // Additional delay after setting view
       await new Promise(resolve => setTimeout(resolve, 100));
+      
     } catch (err) {
       console.error('Error changing view:', err);
       setError('Failed to load view. Please try again.');
@@ -169,7 +195,17 @@ const AppContent: React.FC = () => {
         {viewLoading && (
           <LoadingOverlay>
             <LoadingSpinner />
-            <LoadingText>Loading view...</LoadingText>
+            <LoadingText>
+              {currentView === 'template' 
+                ? 'Loading Template Builder...'
+                : `Loading ${currentView === 'persons' ? 'Person Management' :
+                           currentView === 'excel' ? 'Annual Excel View' : 
+                           'Basic View'}...`
+              }
+            </LoadingText>
+            {currentView === 'template' && (
+              <LoadingSubtext>Preparing advanced editor with memory management...</LoadingSubtext>
+            )}
           </LoadingOverlay>
         )}
         
@@ -184,7 +220,22 @@ const AppContent: React.FC = () => {
           )}
           
           {currentView === 'template' && (
-            <EnhancedTemplateBuilder />
+            <React.Suspense fallback={
+              <LoadingOverlay>
+                <LoadingSpinner />
+                <LoadingText>Loading Template Builder...</LoadingText>
+                <LoadingSubtext>Initializing advanced components...</LoadingSubtext>
+              </LoadingOverlay>
+            }>
+              <TemplateBuilderCleanup />
+              <OptimizedTemplateBuilder key={`template-${Date.now()}`} />
+            </React.Suspense>
+          )}
+          
+          {currentView !== 'template' && (
+            <TemplateBuilderCleanup onCleanup={() => {
+              console.log('🔄 App: Non-template view mounted, ensuring template cleanup');
+            }} />
           )}
           
           {currentView === 'excel' && (
@@ -237,6 +288,14 @@ const LoadingText = styled.div`
   color: white;
   font-size: ${theme.typography.fontSize.lg};
   font-weight: ${theme.typography.fontWeight.semibold};
+`;
+
+const LoadingSubtext = styled.div`
+  color: rgba(255, 255, 255, 0.8);
+  font-size: ${theme.typography.fontSize.sm};
+  font-weight: ${theme.typography.fontWeight.medium};
+  text-align: center;
+  margin-top: ${theme.spacing[2]};
 `;
 
 // Status components
