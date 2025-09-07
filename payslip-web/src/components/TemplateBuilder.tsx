@@ -7,7 +7,7 @@ import {
   COMMON_FIELDS
 } from '../types/PayslipTypes';
 import { templateManager } from '../utils/templateManager';
-import { supabaseTemplateService } from '../utils/supabaseTemplateService';
+import { supabaseViewService } from '../utils/supabaseViewService';
 
 // Lightweight container with minimal styling
 const Container = styled.div`
@@ -241,7 +241,7 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
         setSaveMessage({ text: 'Loading templates...', type: 'saving' });
         
         // Load available templates from database
-        const result = await supabaseTemplateService.getAllTemplates();
+        const result = await supabaseViewService.getAllViews();
         
         console.log('📋 Template loading result:', result);
         
@@ -427,7 +427,7 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
         }
 
         // Save to backend with timeout
-        const savePromise = supabaseTemplateService.saveTemplate(templateToSave);
+        const savePromise = supabaseViewService.saveView(templateToSave);
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('Save timeout')), 5000);
         });
@@ -669,7 +669,7 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
       }
 
       // Save to backend
-      const result = await supabaseTemplateService.saveTemplate(template);
+      const result = await supabaseViewService.saveView(template);
       
       if (result && result.success) {
         setSaveMessage({ text: `Template "${template.name}" saved successfully!`, type: 'success' });
@@ -684,6 +684,48 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
       setTimeout(() => setSaveMessage(null), 3000);
     }
   }, [template, templateId, onSave]);
+
+  // Delete template
+  const handleDeleteTemplate = useCallback(async () => {
+    if (!template || availableTemplates.length <= 1) return;
+    
+    const confirmDelete = window.confirm(`Are you sure you want to delete the template "${template.name}"? This action cannot be undone.`);
+    if (!confirmDelete) return;
+
+    try {
+      setSaveMessage({ text: 'Deleting template...', type: 'saving' });
+
+      // Delete from backend
+      const result = await supabaseViewService.deleteView(template.id);
+      
+      if (result && result.success) {
+        // Remove from local state
+        const updatedTemplates = availableTemplates.filter(t => t.id !== template.id);
+        setAvailableTemplates(updatedTemplates);
+        
+        // Switch to the first available template
+        if (updatedTemplates.length > 0) {
+          const newTemplate = updatedTemplates[0];
+          setCurrentTemplateIndex(0);
+          setTemplate(newTemplate);
+          setSelectedTemplateId(newTemplate.id);
+          setSaveMessage({ text: `Deleted "${template.name}" successfully`, type: 'success' });
+        } else {
+          // No templates left, create a new one
+          createNewTemplate();
+          setSaveMessage({ text: `Deleted "${template.name}" and created new template`, type: 'success' });
+        }
+      } else {
+        setSaveMessage({ text: 'Failed to delete template', type: 'error' });
+      }
+
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (error) {
+      console.error('Delete error:', error);
+      setSaveMessage({ text: 'Delete failed', type: 'error' });
+      setTimeout(() => setSaveMessage(null), 3000);
+    }
+  }, [template, availableTemplates, createNewTemplate]);
 
   if (loading) {
     return (
@@ -752,9 +794,17 @@ const TemplateBuilder: React.FC<Props> = ({ templateId, onSave }) => {
             <Button variant="secondary" onClick={() => setShowTemplateSelection(!showTemplateSelection)}>
               📋 Select Template ({availableTemplates.length})
             </Button>
+            <Button variant="primary" onClick={createNewTemplate}>
+              ✨ New Template
+            </Button>
             <Button variant="success" onClick={handleSaveTemplate}>
               💾 Save Template
             </Button>
+            {availableTemplates.length > 1 && (
+              <Button variant="danger" onClick={handleDeleteTemplate}>
+                🗑️ Delete
+              </Button>
+            )}
             <Button variant="primary" onClick={addSection}>
               ➕ Add Section
             </Button>

@@ -1,5 +1,6 @@
 import { PayslipTemplate } from '../types/PayslipTypes';
 import { templateManager } from './templateManager';
+import { supabaseViewService } from './supabaseViewService';
 
 /**
  * Unified Template Synchronization Service
@@ -46,24 +47,28 @@ class TemplateSyncService {
       console.log('Could not load from Template Manager');
     }
 
-    // 3. Always start with exactly 2 clean default templates
-    console.log('🧹 TemplateSync: Clearing all templates and creating clean defaults');
-    
-    // Clear from Enhanced Template Builder storage
-    try {
-      localStorage.removeItem(this.STORAGE_KEY);
-      localStorage.removeItem('payslip-templates');
-      localStorage.removeItem('payslip-payslips');
-      localStorage.removeItem('payslip-batches');
-      console.log('🧹 All templates cleared from storage');
-    } catch (e) {
-      console.error('Error clearing templates:', e);
+    // 3. Load from Supabase Database (saved_payslip_views)
+    this.loadDatabaseTemplatesAsync(templates);
+
+    // 4. If no templates found, create defaults
+    if (templates.length === 0) {
+      console.log('🧹 TemplateSync: No templates found, creating clean defaults');
+      
+      // Clear from Enhanced Template Builder storage
+      try {
+        localStorage.removeItem(this.STORAGE_KEY);
+        localStorage.removeItem('payslip-templates');
+        localStorage.removeItem('payslip-payslips');
+        localStorage.removeItem('payslip-batches');
+        console.log('🧹 All templates cleared from storage');
+      } catch (e) {
+        console.error('Error clearing templates:', e);
+      }
+      
+      const defaults = this.createDefaultTemplates();
+      templates.push(...defaults);
+      this.saveTemplates(templates);
     }
-    
-    const defaults = this.createDefaultTemplates();
-    templates.length = 0; // Clear the array
-    templates.push(...defaults);
-    this.saveTemplates(templates);
 
     console.log(`📋 TemplateSyncService: Loaded ${templates.length} templates`);
     templates.forEach(t => {
@@ -71,6 +76,35 @@ class TemplateSyncService {
     });
 
     return templates;
+  }
+
+  /**
+   * Load templates from Supabase database asynchronously
+   */
+  private loadDatabaseTemplatesAsync(templates: PayslipTemplate[]): void {
+    supabaseViewService.getAllViews().then(result => {
+      if (result.success && result.data) {
+        console.log(`📊 TemplateSync: Loading ${result.data.length} templates from Supabase database`);
+        
+        let addedCount = 0;
+        result.data.forEach(dbTemplate => {
+          if (dbTemplate && dbTemplate.id && !templates.find(t => t.id === dbTemplate.id)) {
+            templates.push(this.sanitizeTemplate(dbTemplate));
+            addedCount++;
+          }
+        });
+        
+        if (addedCount > 0) {
+          console.log(`✅ TemplateSync: Added ${addedCount} database templates`);
+          this.saveTemplates(templates);
+          this.notifyListeners();
+        }
+      } else {
+        console.log('📊 TemplateSync: No database templates found or error occurred:', result.error);
+      }
+    }).catch(error => {
+      console.error('❌ TemplateSync: Error loading database templates:', error);
+    });
   }
 
   /**
