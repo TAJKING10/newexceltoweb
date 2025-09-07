@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import PayslipGenerator from './components/PayslipGenerator';
 import MonthlyPayslipGenerator from './components/MonthlyPayslipGenerator';
-import EnhancedTemplateBuilder from './components/EnhancedTemplateBuilder';
+// import EnhancedTemplateBuilder from './components/EnhancedTemplateBuilder'; // Commented out - template builder disabled
 import PersonManagement from './components/PersonManagement';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -116,6 +116,7 @@ const AppContent: React.FC = () => {
               <span>Person Management</span>
             </NavTab>
             
+            {/* Template Builder tab disabled
             <NavTab 
               isActive={currentView === 'template'}
               onClick={() => handleViewChange('template')}
@@ -125,6 +126,7 @@ const AppContent: React.FC = () => {
               <span>🎨</span>
               <span>Template Builder</span>
             </NavTab>
+            */}
             
             <NavTab 
               isActive={currentView === 'excel'}
@@ -183,9 +185,11 @@ const AppContent: React.FC = () => {
             <PersonManagement />
           )}
           
+          {/* Template builder disabled
           {currentView === 'template' && (
             <EnhancedTemplateBuilder />
           )}
+          */}
           
           {currentView === 'excel' && (
             <MonthlyPayslipGenerator />

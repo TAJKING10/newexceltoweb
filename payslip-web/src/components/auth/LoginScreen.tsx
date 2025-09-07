@@ -85,7 +85,9 @@ const Input = styled.input`
   }
 `;
 
-const LoginButton = styled.button<{ loading?: boolean }>`
+const LoginButton = styled.button.withConfig({
+  shouldForwardProp: (prop) => prop !== 'loading'
+})<{ loading?: boolean }>`
   background: ${theme.colors.gradients.primary};
   color: white;
   border: none;
