@@ -85,7 +85,7 @@ const Input = styled.input`
   }
 `;
 
-const LoginButton = styled.button<{ loading?: boolean }>`
+const LoginButton = styled.button<{ $loading?: boolean }>`
   background: ${theme.colors.gradients.primary};
   color: white;
   border: none;
@@ -93,10 +93,10 @@ const LoginButton = styled.button<{ loading?: boolean }>`
   border-radius: ${theme.borderRadius.lg};
   font-weight: ${theme.typography.fontWeight.semibold};
   font-size: ${theme.typography.fontSize.base};
-  cursor: ${props => props.loading ? 'not-allowed' : 'pointer'};
+  cursor: ${props => props.$loading ? 'not-allowed' : 'pointer'};
   transition: all ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
   position: relative;
-  opacity: ${props => props.loading ? 0.7 : 1};
+  opacity: ${props => props.$loading ? 0.7 : 1};
   
   &:hover:not(:disabled) {
     transform: translateY(-2px);
@@ -242,7 +242,7 @@ export const LoginScreen: React.FC = () => {
           
           {getStatusMessage()}
           
-          <LoginButton type="submit" loading={loading} disabled={loading}>
+          <LoginButton type="submit" disabled={loading} $loading={loading}>
             {loading ? (
               <LoadingSpinner />
             ) : (

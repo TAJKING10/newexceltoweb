@@ -55,7 +55,11 @@
       "Bash(PORT=3048 npm start)",
       "Bash(PORT=3049 npm start)",
       "Bash(PORT=3050 npm start)",
-      "Bash(PORT=3051 npm start)"
+      "Bash(PORT=3051 npm start)",
+      "Bash(npx tsc:*)",
+      "Bash(start http://localhost:3090)",
+      "Bash(PORT=3090 npm start)",
+      "Bash(PORT=3091 npm start)"
     ],
     "deny": [],
     "ask": []

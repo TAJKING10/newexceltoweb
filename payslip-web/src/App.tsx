@@ -17,34 +17,45 @@ const AppContent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const handleSignOut = async () => {
+    // Show immediate feedback
+    setViewLoading(true);
+    
     try {
-      setViewLoading(true);
-      const { error } = await signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-        setError('Failed to sign out. Please try again.');
-      }
+      // Non-blocking sign out
+      signOut().then(({ error }) => {
+        if (error) {
+          console.error('Error signing out:', error);
+          setError('Failed to sign out. Please try again.');
+          setViewLoading(false);
+        }
+        // Success case handled by auth context
+      }).catch((err) => {
+        console.error('Unexpected error during sign out:', err);
+        setError('Unexpected error occurred.');
+        setViewLoading(false);
+      });
+      
     } catch (err) {
-      console.error('Unexpected error during sign out:', err);
+      console.error('Immediate sign out error:', err);
       setError('Unexpected error occurred.');
-    } finally {
       setViewLoading(false);
     }
   };
 
-  const handleViewChange = async (view: 'basic' | 'excel' | 'template' | 'persons') => {
-    try {
-      setViewLoading(true);
-      setError(null);
-      setCurrentView(view);
-      // Small delay to ensure smooth transition
-      await new Promise(resolve => setTimeout(resolve, 100));
-    } catch (err) {
-      console.error('Error changing view:', err);
-      setError('Failed to load view. Please try again.');
-    } finally {
-      setViewLoading(false);
-    }
+  const handleViewChange = (view: 'basic' | 'excel' | 'template' | 'persons') => {
+    // Immediate UI update for instant responsiveness
+    setError(null);
+    setCurrentView(view);
+    
+    // Optional: Brief loading state for visual feedback (non-blocking)
+    setViewLoading(true);
+    
+    // Use requestAnimationFrame for smooth transition
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        setViewLoading(false);
+      }, 50); // Very short delay just for visual feedback
+    });
   };
 
   const getFeatureText = (view: string) => {

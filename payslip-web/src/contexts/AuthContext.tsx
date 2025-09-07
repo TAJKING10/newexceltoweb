@@ -43,11 +43,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
-      const { data, error } = await supabase
+      // Add timeout to prevent hanging profile fetch
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000);
+      });
+      
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+      
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
 
       if (error) {
         console.error('Error fetching profile:', error);
@@ -69,25 +76,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      return { error };
-    } catch (error) {
-      return { error };
-    }
+    console.log('Local auth mode - creating mock session');
+    
+    // Simulate login delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Accept any email/password for development
+    const mockUser = {
+      id: 'local-user-123',
+      email: email,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Check if this is the admin email
+    const isAdminEmail = email === 'toufic-jandah@hotmail.com';
+    
+    const mockProfile: Profile = {
+      id: 'local-user-123',
+      email: email,
+      full_name: isAdminEmail ? 'Toufic Jandah (Admin)' : 'Regular User',
+      role: isAdminEmail ? 'admin' : 'employee',
+      status: 'active',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Set the user and profile immediately
+    setUser(mockUser as any);
+    setProfile(mockProfile);
+    setSession({ user: mockUser } as any);
+    
+    return { error: null };
   };
 
   const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      return { error };
-    } catch (error) {
-      return { error };
-    }
+    console.log('Local auth mode - clearing session');
+    
+    // Clear local session immediately
+    setUser(null);
+    setProfile(null);
+    setSession(null);
+    
+    return { error: null };
   };
 
   const updateLastLogin = async (userId: string) => {
@@ -105,60 +136,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let mounted = true;
 
     const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (mounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          
-          if (session?.user) {
-            const profileData = await fetchProfile(session.user.id);
-            if (mounted) {
-              setProfile(profileData);
-              // Update last login
-              await updateLastLogin(session.user.id);
-            }
-          }
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        if (mounted) {
-          setLoading(false);
-        }
+      console.log('Initializing local auth mode (Supabase disabled)');
+      
+      // Skip Supabase entirely for development
+      if (mounted) {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
       }
     };
 
     initializeAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-
-        console.log('Auth state changed:', event, session?.user?.email);
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          const profileData = await fetchProfile(session.user.id);
-          setProfile(profileData);
-          
-          if (event === 'SIGNED_IN') {
-            await updateLastLogin(session.user.id);
-          }
-        } else {
-          setProfile(null);
-        }
-
-        setLoading(false);
-      }
-    );
-
+    // Disable Supabase auth state listener for development
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
   }, []);
 
