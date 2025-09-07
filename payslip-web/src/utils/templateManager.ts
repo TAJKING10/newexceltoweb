@@ -1,9 +1,9 @@
-import { 
-  PayslipTemplate, 
-  EmployeePayslip, 
-  PayslipBatch, 
+import {
+  PayslipTemplate,
+  EmployeePayslip,
+  PayslipBatch,
   TemplateAction,
-  DEFAULT_TEMPLATE 
+  DEFAULT_TEMPLATE
 } from '../types/PayslipTypes';
 
 export class TemplateManager {
@@ -213,7 +213,7 @@ export class TemplateManager {
 
     // Update data
     payslip.data = { ...payslip.data, ...data };
-    
+
     // Update table data if provided
     if (tableData) {
       payslip.tableData = { ...payslip.tableData, ...tableData };
@@ -281,7 +281,7 @@ export class TemplateManager {
     const getSectionTotal = (sectionId: string): number => {
       const section = template.sections.find(s => s.id === sectionId);
       if (!section) return 0;
-      
+
       return section.fields
         .filter(f => f.type === 'number' || (f.type === 'formula' && calculated[f.id]))
         .reduce((total, field) => {
@@ -296,7 +296,7 @@ export class TemplateManager {
         if (field.type === 'formula' && field.formula) {
           try {
             let formula = field.formula;
-            
+
             // Replace section totals
             formula = formula.replace(/SUM\(([^)]+)\)/g, (match, sectionId) => {
               return getSectionTotal(sectionId).toString();

@@ -6,7 +6,7 @@ import { EmployeeManagement } from './EmployeeManagement';
 import { SystemSettings } from './SystemSettings';
 import { AuditLogs } from './AuditLogs';
 import { DashboardStats } from './DashboardStats';
-import { TemplateManagement } from './TemplateManagement';
+// import { TemplateManagement } from './TemplateManagement'; // Commented out - template management disabled
 import { ReportsAnalytics } from './ReportsAnalytics';
 
 const DashboardContainer = styled.div`
@@ -154,7 +154,7 @@ const MainContent = styled.main`
   padding: ${theme.spacing[8]};
 `;
 
-type TabType = 'overview' | 'employees' | 'templates' | 'reports' | 'settings' | 'audit';
+type TabType = 'overview' | 'employees' | /* 'templates' | */ 'reports' | 'settings' | 'audit'; // templates disabled
 
 export const AdminDashboard: React.FC = () => {
   const { profile, signOut } = useAuth();
@@ -188,8 +188,8 @@ export const AdminDashboard: React.FC = () => {
         return <DashboardStats />;
       case 'employees':
         return <EmployeeManagement />;
-      case 'templates':
-        return <TemplateManagement />;
+      // case 'templates':
+      //   return <TemplateManagement />; // Template management disabled
       case 'reports':
         return <ReportsAnalytics />;
       case 'settings':
@@ -246,12 +246,14 @@ export const AdminDashboard: React.FC = () => {
           >
             👥 Employee Management
           </NavTab>
+          {/* Template Management tab disabled
           <NavTab
             isActive={activeTab === 'templates'}
             onClick={() => setActiveTab('templates')}
           >
             🎨 Template Management
           </NavTab>
+          */}
           <NavTab
             isActive={activeTab === 'reports'}
             onClick={() => setActiveTab('reports')}
