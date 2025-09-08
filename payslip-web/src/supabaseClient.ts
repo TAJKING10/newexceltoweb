@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
 
-// Debug logging for production - Force deployment trigger
+// Debug logging for production - Secrets configured, deploying fix
 console.log('🔍 Supabase Environment Check:');
 console.log('URL:', supabaseUrl ? 'Present' : 'Missing');
 console.log('Key:', supabaseAnonKey ? 'Present' : 'Missing');
