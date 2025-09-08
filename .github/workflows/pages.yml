@@ -37,6 +37,7 @@ jobs:
         env:
           REACT_APP_SUPABASE_URL: ${{ secrets.REACT_APP_SUPABASE_URL }}
           REACT_APP_SUPABASE_ANON_KEY: ${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}
+          PUBLIC_URL: /newexceltoweb
           CI: false
 
       - name: SPA 404 fallback
