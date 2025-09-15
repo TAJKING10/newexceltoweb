@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../styles/theme';
+import LanguageSwitcher from '../LanguageSwitcher';
 
 const LoginContainer = styled.div`
   min-height: 100vh;
@@ -10,6 +12,14 @@ const LoginContainer = styled.div`
   align-items: center;
   justify-content: center;
   padding: ${theme.spacing[4]};
+  position: relative;
+`;
+
+const LanguageSwitcherWrapper = styled.div`
+  position: absolute;
+  top: ${theme.spacing[4]};
+  right: ${theme.spacing[4]};
+  z-index: 10;
 `;
 
 const LoginCard = styled.div`
@@ -155,6 +165,7 @@ const LoadingSpinner = styled.div`
 `;
 
 export const LoginScreen: React.FC = () => {
+  const { t } = useTranslation();
   const { signIn, profile } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -185,7 +196,7 @@ export const LoginScreen: React.FC = () => {
     if (profile.status === 'pending') {
       return (
         <StatusMessage type="warning">
-          Your account is pending approval. Please contact your administrator.
+          {t('auth.login.accountPending', 'Your account is pending approval. Please contact your administrator.')}
         </StatusMessage>
       );
     }
@@ -193,7 +204,7 @@ export const LoginScreen: React.FC = () => {
     if (profile.status === 'inactive') {
       return (
         <StatusMessage type="warning">
-          Your account has been deactivated. Please contact your administrator.
+          {t('auth.login.accountInactive', 'Your account has been deactivated. Please contact your administrator.')}
         </StatusMessage>
       );
     }
@@ -203,34 +214,38 @@ export const LoginScreen: React.FC = () => {
 
   return (
     <LoginContainer>
+      <LanguageSwitcherWrapper>
+        <LanguageSwitcher />
+      </LanguageSwitcherWrapper>
+      
       <LoginCard>
         <Logo>
           <LogoText>🚀 UPP</LogoText>
-          <LogoSubtext>Universal Payslip Platform</LogoSubtext>
+          <LogoSubtext>{t('auth.login.title')}</LogoSubtext>
         </Logo>
         
         <Form onSubmit={handleSubmit}>
           <FormGroup>
-            <Label htmlFor="email">Email Address</Label>
+            <Label htmlFor="email">{t('auth.login.emailLabel')}</Label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder={t('auth.login.emailPlaceholder')}
               required
               disabled={loading}
             />
           </FormGroup>
           
           <FormGroup>
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t('auth.login.passwordLabel')}</Label>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder={t('auth.login.passwordPlaceholder')}
               required
               disabled={loading}
             />
@@ -238,7 +253,7 @@ export const LoginScreen: React.FC = () => {
           
           {error && (
             <ErrorMessage>
-              {error}
+              {error === 'Failed to fetch' ? t('auth.login.failedToFetch') : error}
             </ErrorMessage>
           )}
           
@@ -248,7 +263,7 @@ export const LoginScreen: React.FC = () => {
             {loading ? (
               <LoadingSpinner />
             ) : (
-              'Sign In'
+              t('auth.login.signInButton')
             )}
           </LoginButton>
         </Form>

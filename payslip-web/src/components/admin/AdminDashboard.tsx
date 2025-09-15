@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../styles/theme';
+import LanguageSwitcher from '../LanguageSwitcher';
 import { EmployeeManagement } from './EmployeeManagement';
 import { SystemSettings } from './SystemSettings';
 import { AuditLogs } from './AuditLogs';
@@ -157,6 +159,7 @@ const MainContent = styled.main`
 type TabType = 'overview' | 'employees' | /* 'templates' | */ 'reports' | 'settings' | 'audit'; // templates disabled
 
 export const AdminDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const { profile, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [loading, setLoading] = useState(false);
@@ -206,19 +209,20 @@ export const AdminDashboard: React.FC = () => {
       <Header>
         <HeaderContent>
           <HeaderLeft>
-            <Title>🔧 Admin Dashboard</Title>
+            <Title>🔧 {t('admin.title')}</Title>
           </HeaderLeft>
           
           <HeaderRight>
+            <LanguageSwitcher />
             <UserInfo>
               <Avatar>
                 {getInitials(profile?.full_name, profile?.email)}
               </Avatar>
               <UserDetails>
                 <UserName>
-                  {profile?.full_name || profile?.email || 'Admin'}
+                  {profile?.full_name || profile?.email || t('admin.title', 'Admin')}
                 </UserName>
-                <UserRole>Administrator</UserRole>
+                <UserRole>{t('admin.administrator', 'Administrator')}</UserRole>
               </UserDetails>
             </UserInfo>
             
@@ -226,7 +230,7 @@ export const AdminDashboard: React.FC = () => {
               onClick={handleSignOut} 
               disabled={loading}
             >
-              {loading ? 'Signing out...' : 'Sign Out'}
+              {loading ? t('auth.signingOut', 'Signing out...') : t('auth.signOut')}
             </LogoutButton>
           </HeaderRight>
         </HeaderContent>
@@ -238,39 +242,39 @@ export const AdminDashboard: React.FC = () => {
             isActive={activeTab === 'overview'}
             onClick={() => setActiveTab('overview')}
           >
-            📊 Overview
+            📊 {t('admin.overview')}
           </NavTab>
           <NavTab
             isActive={activeTab === 'employees'}
             onClick={() => setActiveTab('employees')}
           >
-            👥 Employee Management
+            👥 {t('admin.employees')}
           </NavTab>
           {/* Template Management tab disabled
           <NavTab
             isActive={activeTab === 'templates'}
             onClick={() => setActiveTab('templates')}
           >
-            🎨 Template Management
+            🎨 {t('admin.templates')}
           </NavTab>
           */}
           <NavTab
             isActive={activeTab === 'reports'}
             onClick={() => setActiveTab('reports')}
           >
-            📊 Reports & Analytics
+            📊 {t('admin.reports')}
           </NavTab>
           <NavTab
             isActive={activeTab === 'settings'}
             onClick={() => setActiveTab('settings')}
           >
-            ⚙️ System Settings
+            ⚙️ {t('admin.settings')}
           </NavTab>
           <NavTab
             isActive={activeTab === 'audit'}
             onClick={() => setActiveTab('audit')}
           >
-            📋 Audit Logs
+            📋 {t('admin.audit')}
           </NavTab>
         </NavContent>
       </Navigation>

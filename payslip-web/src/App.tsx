@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import PayslipGenerator from './components/PayslipGenerator';
 import MonthlyPayslipGenerator from './components/MonthlyPayslipGenerator';
 // import EnhancedTemplateBuilder from './components/EnhancedTemplateBuilder'; // Commented out - template builder disabled
@@ -9,8 +10,10 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { theme } from './styles/theme';
+import LanguageSwitcher from './components/LanguageSwitcher';
 
 const AppContent: React.FC = () => {
+  const { t } = useTranslation();
   const { user, profile, loading, isAdmin, isActive, signOut } = useAuth();
   const [currentView, setCurrentView] = useState<'basic' | 'excel' | 'template' | 'persons'>('persons');
   const [viewLoading, setViewLoading] = useState(false);
@@ -61,7 +64,7 @@ const AppContent: React.FC = () => {
     return (
       <LoadingContainer>
         <LoadingSpinner />
-        <LoadingText>Loading Universal Payslip Platform...</LoadingText>
+        <LoadingText>{t('common.loading')} {t('auth.login.title')}...</LoadingText>
       </LoadingContainer>
     );
   }
@@ -82,11 +85,11 @@ const AppContent: React.FC = () => {
       <StatusContainer>
         <StatusCard>
           <StatusIcon>⏳</StatusIcon>
-          <StatusTitle>Account {profile.status}</StatusTitle>
+          <StatusTitle>{t('profile.account', 'Account')} {profile.status}</StatusTitle>
           <StatusMessage>
             {profile.status === 'pending' 
-              ? 'Your account is pending approval. Please contact your administrator.'
-              : 'Your account has been deactivated. Please contact your administrator.'}
+              ? t('auth.login.accountPending')
+              : t('auth.login.accountInactive')}
           </StatusMessage>
         </StatusCard>
       </StatusContainer>
@@ -98,11 +101,12 @@ const AppContent: React.FC = () => {
     <AppContainer>
       <Header>
         <HeaderContent>
-          <Title>🚀 Universal Payslip Platform</Title>
+          <Title>🚀 {t('auth.login.title')}</Title>
           <UserSection>
-            <UserWelcome>Welcome, {profile.full_name || profile.email}</UserWelcome>
+            <LanguageSwitcher />
+            <UserWelcome>{t('dashboard.welcome')}, {profile.full_name || profile.email}</UserWelcome>
             <SignOutButton onClick={handleSignOut}>
-              🚪 Sign Out
+              🚪 {t('auth.signOut')}
             </SignOutButton>
           </UserSection>
           <NavigationTabs>
@@ -113,7 +117,7 @@ const AppContent: React.FC = () => {
               title="Universal person management for employees, customers, contractors, and more"
             >
               <span>👥</span>
-              <span>Person Management</span>
+              <span>{t('persons.title')}</span>
             </NavTab>
             
             {/* Template Builder tab disabled
@@ -135,7 +139,7 @@ const AppContent: React.FC = () => {
               title="Annual payslip with monthly columns and totals"
             >
               <span>📊</span>
-              <span>Annual Excel View</span>
+              <span>{t('payslips.excelView', 'Annual Excel View')}</span>
             </NavTab>
             
             <NavTab 
@@ -145,13 +149,13 @@ const AppContent: React.FC = () => {
               title="Simple form-based payslip"
             >
               <span>📝</span>
-              <span>Basic View</span>
+              <span>{t('payslips.basicView')}</span>
             </NavTab>
           </NavigationTabs>
           
           <FeatureBanner>
             <FeatureText>
-              <strong>✨ Key Features:</strong> {getFeatureText(currentView)}
+              <strong>✨ {t('dashboard.keyFeatures', 'Key Features')}:</strong> {getFeatureText(currentView)}
             </FeatureText>
           </FeatureBanner>
         </HeaderContent>
@@ -163,7 +167,7 @@ const AppContent: React.FC = () => {
             <ErrorIcon>⚠️</ErrorIcon>
             <ErrorText>{error}</ErrorText>
             <ErrorButton onClick={() => setError(null)}>
-              Dismiss
+              {t('common.close')}
             </ErrorButton>
           </ErrorMessage>
         )}
@@ -171,7 +175,7 @@ const AppContent: React.FC = () => {
         {viewLoading && (
           <LoadingOverlay>
             <LoadingSpinner />
-            <LoadingText>Loading view...</LoadingText>
+            <LoadingText>{t('common.loading')}...</LoadingText>
           </LoadingOverlay>
         )}
         
