@@ -8,11 +8,11 @@ const LanguageSwitcherContainer = styled.div`
   gap: 8px;
 `;
 
-const LanguageButton = styled.button<{ active?: boolean }>`
+const LanguageButton = styled.button<{ $active?: boolean }>`
   padding: 6px 12px;
-  border: 1px solid ${props => props.active ? '#5b7cff' : '#e1e5e9'};
-  background: ${props => props.active ? '#5b7cff' : 'white'};
-  color: ${props => props.active ? 'white' : '#666'};
+  border: 1px solid ${props => props.$active ? '#5b7cff' : '#e1e5e9'};
+  background: ${props => props.$active ? '#5b7cff' : 'white'};
+  color: ${props => props.$active ? 'white' : '#666'};
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
@@ -20,8 +20,8 @@ const LanguageButton = styled.button<{ active?: boolean }>`
   transition: all 0.2s ease;
   
   &:hover {
-    background: ${props => props.active ? '#4a6bef' : '#f8f9fa'};
-    border-color: ${props => props.active ? '#4a6bef' : '#d1d5db'};
+    background: ${props => props.$active ? '#4a6bef' : '#f8f9fa'};
+    border-color: ${props => props.$active ? '#4a6bef' : '#d1d5db'};
   }
   
   &:focus {
@@ -57,14 +57,14 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         <LanguageLabel>{t('common.language')}:</LanguageLabel>
       )}
       <LanguageButton
-        active={i18n.language === 'en'}
+        $active={i18n.language === 'en'}
         onClick={() => changeLanguage('en')}
         title={t('common.english')}
       >
         EN
       </LanguageButton>
       <LanguageButton
-        active={i18n.language === 'fr'}
+        $active={i18n.language === 'fr'}
         onClick={() => changeLanguage('fr')}
         title={t('common.french')}
       >

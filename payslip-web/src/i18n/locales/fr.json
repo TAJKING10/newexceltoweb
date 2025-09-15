@@ -124,7 +124,8 @@
     "personAdded": "Personne ajoutée avec succès",
     "personUpdated": "Personne mise à jour avec succès",
     "personDeleted": "Personne supprimée avec succès",
-    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette personne ?"
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette personne ?",
+    "employeeId": "ID de l'employé"
   },
   "payslips": {
     "title": "Générateur de bulletins de paie",
@@ -152,7 +153,27 @@
     "payslipError": "Erreur lors de la génération du bulletin de paie",
     "basicView": "Vue de base",
     "excelView": "Vue Excel",
-    "monthlyGenerator": "Générateur mensuel"
+    "monthlyGenerator": "Générateur mensuel",
+    "title": "BULLETIN DE PAIE",
+    "subtitle": "Relevé de paie des employés",
+    "payDate": "Date de paie",
+    "paymentMethod": "Mode de paiement",
+    "directDeposit": "Dépôt direct",
+    "generatedOn": "Généré le",
+    "employeeInformation": "Informations sur l'employé",
+    "earnings": "REVENUS",
+    "basicSalary": "Salaire de base",
+    "housingAllowance": "Allocation logement",
+    "transportAllowance": "Allocation transport",
+    "overtimePay": "Heures supplémentaires",
+    "summary": "RÉSUMÉ",
+    "incomeTax": "Impôt sur le revenu",
+    "healthInsurance": "Assurance maladie",
+    "totalDeductions": "Total des déductions",
+    "netPay": "SALAIRE NET",
+    "annualReport": "RAPPORT ANNUEL DE PAIE",
+    "annualStatement": "Relevé annuel des employés",
+    "year": "Année"
   },
   "templates": {
     "title": "Gestion des modèles",
@@ -165,7 +186,9 @@
     "customTemplate": "Modèle personnalisé",
     "templateSaved": "Modèle enregistré avec succès",
     "templateDeleted": "Modèle supprimé avec succès",
-    "confirmDeleteTemplate": "Êtes-vous sûr de vouloir supprimer ce modèle ?"
+    "confirmDeleteTemplate": "Êtes-vous sûr de vouloir supprimer ce modèle ?",
+    "basicTemplate": "📝 Modèle de bulletin de paie de base",
+    "basicDescription": "Modèle de bulletin de paie simple et propre pour les besoins de paie de base"
   },
   "reports": {
     "title": "Rapports",

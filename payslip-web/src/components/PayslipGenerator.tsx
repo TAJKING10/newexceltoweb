@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import { personManager } from '../utils/personManager';
 import { templateSync } from '../utils/templateSync';
 import { viewSync } from '../utils/viewSync';
@@ -276,6 +277,7 @@ interface CustomPayslipData {
 }
 
 const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
+  const { t } = useTranslation();
   const [selectedTemplate, setSelectedTemplate] = useState<PayslipTemplate | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<PersonProfile | null>(null);
   const [selectedPersonType, setSelectedPersonType] = useState<'all' | 'employee' | 'customer' | 'contractor' | 'freelancer' | 'vendor' | 'consultant' | 'other'>('all');
@@ -289,22 +291,22 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
   const [payslipData, setPayslipData] = useState<CustomPayslipData>({
     header: {
-      title: 'PAYSLIP',
-      subtitle: 'Employee Pay Statement',
+      title: t('payslips.title', 'PAYSLIP'),
+      subtitle: t('payslips.subtitle', 'Employee Pay Statement'),
       companyInfo: {
-        name: 'Universal Company Ltd.',
-        address: '123 Business Street, City, State 12345',
-        phone: '+1 (555) 123-4567',
-        email: 'hr@company.com'
+        name: t('settings.companyName', 'Universal Company Ltd.'),
+        address: t('settings.companyAddress', '123 Business Street, City, State 12345'),
+        phone: t('settings.companyPhone', '+1 (555) 123-4567'),
+        email: t('settings.companyEmail', 'hr@company.com')
       }
     },
     subHeaders: [
       {
         id: 'info-header',
         sections: [
-          { id: 'period', label: 'Pay Period', value: `${new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}` },
-          { id: 'date', label: 'Pay Date', value: new Date().toLocaleDateString() },
-          { id: 'method', label: 'Payment Method', value: 'Direct Deposit' }
+          { id: 'period', label: t('payslips.payPeriod'), value: `${new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}` },
+          { id: 'date', label: t('payslips.payDate', 'Pay Date'), value: new Date().toLocaleDateString() },
+          { id: 'method', label: t('payslips.paymentMethod', 'Payment Method'), value: t('payslips.directDeposit', 'Direct Deposit') }
         ]
       }
     ]
@@ -322,41 +324,41 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const createBasicViewTemplates = useCallback(() => {
     const basicTemplate: PayslipTemplate = {
       id: 'basic-view-template',
-      name: '📝 Basic Payslip Template',
+      name: t('templates.basicTemplate', '📝 Basic Payslip Template'),
       version: '1.0',
-      description: 'Simple monthly payslip template - perfect for basic payslips',
+      description: t('templates.basicDescription', 'Simple and clean payslip template for basic payroll needs'),
       type: 'basic',
       compatibleViews: ['basic', 'excel'],
       header: {
         id: 'basic-header',
-        title: 'PAYSLIP',
-        subtitle: 'Employee Pay Statement',
+        title: t('payslips.title', 'PAYSLIP'),
+        subtitle: t('payslips.subtitle', 'Employee Pay Statement'),
         companyInfo: {
-          name: 'Universal Company Ltd.',
-          address: '123 Business Street, City, State 12345',
-          phone: '+1 (555) 123-4567',
-          email: 'hr@company.com'
+          name: t('settings.companyName', 'Universal Company Ltd.'),
+          address: t('settings.companyAddress', '123 Business Street, City, State 12345'),
+          phone: t('settings.companyPhone', '+1 (555) 123-4567'),
+          email: t('settings.companyEmail', 'hr@company.com')
         }
       },
       subHeaders: [{
         id: 'basic-subheader',
         sections: [
-          { id: 'pay-period', label: 'Pay Period', value: 'January 2025', type: 'text', editable: true },
-          { id: 'pay-date', label: 'Pay Date', value: new Date().toLocaleDateString(), type: 'date', editable: true },
-          { id: 'pay-method', label: 'Payment Method', value: 'Direct Deposit', type: 'text', editable: true },
-          { id: 'generated-date', label: 'Generated on', value: new Date().toLocaleDateString(), type: 'text', editable: false }
+          { id: 'pay-period', label: t('payslips.payPeriod'), value: 'January 2025', type: 'text', editable: true },
+          { id: 'pay-date', label: t('payslips.payDate', 'Pay Date'), value: new Date().toLocaleDateString(), type: 'date', editable: true },
+          { id: 'pay-method', label: t('payslips.paymentMethod', 'Payment Method'), value: t('payslips.directDeposit', 'Direct Deposit'), type: 'text', editable: true },
+          { id: 'generated-date', label: t('payslips.generatedOn', 'Generated on'), value: new Date().toLocaleDateString(), type: 'text', editable: false }
         ]
       }],
       sections: [
         {
           id: 'employee-info',
-          title: 'Employee Information',
+          title: t('payslips.employeeInformation', 'Employee Information'),
           type: 'static',
           fields: [
-            { id: 'emp_name', label: 'Employee Name', type: 'text', required: true },
-            { id: 'emp_id', label: 'Employee ID', type: 'text', required: true },
-            { id: 'department', label: 'Department', type: 'text' },
-            { id: 'position', label: 'Position', type: 'text' }
+            { id: 'emp_name', label: t('persons.firstName', 'Employee Name'), type: 'text', required: true },
+            { id: 'emp_id', label: t('persons.employeeId', 'Employee ID'), type: 'text', required: true },
+            { id: 'department', label: t('persons.department'), type: 'text' },
+            { id: 'position', label: t('persons.position'), type: 'text' }
           ],
           canAddFields: true,
           canRemove: false

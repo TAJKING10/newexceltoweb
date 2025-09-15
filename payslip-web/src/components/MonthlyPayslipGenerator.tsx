@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import { personManager } from '../utils/personManager';
 import { templateSync } from '../utils/templateSync';
 import { viewSync } from '../utils/viewSync';
@@ -317,6 +318,7 @@ interface MonthlyPayslipState {
 }
 
 const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
+  const { t } = useTranslation();
   const [selectedTemplate, setSelectedTemplate] = useState<PayslipTemplate | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<PersonProfile | null>(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -358,47 +360,47 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     groups: [
       {
         id: 'earnings',
-        name: 'EARNINGS',
-        rows: ['Basic Salary', 'Housing Allowance', 'Transport Allowance', 'Overtime Pay', 'Bonus'],
+        name: t('payslips.earnings', 'EARNINGS'),
+        rows: [t('payslips.basicSalary', 'Basic Salary'), t('payslips.housingAllowance', 'Housing Allowance'), t('payslips.transportAllowance', 'Transport Allowance'), t('payslips.overtimePay', 'Overtime Pay'), t('payslips.bonus')],
         isCollapsed: false
       },
       {
         id: 'summary',
-        name: 'SUMMARY',
-        rows: ['Gross Salary'],
+        name: t('payslips.summary', 'SUMMARY'),
+        rows: [t('payslips.grossSalary')],
         isCollapsed: false
       },
       {
         id: 'deductions',
-        name: 'DEDUCTIONS',
-        rows: ['Income Tax', 'Social Security', 'Health Insurance', 'Total Deductions'],
+        name: t('payslips.deductions'),
+        rows: [t('payslips.incomeTax', 'Income Tax'), t('payslips.socialSecurity'), t('payslips.healthInsurance'), t('payslips.totalDeductions', 'Total Deductions')],
         isCollapsed: false
       },
       {
         id: 'final',
-        name: 'NET PAY',
-        rows: ['Net Salary'],
+        name: t('payslips.netPay', 'NET PAY'),
+        rows: [t('payslips.netSalary')],
         isCollapsed: false
       }
     ],
     header: {
       id: 'main-header',
-      title: 'ANNUAL PAYSLIP REPORT',
-      subtitle: 'Employee Annual Statement',
+      title: t('payslips.annualReport', 'ANNUAL PAYSLIP REPORT'),
+      subtitle: t('payslips.annualStatement', 'Employee Annual Statement'),
       companyInfo: {
-        name: 'Universal Company Ltd.',
-        address: '123 Business Street, City, State 12345',
-        phone: '+1 (555) 123-4567',
-        email: 'hr@company.com'
+        name: t('settings.companyName', 'Universal Company Ltd.'),
+        address: t('settings.companyAddress', '123 Business Street, City, State 12345'),
+        phone: t('settings.companyPhone', '+1 (555) 123-4567'),
+        email: t('settings.companyEmail', 'hr@company.com')
       }
     },
     subHeaders: [
       {
         id: 'info-header',
         sections: [
-          { id: 'year', label: 'Year', value: new Date().getFullYear().toString() },
-          { id: 'department', label: 'Department', value: 'IT Department' },
-          { id: 'generated', label: 'Generated On', value: new Date().toLocaleDateString() }
+          { id: 'year', label: t('payslips.year', 'Year'), value: new Date().getFullYear().toString() },
+          { id: 'department', label: t('persons.department'), value: 'IT Department' },
+          { id: 'generated', label: t('payslips.generatedOn'), value: new Date().toLocaleDateString() }
         ]
       }
     ]
