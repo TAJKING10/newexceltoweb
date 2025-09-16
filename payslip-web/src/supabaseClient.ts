@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://auoykquilatpwdcolasp.supabase.co'
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1b3lrcXVpbGF0cHdkY29sYXNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1ODcyNjgsImV4cCI6MjA3MjE2MzI2OH0.eComwexy12utoAEFLWhtMYteJ0AcGbqWaP22Gk0Q94M'
 
 // Debug logging for production - Final deployment with GitHub Secrets
 console.log('🔍 Supabase Environment Check:');
@@ -16,7 +16,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'undefined');
 }
 
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
-)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)

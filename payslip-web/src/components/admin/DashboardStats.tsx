@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../supabaseClient';
 import { theme } from '../../styles/theme';
 
@@ -238,6 +239,7 @@ const LoadingSpinner = styled.div`
 `;
 
 export const DashboardStats: React.FC = () => {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -454,11 +456,11 @@ export const DashboardStats: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner>Loading dashboard stats...</LoadingSpinner>;
+    return <LoadingSpinner>{t('common.loading')} {t('dashboard.statistics', 'dashboard stats')}...</LoadingSpinner>;
   }
 
   if (!stats) {
-    return <div>Error loading dashboard statistics.</div>;
+    return <div>{t('errors.generic', 'Error loading dashboard statistics.')}</div>;
   }
 
   return (
@@ -468,9 +470,9 @@ export const DashboardStats: React.FC = () => {
           <StatHeader>
             <div>
               <StatValue>{stats.totalEmployees}</StatValue>
-              <StatLabel>Total Employees</StatLabel>
+              <StatLabel>{t('dashboard.totalEmployees')}</StatLabel>
               <StatChange positive={true}>
-                All registered users
+                {t('dashboard.allRegisteredUsers', 'All registered users')}
               </StatChange>
             </div>
             <StatIcon>👥</StatIcon>
@@ -481,9 +483,9 @@ export const DashboardStats: React.FC = () => {
           <StatHeader>
             <div>
               <StatValue>{stats.activeEmployees}</StatValue>
-              <StatLabel>Active Employees</StatLabel>
+              <StatLabel>{t('dashboard.activeEmployees', 'Active Employees')}</StatLabel>
               <StatChange positive={true}>
-                Ready to work
+                {t('dashboard.readyToWork', 'Ready to work')}
               </StatChange>
             </div>
             <StatIcon>✅</StatIcon>
@@ -494,9 +496,9 @@ export const DashboardStats: React.FC = () => {
           <StatHeader>
             <div>
               <StatValue>{stats.pendingEmployees}</StatValue>
-              <StatLabel>Pending Approval</StatLabel>
+              <StatLabel>{t('dashboard.pendingApproval', 'Pending Approval')}</StatLabel>
               <StatChange positive={false}>
-                Awaiting activation
+                {t('dashboard.awaitingActivation', 'Awaiting activation')}
               </StatChange>
             </div>
             <StatIcon>⏳</StatIcon>
@@ -507,9 +509,9 @@ export const DashboardStats: React.FC = () => {
           <StatHeader>
             <div>
               <StatValue>{stats.totalPayslips}</StatValue>
-              <StatLabel>Total Payslips</StatLabel>
+              <StatLabel>{t('dashboard.totalPayslips')}</StatLabel>
               <StatChange positive={true}>
-                Generated documents
+                {t('dashboard.generatedDocuments', 'Generated documents')}
               </StatChange>
             </div>
             <StatIcon>📄</StatIcon>
@@ -520,9 +522,9 @@ export const DashboardStats: React.FC = () => {
           <StatHeader>
             <div>
               <StatValue>{stats.totalTemplates}</StatValue>
-              <StatLabel>Templates</StatLabel>
+              <StatLabel>{t('templates.title', 'Templates')}</StatLabel>
               <StatChange positive={true}>
-                Available designs
+                {t('dashboard.availableDesigns', 'Available designs')}
               </StatChange>
             </div>
             <StatIcon>🎨</StatIcon>
@@ -533,9 +535,9 @@ export const DashboardStats: React.FC = () => {
           <StatHeader>
             <div>
               <StatValue>{stats.monthlyPayslips}</StatValue>
-              <StatLabel>This Month</StatLabel>
+              <StatLabel>{t('dashboard.thisMonth')}</StatLabel>
               <StatChange positive={true}>
-                Current month payslips
+                {t('dashboard.currentMonthPayslips', 'Current month payslips')}
               </StatChange>
             </div>
             <StatIcon>📅</StatIcon>
@@ -546,9 +548,9 @@ export const DashboardStats: React.FC = () => {
           <StatHeader>
             <div>
               <StatValue>€{Math.round(stats.avgSalary).toLocaleString()}</StatValue>
-              <StatLabel>Average Salary</StatLabel>
+              <StatLabel>{t('dashboard.averageSalary', 'Average Salary')}</StatLabel>
               <StatChange positive={true}>
-                Per employee annually
+                {t('dashboard.perEmployeeAnnually', 'Per employee annually')}
               </StatChange>
             </div>
             <StatIcon>💰</StatIcon>
@@ -559,9 +561,9 @@ export const DashboardStats: React.FC = () => {
           <StatHeader>
             <div>
               <StatValue>€{Math.round(stats.totalRevenue / 1000)}K</StatValue>
-              <StatLabel>Total Payroll</StatLabel>
+              <StatLabel>{t('dashboard.totalPayroll', 'Total Payroll')}</StatLabel>
               <StatChange positive={true}>
-                Annual payroll costs
+                {t('dashboard.annualPayrollCosts', 'Annual payroll costs')}
               </StatChange>
             </div>
             <StatIcon>💳</StatIcon>
@@ -571,26 +573,26 @@ export const DashboardStats: React.FC = () => {
 
       <ChartsContainer>
         <ChartCard>
-          <ChartTitle>📊 Monthly Payslip Trends</ChartTitle>
+          <ChartTitle>📊 {t('dashboard.monthlyPayslipTrends', 'Monthly Payslip Trends')}</ChartTitle>
           <MetricsList>
             {stats.monthlyStats.map((month, index) => (
               <MetricItem key={index}>
                 <MetricName>{month.month}</MetricName>
-                <MetricValue>{month.payslips} payslips</MetricValue>
+                <MetricValue>{month.payslips} {t('payslips.title', 'payslips').toLowerCase()}</MetricValue>
               </MetricItem>
             ))}
           </MetricsList>
         </ChartCard>
 
         <ChartCard>
-          <ChartTitle>🏢 Department Overview</ChartTitle>
+          <ChartTitle>🏢 {t('dashboard.departmentOverview', 'Department Overview')}</ChartTitle>
           <MetricsList>
             {stats.departmentStats.slice(0, 5).map((dept, index) => (
               <MetricItem key={index}>
                 <div>
                   <MetricName>{dept.department}</MetricName>
                   <div style={{fontSize: '12px', color: theme.colors.text.tertiary}}>
-                    {dept.employees} employees • Avg €{Math.round(dept.avgSalary).toLocaleString()}
+                    {dept.employees} {t('dashboard.employees', 'employees').toLowerCase()} • {t('dashboard.avg', 'Avg')} €{Math.round(dept.avgSalary).toLocaleString()}
                   </div>
                 </div>
                 <MetricValue>€{Math.round(dept.totalSalary / 1000)}K</MetricValue>
@@ -601,7 +603,7 @@ export const DashboardStats: React.FC = () => {
       </ChartsContainer>
 
       <ActivitySection>
-        <ActivityHeader>Recent Activity</ActivityHeader>
+        <ActivityHeader>{t('dashboard.recentActivity', 'Recent Activity')}</ActivityHeader>
         <ActivityList>
           {stats.recentActivity.length > 0 ? (
             stats.recentActivity.map(activity => (
@@ -623,8 +625,8 @@ export const DashboardStats: React.FC = () => {
             <ActivityItem>
               <ActivityIcon action="INFO">📋</ActivityIcon>
               <ActivityContent>
-                <ActivityText>No recent activity</ActivityText>
-                <ActivityTime>System is ready for use</ActivityTime>
+                <ActivityText>{t('dashboard.noRecentActivity', 'No recent activity')}</ActivityText>
+                <ActivityTime>{t('dashboard.systemReady', 'System is ready for use')}</ActivityTime>
               </ActivityContent>
             </ActivityItem>
           )}

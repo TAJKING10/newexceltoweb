@@ -55,7 +55,10 @@
       "Bash(PORT=3048 npm start)",
       "Bash(PORT=3049 npm start)",
       "Bash(PORT=3050 npm start)",
-      "Bash(PORT=3051 npm start)"
+      "Bash(PORT=3051 npm start)",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__get_anon_key",
+      "Bash(set PORT=3051)"
     ],
     "deny": [],
     "ask": []
