@@ -88,39 +88,14 @@ const HeaderEditor = styled.div`
 const Grid = styled.div<{ columns?: number }>`
   display: grid;
   grid-template-columns: ${props => `repeat(${props.columns || 2}, 1fr)`};
-  gap: 16px;
-  margin: 12px 0;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  
-  > div {
-    display: flex;
-    flex-direction: column;
-  }
+  gap: 15px;
+  margin: 20px 0;
 `;
 
 const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
-  margin-bottom: 16px;
-  background: white;
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-  
-  &:focus-within {
-    border-color: #5b7cff;
-    box-shadow: 0 0 0 3px rgba(91, 124, 255, 0.1);
-  }
+  margin-bottom: 15px;
 `;
 
 const Label = styled.label`
@@ -225,25 +200,12 @@ const Title = styled.h2`
 const ControlPanel = styled.div`
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  
-  @media (max-width: 1200px) {
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-    padding: 20px;
-  }
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 16px;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
 `;
 
 const PrintButton = styled.button`
@@ -1369,7 +1331,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           }
           {calculatedValue !== undefined && (
             <span style={{ fontSize: '10px', color: '#666', marginLeft: '8px' }}>
-              🇱🇺 {t('payslips.autoCalculated')}
+              🇱🇺 Auto-calculated
             </span>
           )}
         </CalculatedValue>
@@ -1424,36 +1386,36 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       <ControlPanel>
         {/* Luxembourg Tax Configuration */}
         <InputGroup>
-          <Label>🇱🇺 {t('payslips.luxembourgTaxConfig')}</Label>
+          <Label>🇱🇺 Luxembourg Tax Configuration</Label>
           <Grid columns={3}>
             <div>
-              <Label>{t('payslips.taxClass')}</Label>
+              <Label>Tax Class</Label>
               <Select
                 value={payslipData.taxClass || 1}
                 onChange={(e) => setPayslipData(prev => ({ ...prev, taxClass: parseInt(e.target.value) }))}
               >
-                <option value={1}>{t('payslips.taxClassSingle')}</option>
-                <option value={2}>{t('payslips.taxClassMarried')}</option>
+                <option value={1}>Class 1 - Single</option>
+                <option value={2}>Class 2 - Married/Civil Partner</option>
               </Select>
             </div>
             <div>
-              <Label>{t('payslips.hasChildren')}</Label>
+              <Label>Has Children</Label>
               <Select
                 value={payslipData.hasChildren ? 'yes' : 'no'}
                 onChange={(e) => setPayslipData(prev => ({ ...prev, hasChildren: e.target.value === 'yes' }))}
               >
-                <option value="no">{t('payslips.noChildren')}</option>
-                <option value="yes">{t('payslips.yesChildren')}</option>
+                <option value="no">No</option>
+                <option value="yes">Yes (Tax Credits Apply)</option>
               </Select>
             </div>
             <div>
-              <Label>{t('payslips.grossSalary')} (€)</Label>
+              <Label>Gross Salary (€)</Label>
               <Input
                 type="number"
                 step="0.01"
                 value={payslipData.grossSalary || 0}
                 onChange={(e) => setPayslipData(prev => ({ ...prev, grossSalary: parseFloat(e.target.value) || 0 }))}
-                placeholder={t('payslips.grossSalary')}
+                placeholder="Monthly gross salary"
               />
             </div>
           </Grid>
@@ -1465,12 +1427,12 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             fontSize: '12px',
             color: '#2e7d32'
           }}>
-            💡 {t('payslips.taxCalculationNote')}
+            💡 Tax calculations use Luxembourg 2025 rates including solidarity tax and social security contributions
           </div>
         </InputGroup>
 
         <InputGroup>
-          <Label>{t('payslips.personTypeFilter')}:</Label>
+          <Label>Person Type Filter:</Label>
           <Select 
             value={selectedPersonType} 
             onChange={(e) => {
@@ -1481,7 +1443,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               console.log('📝 Basic View: Person type selected and synced to Excel View:', newPersonType);
             }}
           >
-            <option value="all">🌟 {t('common.english') === 'English' ? 'All Types' : 'Tous les types'}</option>
+            <option value="all">🌟 All Types</option>
             {Object.entries(PERSON_TYPE_CONFIG || {}).map(([type, config]) => (
               <option key={type} value={type}>
                 {config?.icon || ''} {config?.label || type}s
@@ -1491,7 +1453,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         </InputGroup>
 
         <InputGroup>
-          <Label>{t('payslips.selectPerson')}:</Label>
+          <Label>Select Person:</Label>
           <Select 
             value={selectedPerson?.id || ''} 
             onChange={(e) => {
@@ -1506,7 +1468,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               }
             }}
           >
-            <option value="">{t('payslips.choosePerson')}</option>
+            <option value="">Choose Person...</option>
             {safeArray(filteredPersons).map(person => (
               person && person.id && person.personalInfo ? (
                 <option key={person.id} value={person.id}>
@@ -1518,10 +1480,10 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         </InputGroup>
 
         <InputGroup>
-          <Label>📅 {t('payslips.selectYearMonth')}:</Label>
+          <Label>📅 Select Year & Month:</Label>
           <Grid columns={2}>
             <div>
-              <Label>{t('payslips.year')}</Label>
+              <Label>Year</Label>
               <Select
                 value={selectedYear}
                 onChange={(e) => {
@@ -1552,7 +1514,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               </Select>
             </div>
             <div>
-              <Label>{t('payslips.month')}</Label>
+              <Label>Month</Label>
               <Select
                 value={selectedMonth}
                 onChange={(e) => {
@@ -1597,7 +1559,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         </InputGroup>
 
         <InputGroup>
-          <Label>📋 {t('payslips.selectTemplate')}:</Label>
+          <Label>📋 Select Template:</Label>
           <Select 
             value={selectedTemplate?.id || ''} 
             onChange={(e) => {
@@ -1685,10 +1647,10 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         </InputGroup>
 
         <InputGroup>
-          <Label style={{ color: '#f44336' }}>{t('payslips.freshStart')}:</Label>
+          <Label style={{ color: '#f44336' }}>Fresh Start:</Label>
           <Button 
             onClick={() => {
-              if (selectedPerson && window.confirm(`${t('common.confirm')} ${selectedPerson.personalInfo?.fullName}? This will create a completely fresh payslip with all values at 0.`)) {
+              if (selectedPerson && window.confirm(`Reset all data for ${selectedPerson.personalInfo?.fullName}? This will create a completely fresh payslip with all values at 0.`)) {
                 if (selectedTemplate) {
                   initializeFromTemplate(selectedTemplate, selectedPerson);
                   populatePersonData(selectedPerson);
@@ -1703,7 +1665,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             }}
             disabled={!selectedPerson}
           >
-            🔄 {t('payslips.resetTemplate')}
+            🔄 Reset to Fresh Template
           </Button>
         </InputGroup>
       </ControlPanel>
@@ -1908,7 +1870,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           isActive={editMode}
           onClick={() => setEditMode(!editMode)}
         >
-          {editMode ? `📝 ${t('payslips.exitEditMode')}` : `🎨 ${t('payslips.editMode')}`}
+          {editMode ? '📝 Exit Edit Mode' : '🎨 Edit Mode'}
         </EditModeToggle>
 
         <SaveButton 
@@ -1919,7 +1881,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             cursor: isSaving ? 'wait' : 'pointer' 
           }}
         >
-          {isSaving ? `💾 ${t('payslips.saving')}` : `💾 ${t('payslips.saveToBackend')}`}
+          {isSaving ? '💾 Saving...' : '💾 Save to Backend'}
         </SaveButton>
         <PrintButton onClick={handlePrint}>🖨️ Print</PrintButton>
 
@@ -1937,7 +1899,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             color: '#2e7d32',
             fontWeight: 'bold'
           }}>
-            🔄 {t('payslips.autoSaveEnabled')}
+            🔄 Auto-save enabled
           </div>
         )}
 

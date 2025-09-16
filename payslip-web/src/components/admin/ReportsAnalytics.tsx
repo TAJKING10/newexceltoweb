@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../supabaseClient';
 import { theme } from '../../styles/theme';
 
@@ -310,6 +311,7 @@ const LoadingSpinner = styled.div`
 `;
 
 export const ReportsAnalytics: React.FC = () => {
+  const { t } = useTranslation();
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30');
@@ -535,11 +537,11 @@ export const ReportsAnalytics: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner>Loading reports and analytics...</LoadingSpinner>;
+    return <LoadingSpinner>{t('common.loading')} {t('reports.title', 'reports').toLowerCase()} {t('admin.analytics', 'and analytics').toLowerCase()}...</LoadingSpinner>;
   }
 
   if (!reportData) {
-    return <div>Error loading report data.</div>;
+    return <div>{t('errors.generic', 'Error loading report data.')}</div>;
   }
 
   const maxPayslipCount = Math.max(...reportData.payslipTrends.map(t => t.count));
@@ -547,17 +549,17 @@ export const ReportsAnalytics: React.FC = () => {
   return (
     <Container>
       <Header>
-        <Title>📊 Reports & Analytics</Title>
+        <Title>📊 {t('reports.reportsAnalytics', 'Reports & Analytics')}</Title>
         <FilterControls>
           <Select value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="365">Last year</option>
+            <option value="7">{t('reports.last7Days', 'Last 7 days')}</option>
+            <option value="30">{t('reports.last30Days', 'Last 30 days')}</option>
+            <option value="90">{t('reports.last90Days', 'Last 90 days')}</option>
+            <option value="365">{t('reports.lastYear', 'Last year')}</option>
           </Select>
           
           <Select value={department} onChange={(e) => setDepartment(e.target.value)}>
-            <option value="all">All Departments</option>
+            <option value="all">{t('reports.allDepartments', 'All Departments')}</option>
             {reportData.departmentAnalysis.map(dept => (
               <option key={dept.department} value={dept.department}>
                 {dept.department}
@@ -566,18 +568,18 @@ export const ReportsAnalytics: React.FC = () => {
           </Select>
           
           <Button variant="secondary" onClick={fetchReportData}>
-            🔄 Refresh
+            🔄 {t('reports.refresh', 'Refresh')}
           </Button>
           
           <Button variant="primary" onClick={generateReport}>
-            📥 Export Report
+            📥 {t('reports.exportReport', 'Export Report')}
           </Button>
         </FilterControls>
       </Header>
 
       <ReportsGrid>
         <ReportCard>
-          <ReportTitle>📈 Payslip Generation Trends</ReportTitle>
+          <ReportTitle>📈 {t('reports.payslipGenerationTrends', 'Payslip Generation Trends')}</ReportTitle>
           <ChartContainer>
             {reportData.payslipTrends.map((trend, index) => (
               <div key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -590,14 +592,14 @@ export const ReportsAnalytics: React.FC = () => {
           </ChartContainer>
           <MetricsList>
             <MetricItem>
-              <MetricLabel>Total Payslips</MetricLabel>
+              <MetricLabel>{t('dashboard.totalPayslips')}</MetricLabel>
               <MetricValue>
                 {reportData.payslipTrends.reduce((sum, trend) => sum + trend.count, 0)}
                 <MetricChange positive={true}>+12%</MetricChange>
               </MetricValue>
             </MetricItem>
             <MetricItem>
-              <MetricLabel>Average per Period</MetricLabel>
+              <MetricLabel>{t('reports.averagePerPeriod', 'Average per Period')}</MetricLabel>
               <MetricValue>
                 {Math.round(reportData.payslipTrends.reduce((sum, trend) => sum + trend.count, 0) / reportData.payslipTrends.length)}
               </MetricValue>
@@ -606,7 +608,7 @@ export const ReportsAnalytics: React.FC = () => {
         </ReportCard>
 
         <ReportCard>
-          <ReportTitle>💰 Salary Distribution</ReportTitle>
+          <ReportTitle>💰 {t('reports.salaryDistribution', 'Salary Distribution')}</ReportTitle>
           <MetricsList>
             {reportData.salaryDistribution.map((dist, index) => (
               <MetricItem key={index}>
@@ -620,14 +622,14 @@ export const ReportsAnalytics: React.FC = () => {
         </ReportCard>
 
         <ReportCard>
-          <ReportTitle>🏢 Department Analysis</ReportTitle>
+          <ReportTitle>🏢 {t('dashboard.departmentOverview', 'Department Analysis')}</ReportTitle>
           <MetricsList>
             {reportData.departmentAnalysis.slice(0, 5).map((dept, index) => (
               <MetricItem key={index}>
                 <div>
                   <MetricLabel>{dept.department}</MetricLabel>
                   <div style={{fontSize: '12px', color: theme.colors.text.tertiary}}>
-                    {dept.employeeCount} employees • €{Math.round(dept.avgSalary).toLocaleString()} avg
+                    {dept.employeeCount} {t('dashboard.employees', 'employees').toLowerCase()} • €{Math.round(dept.avgSalary).toLocaleString()} {t('dashboard.avg', 'avg').toLowerCase()}
                   </div>
                 </div>
                 <MetricValue>
@@ -642,14 +644,14 @@ export const ReportsAnalytics: React.FC = () => {
         </ReportCard>
 
         <ReportCard>
-          <ReportTitle>🖥️ System Health</ReportTitle>
+          <ReportTitle>🖥️ {t('reports.systemHealth', 'System Health')}</ReportTitle>
           <MetricsList>
             <MetricItem>
-              <MetricLabel>Total Users</MetricLabel>
+              <MetricLabel>{t('reports.totalUsers', 'Total Users')}</MetricLabel>
               <MetricValue>{reportData.systemHealth.totalUsers}</MetricValue>
             </MetricItem>
             <MetricItem>
-              <MetricLabel>Active Users</MetricLabel>
+              <MetricLabel>{t('reports.activeUsers', 'Active Users')}</MetricLabel>
               <MetricValue>
                 {reportData.systemHealth.activeUsers}
                 <MetricChange positive={true}>
@@ -658,15 +660,15 @@ export const ReportsAnalytics: React.FC = () => {
               </MetricValue>
             </MetricItem>
             <MetricItem>
-              <MetricLabel>Storage Used</MetricLabel>
+              <MetricLabel>{t('reports.storageUsed', 'Storage Used')}</MetricLabel>
               <MetricValue>{reportData.systemHealth.storageUsed}</MetricValue>
             </MetricItem>
             <MetricItem>
-              <MetricLabel>Avg Response Time</MetricLabel>
+              <MetricLabel>{t('reports.avgResponseTime', 'Avg Response Time')}</MetricLabel>
               <MetricValue>{reportData.systemHealth.averageResponseTime}</MetricValue>
             </MetricItem>
             <MetricItem>
-              <MetricLabel>Uptime</MetricLabel>
+              <MetricLabel>{t('reports.uptime', 'Uptime')}</MetricLabel>
               <MetricValue>{reportData.systemHealth.uptime}</MetricValue>
             </MetricItem>
           </MetricsList>
@@ -674,16 +676,16 @@ export const ReportsAnalytics: React.FC = () => {
       </ReportsGrid>
 
       <FullWidthCard>
-        <ReportTitle>👥 User Activity Overview</ReportTitle>
+        <ReportTitle>👥 {t('reports.userActivityOverview', 'User Activity Overview')}</ReportTitle>
         <TableContainer>
           <Table>
             <thead>
               <tr>
-                <TableHeader>User</TableHeader>
-                <TableHeader>Last Login</TableHeader>
-                <TableHeader>Payslips Generated</TableHeader>
-                <TableHeader>Templates Created</TableHeader>
-                <TableHeader>Status</TableHeader>
+                <TableHeader>{t('reports.user', 'User')}</TableHeader>
+                <TableHeader>{t('reports.lastLogin', 'Last Login')}</TableHeader>
+                <TableHeader>{t('reports.payslipsGenerated', 'Payslips Generated')}</TableHeader>
+                <TableHeader>{t('reports.templatesCreated', 'Templates Created')}</TableHeader>
+                <TableHeader>{t('reports.status', 'Status')}</TableHeader>
               </tr>
             </thead>
             <tbody>
@@ -691,7 +693,7 @@ export const ReportsAnalytics: React.FC = () => {
                 <TableRow key={user.userId}>
                   <TableCell>{user.userName}</TableCell>
                   <TableCell>
-                    {user.lastLogin === 'Never' ? 'Never' : 
+                    {user.lastLogin === 'Never' ? t('reports.never', 'Never') : 
                      new Date(user.lastLogin).toLocaleDateString()}
                   </TableCell>
                   <TableCell>{user.payslipsGenerated}</TableCell>

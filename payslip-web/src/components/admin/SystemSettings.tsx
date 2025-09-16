@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../supabaseClient';
 import { theme } from '../../styles/theme';
 
@@ -364,6 +365,7 @@ const MetricLabel = styled.div`
 `;
 
 export const SystemSettings: React.FC = () => {
+  const { t } = useTranslation();
   const [config, setConfig] = useState<SystemConfig>({
     notifications: true,
     autoBackup: false,
@@ -566,48 +568,48 @@ export const SystemSettings: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner>Loading system settings...</LoadingSpinner>;
+    return <LoadingSpinner>{t('common.loading')} {t('settings.systemSettings', 'system settings').toLowerCase()}...</LoadingSpinner>;
   }
 
   return (
     <Container>
       <Header>
-        <Title>⚙️ System Settings & Management</Title>
+        <Title>⚙️ {t('settings.systemSettingsManagement', 'System Settings & Management')}</Title>
         <ActionsBar>
           <Button variant="secondary" onClick={createBackup}>
-            💾 Create Backup
+            💾 {t('settings.createBackup', 'Create Backup')}
           </Button>
           <Button variant="secondary" onClick={exportSystemData}>
-            📤 Export Data
+            📤 {t('settings.exportData', 'Export Data')}
           </Button>
           <Button variant="danger" onClick={resetSystem}>
-            🔄 Reset Settings
+            🔄 {t('settings.resetSettings', 'Reset Settings')}
           </Button>
           <Button variant="primary" onClick={saveConfig} disabled={saving}>
-            {saving ? '💾 Saving...' : '💾 Save Settings'}
+            {saving ? `💾 ${t('settings.saving', 'Saving')}...` : `💾 ${t('settings.saveSettings', 'Save Settings')}`}
           </Button>
         </ActionsBar>
       </Header>
 
       <FullWidthCard>
         <SystemHealthCard>
-          <CardTitle>🖥️ System Health Overview</CardTitle>
+          <CardTitle>🖥️ {t('reports.systemHealth', 'System Health Overview')}</CardTitle>
           <HealthMetrics>
             <HealthMetric>
               <MetricValue>99.9%</MetricValue>
-              <MetricLabel>Uptime</MetricLabel>
+              <MetricLabel>{t('reports.uptime')}</MetricLabel>
             </HealthMetric>
             <HealthMetric>
               <MetricValue>120ms</MetricValue>
-              <MetricLabel>Avg Response</MetricLabel>
+              <MetricLabel>{t('reports.avgResponseTime', 'Avg Response')}</MetricLabel>
             </HealthMetric>
             <HealthMetric>
               <MetricValue>2.4GB</MetricValue>
-              <MetricLabel>Storage Used</MetricLabel>
+              <MetricLabel>{t('reports.storageUsed')}</MetricLabel>
             </HealthMetric>
             <HealthMetric>
               <MetricValue>0.1%</MetricValue>
-              <MetricLabel>Error Rate</MetricLabel>
+              <MetricLabel>{t('settings.errorRate', 'Error Rate')}</MetricLabel>
             </HealthMetric>
           </HealthMetrics>
         </SystemHealthCard>
@@ -615,13 +617,13 @@ export const SystemSettings: React.FC = () => {
 
       <SettingsGrid>
         <SettingsCard>
-          <CardTitle>🔔 Notifications</CardTitle>
+          <CardTitle>🔔 {t('settings.notifications')}</CardTitle>
           <SettingsGroup>
             <SettingItem>
               <SettingInfo>
-                <SettingLabel>Email Notifications</SettingLabel>
+                <SettingLabel>{t('settings.emailNotifications', 'Email Notifications')}</SettingLabel>
                 <SettingDescription>
-                  Receive email notifications for system events, user registrations, and errors.
+                  {t('settings.emailNotificationsDesc', 'Receive email notifications for system events, user registrations, and errors.')}
                 </SettingDescription>
               </SettingInfo>
               <Toggle 
@@ -633,13 +635,13 @@ export const SystemSettings: React.FC = () => {
         </SettingsCard>
 
         <SettingsCard>
-          <CardTitle>💾 Data Management</CardTitle>
+          <CardTitle>💾 {t('settings.dataManagement', 'Data Management')}</CardTitle>
           <SettingsGroup>
             <SettingItem>
               <SettingInfo>
-                <SettingLabel>Automatic Backups</SettingLabel>
+                <SettingLabel>{t('settings.automaticBackups', 'Automatic Backups')}</SettingLabel>
                 <SettingDescription>
-                  Automatically backup system data at scheduled intervals.
+                  {t('settings.automaticBackupsDesc', 'Automatically backup system data at scheduled intervals.')}
                 </SettingDescription>
               </SettingInfo>
               <Toggle 
@@ -650,26 +652,26 @@ export const SystemSettings: React.FC = () => {
             
             <SettingItem>
               <SettingInfo>
-                <SettingLabel>Backup Frequency</SettingLabel>
+                <SettingLabel>{t('settings.backupFrequency', 'Backup Frequency')}</SettingLabel>
                 <SettingDescription>
-                  How often to create automatic backups.
+                  {t('settings.backupFrequencyDesc', 'How often to create automatic backups.')}
                 </SettingDescription>
               </SettingInfo>
               <Select 
                 value={config.backupSettings.frequency}
                 onChange={(e) => setConfig({...config, backupSettings: {...config.backupSettings, frequency: e.target.value as any}})}
               >
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
+                <option value="daily">{t('settings.daily', 'Daily')}</option>
+                <option value="weekly">{t('settings.weekly', 'Weekly')}</option>
+                <option value="monthly">{t('settings.monthly', 'Monthly')}</option>
               </Select>
             </SettingItem>
             
             <SettingItem>
               <SettingInfo>
-                <SettingLabel>Data Retention (Days)</SettingLabel>
+                <SettingLabel>{t('settings.dataRetentionDays', 'Data Retention (Days)')}</SettingLabel>
                 <SettingDescription>
-                  How long to keep historical data before archiving.
+                  {t('settings.dataRetentionDesc', 'How long to keep historical data before archiving.')}
                 </SettingDescription>
               </SettingInfo>
               <Input 
@@ -682,13 +684,13 @@ export const SystemSettings: React.FC = () => {
         </SettingsCard>
 
         <SettingsCard>
-          <CardTitle>🚧 System Maintenance</CardTitle>
+          <CardTitle>🚧 {t('settings.systemMaintenance', 'System Maintenance')}</CardTitle>
           <SettingsGroup>
             <SettingItem>
               <SettingInfo>
-                <SettingLabel>Maintenance Mode</SettingLabel>
+                <SettingLabel>{t('settings.maintenanceMode', 'Maintenance Mode')}</SettingLabel>
                 <SettingDescription>
-                  Enable maintenance mode to prevent user access during system updates.
+                  {t('settings.maintenanceModeDesc', 'Enable maintenance mode to prevent user access during system updates.')}
                 </SettingDescription>
               </SettingInfo>
               <Toggle 
@@ -699,9 +701,9 @@ export const SystemSettings: React.FC = () => {
             
             <SettingItem>
               <SettingInfo>
-                <SettingLabel>Maximum File Size (MB)</SettingLabel>
+                <SettingLabel>{t('settings.maxFileSize', 'Maximum File Size (MB)')}</SettingLabel>
                 <SettingDescription>
-                  Maximum allowed file size for uploads.
+                  {t('settings.maxFileSizeDesc', 'Maximum allowed file size for uploads.')}
                 </SettingDescription>
               </SettingInfo>
               <Input 
@@ -714,29 +716,29 @@ export const SystemSettings: React.FC = () => {
         </SettingsCard>
 
         <SettingsCard>
-          <CardTitle>📧 Email Settings</CardTitle>
+          <CardTitle>📧 {t('settings.emailSettings', 'Email Settings')}</CardTitle>
           <SettingsGroup>
             <SettingItem>
               <SettingInfo>
-                <SettingLabel>SMTP Host</SettingLabel>
+                <SettingLabel>{t('settings.smtpHost', 'SMTP Host')}</SettingLabel>
                 <SettingDescription>
-                  SMTP server hostname for sending emails.
+                  {t('settings.smtpHostDesc', 'SMTP server hostname for sending emails.')}
                 </SettingDescription>
               </SettingInfo>
               <Input 
                 type="text" 
                 value={config.emailSettings.smtpHost}
                 onChange={(e) => setConfig({...config, emailSettings: {...config.emailSettings, smtpHost: e.target.value}})}
-                placeholder="smtp.gmail.com"
+                placeholder={t('settings.smtpHostPlaceholder', 'smtp.gmail.com')}
                 style={{width: '180px'}}
               />
             </SettingItem>
             
             <SettingItem>
               <SettingInfo>
-                <SettingLabel>SMTP Port</SettingLabel>
+                <SettingLabel>{t('settings.smtpPort', 'SMTP Port')}</SettingLabel>
                 <SettingDescription>
-                  SMTP server port (usually 587 for TLS).
+                  {t('settings.smtpPortDesc', 'SMTP server port (usually 587 for TLS).')}
                 </SettingDescription>
               </SettingInfo>
               <Input 
@@ -750,22 +752,22 @@ export const SystemSettings: React.FC = () => {
       </SettingsGrid>
 
       <FullWidthCard>
-        <CardTitle>💾 Backup Management</CardTitle>
+        <CardTitle>💾 {t('settings.backupManagement', 'Backup Management')}</CardTitle>
         <BackupsList>
           {backups.map(backup => (
             <BackupItem key={backup.id}>
               <BackupInfoSection>
                 <BackupName>{backup.name}</BackupName>
                 <BackupDetails>
-                  {backup.size} • {new Date(backup.created_at).toLocaleString()} • {backup.type}
+                  {backup.size} • {new Date(backup.created_at).toLocaleString()} • {t(`settings.${backup.type}`, backup.type)}
                 </BackupDetails>
               </BackupInfoSection>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <StatusBadge status={backup.status}>{backup.status}</StatusBadge>
+                <StatusBadge status={backup.status}>{t(`settings.${backup.status}`, backup.status)}</StatusBadge>
                 <BackupActions>
-                  <SmallButton variant="secondary">Download</SmallButton>
-                  <SmallButton variant="secondary">Restore</SmallButton>
-                  <SmallButton variant="danger">Delete</SmallButton>
+                  <SmallButton variant="secondary">{t('settings.download', 'Download')}</SmallButton>
+                  <SmallButton variant="secondary">{t('settings.restore', 'Restore')}</SmallButton>
+                  <SmallButton variant="danger">{t('common.delete')}</SmallButton>
                 </BackupActions>
               </div>
             </BackupItem>

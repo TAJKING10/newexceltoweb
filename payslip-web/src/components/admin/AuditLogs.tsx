@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../supabaseClient';
 import { theme } from '../../styles/theme';
 
@@ -190,6 +191,7 @@ const EmptyState = styled.div`
 `;
 
 export const AuditLogs: React.FC = () => {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
@@ -304,29 +306,29 @@ export const AuditLogs: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner>Loading audit logs...</LoadingSpinner>;
+    return <LoadingSpinner>{t('common.loading')} {t('admin.audit', 'audit logs').toLowerCase()}...</LoadingSpinner>;
   }
 
   return (
     <Container>
       <Header>
-        <Title>Audit Logs ({logs.length} entries)</Title>
+        <Title>{t('audit.title', 'Audit Logs')} ({logs.length} {t('audit.entries', 'entries')})</Title>
         <Filters>
           <Select
             value={filters.action}
             onChange={(e) => setFilters({ ...filters, action: e.target.value })}
           >
-            <option value="all">All Actions</option>
-            <option value="INSERT">Create</option>
-            <option value="UPDATE">Update</option>
-            <option value="DELETE">Delete</option>
+            <option value="all">{t('audit.allActions', 'All Actions')}</option>
+            <option value="INSERT">{t('audit.create', 'Create')}</option>
+            <option value="UPDATE">{t('audit.update', 'Update')}</option>
+            <option value="DELETE">{t('audit.delete', 'Delete')}</option>
           </Select>
           
           <Select
             value={filters.table}
             onChange={(e) => setFilters({ ...filters, table: e.target.value })}
           >
-            <option value="all">All Tables</option>
+            <option value="all">{t('audit.allTables', 'All Tables')}</option>
             {getUniqueTableNames().map(table => (
               <option key={table} value={table}>
                 {formatTableName(table)}
@@ -339,7 +341,7 @@ export const AuditLogs: React.FC = () => {
       <LogsContainer>
         {logs.length === 0 ? (
           <EmptyState>
-            No audit logs found matching the current filters.
+            {t('audit.noLogsFound', 'No audit logs found matching the current filters.')}
           </EmptyState>
         ) : (
           logs.map(log => (
@@ -347,13 +349,13 @@ export const AuditLogs: React.FC = () => {
               <LogHeader>
                 <LogMainInfo>
                   <ActionBadge action={log.action}>
-                    {log.action}
+                    {t(`audit.${log.action.toLowerCase()}`, log.action)}
                   </ActionBadge>
                   <LogTable>
                     {formatTableName(log.table_name)}
                   </LogTable>
                   <LogUser>
-                    by {log.user_name}
+                    {t('audit.by', 'by')} {log.user_name}
                   </LogUser>
                 </LogMainInfo>
                 <LogTime>
@@ -362,30 +364,30 @@ export const AuditLogs: React.FC = () => {
               </LogHeader>
               
               <ToggleButton onClick={() => toggleLogDetails(log.id)}>
-                {expandedLog === log.id ? 'Hide Details' : 'Show Details'}
+                {expandedLog === log.id ? t('audit.hideDetails', 'Hide Details') : t('audit.showDetails', 'Show Details')}
               </ToggleButton>
               
               <LogDetails expanded={expandedLog === log.id}>
                 <div>
-                  <strong>Record ID:</strong> {log.record_id}
+                  <strong>{t('audit.recordId', 'Record ID')}:</strong> {log.record_id}
                 </div>
                 <div>
-                  <strong>User ID:</strong> {log.user_id}
+                  <strong>{t('audit.userId', 'User ID')}:</strong> {log.user_id}
                 </div>
                 {log.user_email && (
                   <div>
-                    <strong>User Email:</strong> {log.user_email}
+                    <strong>{t('audit.userEmail', 'User Email')}:</strong> {log.user_email}
                   </div>
                 )}
                 {log.ip_address && (
                   <div>
-                    <strong>IP Address:</strong> {log.ip_address}
+                    <strong>{t('audit.ipAddress', 'IP Address')}:</strong> {log.ip_address}
                   </div>
                 )}
                 
                 {log.old_data && (
                   <LogData>
-                    <LogDataTitle>Previous Data</LogDataTitle>
+                    <LogDataTitle>{t('audit.previousData', 'Previous Data')}</LogDataTitle>
                     <LogDataContent>
                       {JSON.stringify(log.old_data, null, 2)}
                     </LogDataContent>
@@ -394,7 +396,7 @@ export const AuditLogs: React.FC = () => {
                 
                 {log.new_data && (
                   <LogData>
-                    <LogDataTitle>New Data</LogDataTitle>
+                    <LogDataTitle>{t('audit.newData', 'New Data')}</LogDataTitle>
                     <LogDataContent>
                       {JSON.stringify(log.new_data, null, 2)}
                     </LogDataContent>

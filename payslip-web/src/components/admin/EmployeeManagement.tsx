@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../supabaseClient';
 import { theme } from '../../styles/theme';
 import { Profile } from '../../contexts/AuthContext';
@@ -269,7 +270,7 @@ const ModalContent = styled.div`
 
 const ModalHeader = styled.div`
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: ${theme.spacing[6]};
 `;
@@ -286,10 +287,17 @@ const CloseButton = styled.button`
   border: none;
   font-size: ${theme.typography.fontSize.xl};
   cursor: pointer;
-  color: ${theme.colors.text.tertiary};
+  color: ${theme.colors.text.secondary};
   padding: ${theme.spacing[1]};
+  border-radius: ${theme.borderRadius.md};
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   
   &:hover {
+    background-color: ${theme.colors.background.secondary};
     color: ${theme.colors.text.primary};
   }
 `;
@@ -335,6 +343,7 @@ const LoadingSpinner = styled.div`
 `;
 
 export const EmployeeManagement: React.FC = () => {
+  const { t } = useTranslation();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -521,22 +530,22 @@ export const EmployeeManagement: React.FC = () => {
   );
 
   if (loading) {
-    return <LoadingSpinner>Loading employees...</LoadingSpinner>;
+    return <LoadingSpinner>{t('common.loading')} {t('employees.title', 'employees').toLowerCase()}...</LoadingSpinner>;
   }
 
   return (
     <Container>
       <Header>
-        <Title>Employee Management</Title>
+        <Title>{t('employees.management', 'Employee Management')}</Title>
         <Actions>
           <SearchInput
             type="text"
-            placeholder="Search employees..."
+            placeholder={t('employees.searchPlaceholder', 'Search employees...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <Button variant="primary" onClick={() => setShowCreateModal(true)}>
-            ➕ Add Employee
+            ➕ {t('employees.addEmployee', 'Add Employee')}
           </Button>
         </Actions>
       </Header>
@@ -562,28 +571,28 @@ export const EmployeeManagement: React.FC = () => {
 
             <EmployeeDetails>
               <DetailItem>
-                <DetailLabel>Email</DetailLabel>
+                <DetailLabel>{t('auth.email')}</DetailLabel>
                 <DetailValue>{employee.profile.email}</DetailValue>
               </DetailItem>
               <DetailItem>
-                <DetailLabel>Phone</DetailLabel>
-                <DetailValue>{employee.phone || 'Not provided'}</DetailValue>
+                <DetailLabel>{t('persons.phone')}</DetailLabel>
+                <DetailValue>{employee.phone || t('common.notProvided', 'Not provided')}</DetailValue>
               </DetailItem>
               <DetailItem>
-                <DetailLabel>Hire Date</DetailLabel>
+                <DetailLabel>{t('employees.hireDate', 'Hire Date')}</DetailLabel>
                 <DetailValue>
                   {employee.hire_date 
                     ? new Date(employee.hire_date).toLocaleDateString()
-                    : 'Not set'
+                    : t('common.notSet', 'Not set')
                   }
                 </DetailValue>
               </DetailItem>
               <DetailItem>
-                <DetailLabel>Salary</DetailLabel>
+                <DetailLabel>{t('employees.salary', 'Salary')}</DetailLabel>
                 <DetailValue>
                   {employee.salary 
                     ? `€${employee.salary.toLocaleString()}`
-                    : 'Not set'
+                    : t('common.notSet', 'Not set')
                   }
                 </DetailValue>
               </DetailItem>
@@ -595,27 +604,27 @@ export const EmployeeManagement: React.FC = () => {
                   variant="secondary"
                   onClick={() => handleStatusChange(employee, 'inactive')}
                 >
-                  Deactivate
+                  {t('employees.deactivate', 'Deactivate')}
                 </SmallButton>
               ) : (
                 <SmallButton 
                   variant="primary"
                   onClick={() => handleStatusChange(employee, 'active')}
                 >
-                  Activate
+                  {t('employees.activate', 'Activate')}
                 </SmallButton>
               )}
               <SmallButton 
                 variant="secondary"
                 onClick={() => handleResetPassword(employee)}
               >
-                Reset Password
+                {t('employees.resetPassword', 'Reset Password')}
               </SmallButton>
               <SmallButton 
                 variant="danger"
                 onClick={() => handleDeleteEmployee(employee)}
               >
-                Delete
+                {t('common.delete')}
               </SmallButton>
             </EmployeeActions>
           </EmployeeCard>
@@ -625,7 +634,7 @@ export const EmployeeManagement: React.FC = () => {
       <Modal isOpen={showCreateModal}>
         <ModalContent>
           <ModalHeader>
-            <ModalTitle>Add New Employee</ModalTitle>
+            <ModalTitle>{t('employees.addNewEmployee', 'Add New Employee')}</ModalTitle>
             <CloseButton onClick={() => {
               setShowCreateModal(false);
               resetForm();
@@ -636,7 +645,7 @@ export const EmployeeManagement: React.FC = () => {
           
           <Form onSubmit={handleCreateEmployee}>
             <FormGroup>
-              <Label>Email Address*</Label>
+              <Label>{t('auth.email')}*</Label>
               <Input
                 type="email"
                 required
@@ -647,60 +656,60 @@ export const EmployeeManagement: React.FC = () => {
             </FormGroup>
 
             <FormGroup>
-              <Label>Full Name*</Label>
+              <Label>{t('persons.fullName', 'Full Name')}*</Label>
               <Input
                 type="text"
                 required
                 value={formData.full_name}
                 onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                placeholder="John Doe"
+                placeholder={t('employees.fullNamePlaceholder', 'John Doe')}
               />
             </FormGroup>
 
             <FormGroup>
-              <Label>Employee ID*</Label>
+              <Label>{t('persons.employeeId')}*</Label>
               <Input
                 type="text"
                 required
                 value={formData.employee_id}
                 onChange={(e) => setFormData({...formData, employee_id: e.target.value})}
-                placeholder="EMP001"
+                placeholder={t('employees.employeeIdPlaceholder', 'EMP001')}
               />
             </FormGroup>
 
             <FormGroup>
-              <Label>Temporary Password*</Label>
+              <Label>{t('employees.temporaryPassword', 'Temporary Password')}*</Label>
               <Input
                 type="password"
                 required
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
-                placeholder="Temporary password"
+                placeholder={t('employees.temporaryPasswordPlaceholder', 'Temporary password')}
               />
             </FormGroup>
 
             <FormGroup>
-              <Label>Department</Label>
+              <Label>{t('persons.department')}</Label>
               <Input
                 type="text"
                 value={formData.department}
                 onChange={(e) => setFormData({...formData, department: e.target.value})}
-                placeholder="Engineering"
+                placeholder={t('employees.departmentPlaceholder', 'Engineering')}
               />
             </FormGroup>
 
             <FormGroup>
-              <Label>Position</Label>
+              <Label>{t('persons.position')}</Label>
               <Input
                 type="text"
                 value={formData.position}
                 onChange={(e) => setFormData({...formData, position: e.target.value})}
-                placeholder="Software Engineer"
+                placeholder={t('employees.positionPlaceholder', 'Software Engineer')}
               />
             </FormGroup>
 
             <FormGroup>
-              <Label>Hire Date</Label>
+              <Label>{t('employees.hireDate')}</Label>
               <Input
                 type="date"
                 value={formData.hire_date}
@@ -709,22 +718,22 @@ export const EmployeeManagement: React.FC = () => {
             </FormGroup>
 
             <FormGroup>
-              <Label>Annual Salary (EUR)</Label>
+              <Label>{t('employees.annualSalary', 'Annual Salary (EUR)')}</Label>
               <Input
                 type="number"
                 value={formData.salary}
                 onChange={(e) => setFormData({...formData, salary: e.target.value})}
-                placeholder="50000"
+                placeholder={t('employees.salaryPlaceholder', '50000')}
               />
             </FormGroup>
 
             <FormGroup>
-              <Label>Phone</Label>
+              <Label>{t('persons.phone')}</Label>
               <Input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                placeholder="+352 123 456 789"
+                placeholder={t('employees.phonePlaceholder', '+352 123 456 789')}
               />
             </FormGroup>
 
@@ -733,7 +742,7 @@ export const EmployeeManagement: React.FC = () => {
               variant="primary" 
               disabled={formLoading}
             >
-              {formLoading ? 'Creating...' : 'Create Employee'}
+              {formLoading ? t('employees.creating', 'Creating...') : t('employees.createEmployee', 'Create Employee')}
             </Button>
           </Form>
         </ModalContent>
