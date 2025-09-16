@@ -58,7 +58,12 @@
       "Bash(PORT=3051 npm start)",
       "mcp__supabase__get_project_url",
       "mcp__supabase__get_anon_key",
-      "Bash(set PORT=3051)"
+      "Bash(set PORT=3051)",
+      "Bash(set NODE_OPTIONS=--max-old-space-size=4096)",
+      "Bash(npx serve:*)",
+      "Bash(start http://localhost:3051)",
+      "Bash(PORT=3052 npx serve -s build -l 3052)",
+      "Bash(start http://localhost:3052)"
     ],
     "deny": [],
     "ask": []

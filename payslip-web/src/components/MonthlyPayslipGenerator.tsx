@@ -204,15 +204,27 @@ const ControlPanel = styled.div`
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 `;
 
 const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
-  margin-bottom: 10px;
+  gap: 8px;
+  width: 100%;
+`;
+
+const FormRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  align-items: start;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const Label = styled.label`
@@ -223,14 +235,17 @@ const Label = styled.label`
 `;
 
 const Select = styled.select`
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 3px;
+  padding: 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
+  width: 100%;
+  background: white;
   
   &:focus {
     outline: none;
     border-color: #1976d2;
+    box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
   }
 `;
 
@@ -1572,7 +1587,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                 }))}
               >
                 <option value="no">No</option>
-                <option value="yes">Yes (Tax Credits Apply)</option>
+                <option value="yes">{t('payslips.yesTaxCredits', 'Yes (Tax Credits Apply)')}</option>
               </Select>
             </div>
             <div>
@@ -1615,7 +1630,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               console.log('📊 Excel View: Person type selected and synced to Basic View:', newPersonType);
             }}
           >
-            <option value="all">🌟 All Types</option>
+            <option value="all">🌟 {t('payslips.allTypes', 'All Types')}</option>
             {Object.entries(PERSON_TYPE_CONFIG || {}).map(([type, config]) => (
               <option key={type} value={type}>
                 {config?.icon || ''} {config?.label || type}s
@@ -1640,7 +1655,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               }
             }}
           >
-            <option value="">Choose Person...</option>
+            <option value="">{t('payslips.choosePerson', 'Choose Person...')}</option>
             {safeArray(filteredPersons).map(person => (
               person && person.id && person.personalInfo ? (
                 <option key={person.id} value={person.id}>
@@ -1786,39 +1801,39 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             <h4>📋 Header Settings</h4>
             <HeaderInput
               type="text"
-              placeholder="Main Title"
+              placeholder={t('payslips.mainTitlePlaceholder', 'Main Title')}
               value={payslipData.header.title}
               onChange={(e) => updateHeader('title', e.target.value)}
             />
             <HeaderInput
               type="text"
-              placeholder="Subtitle"
+              placeholder={t('payslips.subtitlePlaceholder', 'Subtitle')}
               value={payslipData.header.subtitle}
               onChange={(e) => updateHeader('subtitle', e.target.value)}
             />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <HeaderInput
                 type="text"
-                placeholder="Company Name"
+                placeholder={t('payslips.companyNamePlaceholder', 'Company Name')}
                 value={payslipData.header.companyInfo.name}
                 onChange={(e) => updateCompanyInfo('name', e.target.value)}
               />
               <HeaderInput
                 type="text"
-                placeholder="Phone"
+                placeholder={t('payslips.phonePlaceholder', 'Phone')}
                 value={payslipData.header.companyInfo.phone}
                 onChange={(e) => updateCompanyInfo('phone', e.target.value)}
               />
             </div>
             <HeaderInput
               type="text"
-              placeholder="Address"
+              placeholder={t('payslips.addressPlaceholder', 'Address')}
               value={payslipData.header.companyInfo.address}
               onChange={(e) => updateCompanyInfo('address', e.target.value)}
             />
             <HeaderInput
               type="email"
-              placeholder="Email"
+              placeholder={t('payslips.emailPlaceholder', 'Email')}
               value={payslipData.header.companyInfo.email}
               onChange={(e) => updateCompanyInfo('email', e.target.value)}
             />
@@ -2016,7 +2031,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                                 {targetGroup.name}
                               </option>
                             ))}
-                          <option value="ungrouped">Ungrouped</option>
+                          <option value="ungrouped">{t('payslips.ungrouped', 'Ungrouped')}</option>
                         </select>
                         <button
                           onClick={() => removeRowFromGroup(group.id, row)}

@@ -2,7 +2,7 @@
   "name": "payslip-web",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://tajking10.github.io/newexceltoweb",
+  "homepage": ".",
   "dependencies": {
     "@supabase/supabase-js": "^2.56.1",
     "@testing-library/dom": "^10.4.1",

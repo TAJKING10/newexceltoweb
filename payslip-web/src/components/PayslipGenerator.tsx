@@ -95,42 +95,59 @@ const Grid = styled.div<{ columns?: number }>`
 const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
-  margin-bottom: 15px;
+  gap: 8px;
+  width: 100%;
+`;
+
+const FormRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  align-items: start;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const Label = styled.label`
-  font-weight: bold;
-  margin-bottom: 5px;
-  color: #333;
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 14px;
 `;
 
 const Input = styled.input`
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
+  width: 100%;
+  background: white;
   
   &:focus {
     outline: none;
     border-color: #1976d2;
-    box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
+    box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
   }
   
   &:disabled {
-    background-color: #f5f5f5;
+    background-color: #f8fafc;
     color: #666;
   }
 `;
 
 const Select = styled.select`
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
+  width: 100%;
+  background: white;
   
   &:focus {
     outline: none;
     border-color: #1976d2;
+    box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
   }
 `;
 
@@ -203,9 +220,9 @@ const ControlPanel = styled.div`
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 `;
 
 const PrintButton = styled.button`
@@ -1405,7 +1422,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                 onChange={(e) => setPayslipData(prev => ({ ...prev, hasChildren: e.target.value === 'yes' }))}
               >
                 <option value="no">No</option>
-                <option value="yes">Yes (Tax Credits Apply)</option>
+                <option value="yes">{t('payslips.yesTaxCredits', 'Yes (Tax Credits Apply)')}</option>
               </Select>
             </div>
             <div>
@@ -1415,7 +1432,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                 step="0.01"
                 value={payslipData.grossSalary || 0}
                 onChange={(e) => setPayslipData(prev => ({ ...prev, grossSalary: parseFloat(e.target.value) || 0 }))}
-                placeholder="Monthly gross salary"
+                placeholder={t('payslips.monthlyGrossSalaryPlaceholder', 'Monthly gross salary')}
               />
             </div>
           </Grid>
@@ -1443,7 +1460,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               console.log('📝 Basic View: Person type selected and synced to Excel View:', newPersonType);
             }}
           >
-            <option value="all">🌟 All Types</option>
+            <option value="all">🌟 {t('payslips.allTypes', 'All Types')}</option>
             {Object.entries(PERSON_TYPE_CONFIG || {}).map(([type, config]) => (
               <option key={type} value={type}>
                 {config?.icon || ''} {config?.label || type}s

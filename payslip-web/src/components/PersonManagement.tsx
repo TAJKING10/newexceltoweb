@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import { personManager } from '../utils/personManager';
 import { PersonProfile, PersonType, PERSON_TYPE_CONFIG, PersonFilters } from '../types/PersonTypes';
 import PersonEditModal from './PersonEditModal';
@@ -444,6 +445,7 @@ const TypeChip = styled.button<{ active: boolean; color: string }>`
 `;
 
 const PersonManagement: React.FC = () => {
+  const { t } = useTranslation();
   const [persons, setPersons] = useState<PersonProfile[]>([]);
   const [filteredPersons, setFilteredPersons] = useState<PersonProfile[]>([]);
   const [filters, setFilters] = useState<PersonFilters>({});
@@ -541,49 +543,47 @@ const PersonManagement: React.FC = () => {
     <Container className="animate-fadeIn">
       <Header>
         <HeaderContent>
-          <Title>👥 Universal Person Management</Title>
-          <Subtitle>Manage employees, customers, contractors, freelancers, and more</Subtitle>
+          <Title>👥 {t('persons.universalManagement', 'Universal Person Management')}</Title>
+          <Subtitle>{t('persons.manageDescription', 'Manage employees, customers, contractors, freelancers, and more')}</Subtitle>
         </HeaderContent>
       </Header>
 
       <StatsGrid className="stagger-children">
         <StatCard className="hover-float">
           <StatNumber>{persons.length}</StatNumber>
-          <StatLabel>Total Persons</StatLabel>
+          <StatLabel>{t('persons.totalPersons', 'Total Persons')}</StatLabel>
         </StatCard>
         <StatCard className="hover-float">
           <StatNumber>{persons.filter(p => p.workInfo.status === 'active').length}</StatNumber>
-          <StatLabel>Active</StatLabel>
+          <StatLabel>{t('persons.active', 'Active')}</StatLabel>
         </StatCard>
         <StatCard className="hover-float">
           <StatNumber>{getPersonTypeCount('employee')}</StatNumber>
-          <StatLabel>Employees</StatLabel>
+          <StatLabel>{t('persons.employees', 'Employees')}</StatLabel>
         </StatCard>
         <StatCard className="hover-float">
           <StatNumber>{getPersonTypeCount('customer')}</StatNumber>
-          <StatLabel>Customers</StatLabel>
+          <StatLabel>{t('persons.customers', 'Customers')}</StatLabel>
         </StatCard>
         <StatCard className="hover-float">
           <StatNumber>{getPersonTypeCount('contractor')}</StatNumber>
-          <StatLabel>Contractors</StatLabel>
+          <StatLabel>{t('persons.contractors', 'Contractors')}</StatLabel>
         </StatCard>
       </StatsGrid>
 
       <ControlsSection>
         <InputGroup>
-          <Label>Search Persons</Label>
+          <Label>{t('persons.searchPersons', 'Search Persons')}</Label>
           <Input
             type="text"
-            placeholder="Search by name, email, ID..."
+            placeholder={t('persons.searchPlaceholder', 'Search by name, email, ID...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </InputGroup>
-        <div>
-          <Button variant="primary" onClick={handleAddPerson}>
-            ➕ Add New Person
-          </Button>
-        </div>
+        <Button variant="primary" onClick={handleAddPerson}>
+          ➕ {t('persons.addNewPerson', 'Add New Person')}
+        </Button>
       </ControlsSection>
 
       <TypeFilter>
@@ -592,7 +592,7 @@ const PersonManagement: React.FC = () => {
           color="#667eea"
           onClick={() => setSelectedType('all')}
         >
-          🌟 All Types ({persons.length})
+          🌟 {t('persons.allTypes', 'All Types')} ({persons.length})
         </TypeChip>
         {Object.entries(PERSON_TYPE_CONFIG).map(([type, config]) => (
           <TypeChip
@@ -630,16 +630,16 @@ const PersonManagement: React.FC = () => {
               {person.workInfo.position && (
                 <MetaItem>💼 {person.workInfo.position}</MetaItem>
               )}
-              <MetaItem>📅 Created: {formatDate(person.createdDate)}</MetaItem>
-              <MetaItem>🔄 Status: {person.workInfo.status}</MetaItem>
+              <MetaItem>📅 {t('persons.created', 'Created')}: {formatDate(person.createdDate)}</MetaItem>
+              <MetaItem>🔄 {t('persons.status', 'Status')}: {person.workInfo.status}</MetaItem>
             </PersonMeta>
 
             <PersonActions>
               <Button variant="primary" onClick={() => handleEditPerson(person)}>
-                ✏️ Edit
+                ✏️ {t('persons.edit', 'Edit')}
               </Button>
               <Button variant="danger" onClick={() => handleDeletePerson(person.id)}>
-                🗑️ Delete
+                🗑️ {t('persons.delete', 'Delete')}
               </Button>
             </PersonActions>
           </PersonCard>
@@ -648,8 +648,8 @@ const PersonManagement: React.FC = () => {
 
       {filteredPersons.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-          <h3>No persons found</h3>
-          <p>Try adjusting your filters or add a new person.</p>
+          <h3>{t('persons.noPersonsFound', 'No persons found')}</h3>
+          <p>{t('persons.tryAdjustingFilters', 'Try adjusting your filters or add a new person.')}</p>
         </div>
       )}
 
