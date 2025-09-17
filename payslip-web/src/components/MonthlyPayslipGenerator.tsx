@@ -1558,7 +1558,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       <ControlPanel>
         {/* Luxembourg Tax Configuration */}
         <InputGroup>
-          <Label>🇱🇺 Luxembourg Tax Configuration</Label>
+          <Label>🇱🇺 {t('basicView.luxembourgTaxConfig')}</Label>
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: 'repeat(3, 1fr)', 
@@ -1614,7 +1614,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           }}>
             💡 When you enter a gross salary, Income Tax, Social Security, Sickness, Pension, and Dependency contributions are automatically calculated using Luxembourg 2025 rates
             <br />
-            🇱🇺 = Auto-calculated Luxembourg tax field (read-only) | ✏️ = Editable input field
+            🇱🇺 {t('basicView.autoCalculatedInfo')}
           </div>
         </InputGroup>
 
@@ -1771,7 +1771,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         </InputGroup>
 
         <InputGroup>
-          <Label style={{ color: '#f44336' }}>Fresh Start:</Label>
+          <Label style={{ color: '#f44336' }}>{t('basicView.freshStart')}:</Label>
           <Button 
             onClick={() => {
               if (selectedPerson && window.confirm(`Reset all data for ${selectedPerson.personalInfo?.fullName}? This will create a completely fresh template with all values at 0.`)) {
@@ -1787,7 +1787,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             }}
             disabled={!selectedPerson}
           >
-            🔄 Reset to Fresh Template
+            🔄 {t('basicView.resetToFreshTemplate')}
           </Button>
         </InputGroup>
       </ControlPanel>
@@ -2183,7 +2183,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           isActive={editMode}
           onClick={() => setEditMode(!editMode)}
         >
-          {editMode ? '📝 Exit Edit Mode' : '🎨 Edit Mode'}
+          {editMode ? `📝 ${t('basicView.exitEditMode')}` : `🎨 ${t('basicView.editMode')}`}
         </EditModeToggle>
 
         <SaveButton onClick={handleSave}>💾 Save</SaveButton>

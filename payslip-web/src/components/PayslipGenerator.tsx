@@ -1348,7 +1348,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           }
           {calculatedValue !== undefined && (
             <span style={{ fontSize: '10px', color: '#666', marginLeft: '8px' }}>
-              🇱🇺 Auto-calculated
+              🇱🇺 {t('basicView.autoCalculated')}
             </span>
           )}
         </CalculatedValue>
@@ -1398,12 +1398,12 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
   return (
     <Container>
-      <Title>📝 Basic View - Enhanced Editor</Title>
+      <Title>📝 {t('basicView.title')}</Title>
       
       <ControlPanel>
         {/* Luxembourg Tax Configuration */}
         <InputGroup>
-          <Label>🇱🇺 Luxembourg Tax Configuration</Label>
+          <Label>🇱🇺 {t('basicView.luxembourgTaxConfig')}</Label>
           <Grid columns={3}>
             <div>
               <Label>Tax Class</Label>
@@ -1664,7 +1664,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         </InputGroup>
 
         <InputGroup>
-          <Label style={{ color: '#f44336' }}>Fresh Start:</Label>
+          <Label style={{ color: '#f44336' }}>{t('basicView.freshStart')}:</Label>
           <Button 
             onClick={() => {
               if (selectedPerson && window.confirm(`Reset all data for ${selectedPerson.personalInfo?.fullName}? This will create a completely fresh payslip with all values at 0.`)) {
@@ -1682,7 +1682,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             }}
             disabled={!selectedPerson}
           >
-            🔄 Reset to Fresh Template
+            🔄 {t('basicView.resetToFreshTemplate')}
           </Button>
         </InputGroup>
       </ControlPanel>
@@ -1887,7 +1887,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           isActive={editMode}
           onClick={() => setEditMode(!editMode)}
         >
-          {editMode ? '📝 Exit Edit Mode' : '🎨 Edit Mode'}
+          {editMode ? `📝 ${t('basicView.exitEditMode')}` : `🎨 ${t('basicView.editMode')}`}
         </EditModeToggle>
 
         <SaveButton 
@@ -1898,7 +1898,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             cursor: isSaving ? 'wait' : 'pointer' 
           }}
         >
-          {isSaving ? '💾 Saving...' : '💾 Save to Backend'}
+          {isSaving ? `💾 ${t('basicView.saving')}` : `💾 ${t('basicView.saveToBackend')}`}
         </SaveButton>
         <PrintButton onClick={handlePrint}>🖨️ Print</PrintButton>
 
@@ -1916,7 +1916,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             color: '#2e7d32',
             fontWeight: 'bold'
           }}>
-            🔄 Auto-save enabled
+            🔄 {t('basicView.autoSaveEnabled')}
           </div>
         )}
 

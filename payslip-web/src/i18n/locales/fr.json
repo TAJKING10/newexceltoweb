@@ -543,6 +543,68 @@
       "other": "Autre"
     }
   },
+  "employeeModal": {
+    "editEmployee": "Modifier l'employé",
+    "address": "Adresse",
+    "streetAddress": "Adresse",
+    "city": "Ville",
+    "state": "État",
+    "zipCode": "Code postal",
+    "country": "Pays",
+    "tabs": {
+      "personal": "👤 Informations personnelles",
+      "employment": "💼 Emploi",
+      "compensation": "💰 Rémunération",
+      "benefits": "🎁 Avantages",
+      "documents": "📄 Documents"
+    },
+    "personalInfo": "👤 Informations personnelles",
+    "employmentInfo": "💼 Informations sur l'emploi",
+    "compensationBenefits": "💰 Rémunération et avantages",
+    "benefits": "🎁 Avantages",
+    "documents": "📄 Documents",
+    "employeeId": "ID employé",
+    "firstName": "Prénom",
+    "lastName": "Nom de famille",
+    "email": "E-mail",
+    "phone": "Téléphone",
+    "dateOfBirth": "Date de naissance",
+    "nationalId": "ID national",
+    "department": "Département",
+    "position": "Poste",
+    "manager": "Manager",
+    "hireDate": "Date d'embauche",
+    "employmentType": "Type d'emploi",
+    "status": "Statut",
+    "workLocation": "Lieu de travail",
+    "baseSalary": "Salaire de base",
+    "currency": "Devise",
+    "payFrequency": "Fréquence de paie",
+    "healthInsurance": "Assurance maladie",
+    "dentalInsurance": "Assurance dentaire",
+    "visionInsurance": "Assurance vision",
+    "retirement401k": "Retraite 401k",
+    "paidTimeOff": "Congés payés",
+    "employmentTypes": {
+      "fullTime": "Temps plein",
+      "partTime": "Temps partiel",
+      "contract": "Contrat",
+      "intern": "Stagiaire",
+      "temporary": "Temporaire"
+    },
+    "statuses": {
+      "active": "Actif",
+      "inactive": "Inactif",
+      "onLeave": "En congé",
+      "terminated": "Terminé"
+    },
+    "payFrequencies": {
+      "weekly": "Hebdomadaire",
+      "biweekly": "Bi-hebdomadaire",
+      "monthly": "Mensuel",
+      "annual": "Annuel"
+    }
+  },
   "customFields": {
     "title": "Créateur de champs personnalisés",
     "createField": "Créer un champ",
@@ -602,5 +664,18 @@
     "deleteRowCompletely": "Supprimer complètement la ligne",
     "yes": "Oui",
     "no": "Non"
+  },
+  "basicView": {
+    "title": "Vue de base - Éditeur amélioré",
+    "luxembourgTaxConfig": "Configuration fiscale Luxembourg",
+    "freshStart": "Nouveau départ",
+    "resetToFreshTemplate": "Réinitialiser au modèle vierge",
+    "editMode": "Mode édition",
+    "exitEditMode": "Quitter le mode édition",
+    "saveToBackend": "Enregistrer dans la base",
+    "saving": "Enregistrement...",
+    "autoSaveEnabled": "Auto-sauvegarde activée",
+    "autoCalculated": "Auto-calculé",
+    "autoCalculatedInfo": "= Champ fiscal Luxembourg auto-calculé (lecture seule) | ✏️ = Champ de saisie modifiable"
   }
 }

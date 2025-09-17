@@ -190,7 +190,7 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ margin: 0, color: '#1565c0', fontSize: '24px' }}>
-              ✏️ Edit Employee: {employee.personalInfo.fullName}
+              ✏️ {t('employeeModal.editEmployee')}: {employee.personalInfo.fullName}
             </h2>
             <button 
               onClick={onClose}
@@ -211,11 +211,11 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
         <div style={{ padding: '0 20px', backgroundColor: '#f8f9fa' }}>
           <div style={{ display: 'flex', gap: '2px' }}>
             {[
-              { key: 'personal', label: '👤 Personal Info' },
-              { key: 'employment', label: '💼 Employment' },
-              { key: 'compensation', label: '💰 Compensation' },
-              { key: 'benefits', label: '🎁 Benefits' },
-              { key: 'documents', label: '📄 Documents' }
+              { key: 'personal', label: t('employeeModal.tabs.personal') },
+              { key: 'employment', label: t('employeeModal.tabs.employment') },
+              { key: 'compensation', label: t('employeeModal.tabs.compensation') },
+              { key: 'benefits', label: t('employeeModal.tabs.benefits') },
+              { key: 'documents', label: t('employeeModal.tabs.documents') }
             ].map(tab => (
               <button
                 key={tab.key}
@@ -232,7 +232,7 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
         <div style={{ padding: '30px' }}>
           {activeTab === 'personal' && (
             <div>
-              <h3 style={{ color: '#1565c0', marginBottom: '20px' }}>👤 Personal Information</h3>
+              <h3 style={{ color: '#1565c0', marginBottom: '20px' }}>{t('employeeModal.personalInfo')}</h3>
               
               <div style={sectionStyle}>
                 <h4 style={{ color: '#333', marginBottom: '15px' }}>Basic Information</h4>
@@ -295,10 +295,10 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
               </div>
 
               <div style={sectionStyle}>
-                <h4 style={{ color: '#333', marginBottom: '15px' }}>Address</h4>
+                <h4 style={{ color: '#333', marginBottom: '15px' }}>{t('employeeModal.address')}</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '15px' }}>
                   <div>
-                    <label style={labelStyle}>Street Address</label>
+                    <label style={labelStyle}>{t('employeeModal.streetAddress')}</label>
                     <input
                       type="text"
                       value={formData.personalInfo?.address?.street || ''}
@@ -308,7 +308,7 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
                     <div>
-                      <label style={labelStyle}>City</label>
+                      <label style={labelStyle}>{t('employeeModal.city')}</label>
                       <input
                         type="text"
                         value={formData.personalInfo?.address?.city || ''}
@@ -317,7 +317,7 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
                       />
                     </div>
                     <div>
-                      <label style={labelStyle}>State</label>
+                      <label style={labelStyle}>{t('employeeModal.state')}</label>
                       <input
                         type="text"
                         value={formData.personalInfo?.address?.state || ''}
@@ -326,7 +326,7 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
                       />
                     </div>
                     <div>
-                      <label style={labelStyle}>Zip Code</label>
+                      <label style={labelStyle}>{t('employeeModal.zipCode')}</label>
                       <input
                         type="text"
                         value={formData.personalInfo?.address?.zipCode || ''}
@@ -336,17 +336,17 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
                     </div>
                   </div>
                   <div>
-                    <label style={labelStyle}>Country</label>
+                    <label style={labelStyle}>{t('employeeModal.country')}</label>
                     <select
                       value={formData.personalInfo?.address?.country || 'USA'}
                       onChange={(e) => updateAddress('country', e.target.value)}
                       style={fieldStyle}
                     >
-                      <option value="USA">United States</option>
-                      <option value="CAN">Canada</option>
-                      <option value="UK">United Kingdom</option>
-                      <option value="AUS">Australia</option>
-                      <option value="OTHER">Other</option>
+                      <option value="USA">{t('personModal.countries.usa')}</option>
+                      <option value="CAN">{t('personModal.countries.canada')}</option>
+                      <option value="UK">{t('personModal.countries.uk')}</option>
+                      <option value="AUS">{t('personModal.countries.australia')}</option>
+                      <option value="OTHER">{t('personModal.countries.other')}</option>
                     </select>
                   </div>
                 </div>
