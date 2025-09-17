@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CustomField, customFieldManager } from '../utils/customFieldManager';
 
 interface CustomFieldBuilderProps {
@@ -14,6 +15,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
   category = 'general',
   onFieldCreated
 }) => {
+  const { t } = useTranslation();
   const [fields, setFields] = useState<CustomField[]>([]);
   const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'templates'>('create');
   const [newField, setNewField] = useState<Partial<CustomField>>({
@@ -259,7 +261,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
                     value={newField.placeholder || ''}
                     onChange={(e) => setNewField({ ...newField, placeholder: e.target.value })}
                     style={fieldStyle}
-                    placeholder="Placeholder text"
+                    placeholder={t('placeholders.placeholderText')}
                   />
                 </div>
               </div>
@@ -291,14 +293,14 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
                         value={option.value}
                         onChange={(e) => updateOption(index, 'value', e.target.value)}
                         style={fieldStyle}
-                        placeholder="Value"
+                        placeholder={t('placeholders.value')}
                       />
                       <input
                         type="text"
                         value={option.label}
                         onChange={(e) => updateOption(index, 'label', e.target.value)}
                         style={fieldStyle}
-                        placeholder="Display Label"
+                        placeholder={t('placeholders.displayLabel')}
                       />
                       <button
                         onClick={() => removeOption(index)}

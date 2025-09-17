@@ -25,11 +25,11 @@ const AppContent: React.FC = () => {
       const { error } = await signOut();
       if (error) {
         console.error('Error signing out:', error);
-        setError('Failed to sign out. Please try again.');
+        setError(t('app.errors.signOutFailed'));
       }
     } catch (err) {
       console.error('Unexpected error during sign out:', err);
-      setError('Unexpected error occurred.');
+      setError(t('app.errors.unexpectedError'));
     } finally {
       setViewLoading(false);
     }
@@ -44,20 +44,14 @@ const AppContent: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     } catch (err) {
       console.error('Error changing view:', err);
-      setError('Failed to load view. Please try again.');
+      setError(t('app.errors.viewLoadFailed'));
     } finally {
       setViewLoading(false);
     }
   };
 
   const getFeatureText = (view: string) => {
-    const features = {
-      persons: 'Universal database • Employees • Customers • Contractors • Search & filter • History tracking',
-      template: 'Expandable sections • Custom fields • Dynamic tables • Drag & drop',
-      excel: 'Monthly columns (Jan-Dec) • Annual totals • Person selection • Template support • Real-time calculations',
-      basic: 'Simple interface • Quick setup • Easy editing • Form-based'
-    };
-    return features[view as keyof typeof features] || '';
+    return t(`app.features.${view}`, '');
   };
 
   if (loading) {
@@ -114,7 +108,7 @@ const AppContent: React.FC = () => {
               isActive={currentView === 'persons'}
               onClick={() => handleViewChange('persons')}
               disabled={viewLoading}
-              title="Universal person management for employees, customers, contractors, and more"
+              title={t('app.tooltips.personsTab')}
             >
               <span>👥</span>
               <span>{t('persons.title')}</span>
@@ -136,17 +130,17 @@ const AppContent: React.FC = () => {
               isActive={currentView === 'excel'}
               onClick={() => handleViewChange('excel')}
               disabled={viewLoading}
-              title="Annual payslip with monthly columns and totals"
+              title={t('app.tooltips.excelTab')}
             >
               <span>📊</span>
-              <span>{t('payslips.excelView', 'Annual Excel View')}</span>
+              <span>{t('payslips.annualExcelView')}</span>
             </NavTab>
             
             <NavTab 
               isActive={currentView === 'basic'}
               onClick={() => handleViewChange('basic')}
               disabled={viewLoading}
-              title="Simple form-based payslip"
+              title={t('app.tooltips.basicTab')}
             >
               <span>📝</span>
               <span>{t('payslips.basicView')}</span>
@@ -182,7 +176,7 @@ const AppContent: React.FC = () => {
         <ErrorBoundary 
           onError={(error, errorInfo) => {
             console.error('App Error Boundary:', error, errorInfo);
-            setError('An unexpected error occurred. Please try refreshing the page.');
+            setError(t('app.errors.unexpectedErrorRefresh'));
           }}
         >
           {currentView === 'persons' && (

@@ -125,6 +125,25 @@
     "analytics": "Analyses",
     "administrator": "Administrateur"
   },
+  "placeholders": {
+    "enterFirstName": "Entrez le prénom",
+    "enterLastName": "Entrez le nom de famille",
+    "enterEmailAddress": "Entrez l'adresse e-mail",
+    "enterPhoneNumber": "Entrez le numéro de téléphone",
+    "enterStreetAddress": "Entrez l'adresse de la rue",
+    "enterCity": "Entrez la ville",
+    "enterState": "Entrez l'état/province",
+    "enterZipCode": "Entrez le code postal",
+    "enterUniqueId": "Entrez l'ID unique",
+    "enterDepartment": "Entrez le département",
+    "enterPosition": "Entrez le poste",
+    "enterBaseSalary": "Entrez le salaire de base",
+    "enterHourlyRate": "Entrez le taux horaire",
+    "enterNotesComments": "Entrez des notes ou commentaires supplémentaires...",
+    "placeholderText": "Texte d'espace réservé",
+    "value": "Valeur",
+    "displayLabel": "Libellé d'affichage"
+  },
   "persons": {
     "title": "Gestion des personnes",
     "universalManagement": "Gestion Universelle des Personnes",
@@ -187,6 +206,7 @@
   },
   "payslips": {
     "title": "Générateur de bulletins de paie",
+    "annualExcelView": "Vue Excel Annuelle",
     "generate": "Générer un bulletin de paie",
     "preview": "Aperçu",
     "download": "Télécharger",
@@ -263,6 +283,25 @@
     "saveToBackend": "Enregistrer dans la base",
     "saving": "Enregistrement...",
     "autoSaveEnabled": "Auto-sauvegarde activée"
+  },
+  "app": {
+    "features": {
+      "persons": "Base de données universelle • Employés • Clients • Contractuels • Recherche et filtrage • Suivi de l'historique",
+      "template": "Sections extensibles • Champs personnalisés • Tableaux dynamiques • Glisser-déposer",
+      "excel": "Colonnes mensuelles (Jan-Déc) • Totaux annuels • Sélection de personne • Support de modèles • Calculs en temps réel",
+      "basic": "Interface simple • Configuration rapide • Édition facile • Basé sur des formulaires"
+    },
+    "errors": {
+      "signOutFailed": "Échec de la déconnexion. Veuillez réessayer.",
+      "unexpectedError": "Erreur inattendue survenue.",
+      "viewLoadFailed": "Échec du chargement de la vue. Veuillez réessayer.",
+      "unexpectedErrorRefresh": "Une erreur inattendue s'est produite. Veuillez actualiser la page."
+    },
+    "tooltips": {
+      "personsTab": "Gestion universelle des personnes pour employés, clients, contractuels et plus encore",
+      "excelTab": "Bulletin de paie annuel avec colonnes mensuelles et totaux",
+      "basicTab": "Bulletin de paie simple basé sur des formulaires"
+    }
   },
   "templates": {
     "title": "Gestion des modèles",

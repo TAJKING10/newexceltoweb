@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import { PersonProfile, PersonUpdateData, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
 
 const ModalOverlay = styled.div`
@@ -218,6 +219,7 @@ interface PersonEditModalProps {
 }
 
 const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClose, onSave }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('basic');
   const [formData, setFormData] = useState<PersonUpdateData>({
     type: 'employee',
@@ -392,7 +394,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
                   type="text"
                   value={formData.personalInfo?.firstName || ''}
                   onChange={(e) => handleInputChange('personalInfo.firstName', e.target.value)}
-                  placeholder="Enter first name"
+                  placeholder={t('placeholders.enterFirstName')}
                 />
               </InputGroup>
               
@@ -402,7 +404,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
                   type="text"
                   value={formData.personalInfo?.lastName || ''}
                   onChange={(e) => handleInputChange('personalInfo.lastName', e.target.value)}
-                  placeholder="Enter last name"
+                  placeholder={t('placeholders.enterLastName')}
                 />
               </InputGroup>
               
@@ -412,7 +414,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
                   type="email"
                   value={formData.personalInfo?.email || ''}
                   onChange={(e) => handleInputChange('personalInfo.email', e.target.value)}
-                  placeholder="Enter email address"
+                  placeholder={t('placeholders.enterEmailAddress')}
                 />
               </InputGroup>
               
@@ -422,7 +424,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
                   type="tel"
                   value={formData.personalInfo?.phone || ''}
                   onChange={(e) => handleInputChange('personalInfo.phone', e.target.value)}
-                  placeholder="Enter phone number"
+                  placeholder={t('placeholders.enterPhoneNumber')}
                 />
               </InputGroup>
               
@@ -432,7 +434,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
                   type="text"
                   value={formData.personalInfo?.address?.street || ''}
                   onChange={(e) => handleInputChange('personalInfo.address.street', e.target.value)}
-                  placeholder="Enter street address"
+                  placeholder={t('placeholders.enterStreetAddress')}
                 />
               </InputGroup>
               
@@ -442,7 +444,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
                   type="text"
                   value={formData.personalInfo?.address?.city || ''}
                   onChange={(e) => handleInputChange('personalInfo.address.city', e.target.value)}
-                  placeholder="Enter city"
+                  placeholder={t('placeholders.enterCity')}
                 />
               </InputGroup>
               
@@ -452,7 +454,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
                   type="text"
                   value={formData.personalInfo?.address?.state || ''}
                   onChange={(e) => handleInputChange('personalInfo.address.state', e.target.value)}
-                  placeholder="Enter state"
+                  placeholder={t('placeholders.enterState')}
                 />
               </InputGroup>
               
@@ -462,7 +464,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
                   type="text"
                   value={formData.personalInfo?.address?.zipCode || ''}
                   onChange={(e) => handleInputChange('personalInfo.address.zipCode', e.target.value)}
-                  placeholder="Enter ZIP code"
+                  placeholder={t('placeholders.enterZipCode')}
                 />
               </InputGroup>
             </FormGrid>
@@ -476,7 +478,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
                   type="text"
                   value={formData.workInfo?.personId || ''}
                   onChange={(e) => handleInputChange('workInfo.personId', e.target.value)}
-                  placeholder="Enter unique ID"
+                  placeholder={t('placeholders.enterUniqueId')}
                 />
               </InputGroup>
               
@@ -486,7 +488,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
                   type="text"
                   value={formData.workInfo?.department || ''}
                   onChange={(e) => handleInputChange('workInfo.department', e.target.value)}
-                  placeholder="Enter department"
+                  placeholder={t('placeholders.enterDepartment')}
                 />
               </InputGroup>
               
@@ -496,7 +498,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
                   type="text"
                   value={formData.workInfo?.position || ''}
                   onChange={(e) => handleInputChange('workInfo.position', e.target.value)}
-                  placeholder="Enter position"
+                  placeholder={t('placeholders.enterPosition')}
                 />
               </InputGroup>
               
@@ -540,7 +542,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
                   type="number"
                   value={formData.compensation?.baseSalary || 0}
                   onChange={(e) => handleInputChange('compensation.baseSalary', parseFloat(e.target.value) || 0)}
-                  placeholder="Enter base salary"
+                  placeholder={t('placeholders.enterBaseSalary')}
                 />
               </InputGroup>
               
@@ -550,7 +552,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
                   type="number"
                   value={formData.compensation?.hourlyRate || 0}
                   onChange={(e) => handleInputChange('compensation.hourlyRate', parseFloat(e.target.value) || 0)}
-                  placeholder="Enter hourly rate"
+                  placeholder={t('placeholders.enterHourlyRate')}
                 />
               </InputGroup>
               
@@ -590,7 +592,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               <TextArea
                 value={formData.notes || ''}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
-                placeholder="Enter any additional notes or comments..."
+                placeholder={t('placeholders.enterNotesComments')}
               />
             </InputGroup>
           )}

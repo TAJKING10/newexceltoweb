@@ -125,6 +125,25 @@
     "analytics": "Analytics",
     "administrator": "Administrator"
   },
+  "placeholders": {
+    "enterFirstName": "Enter first name",
+    "enterLastName": "Enter last name",
+    "enterEmailAddress": "Enter email address",
+    "enterPhoneNumber": "Enter phone number",
+    "enterStreetAddress": "Enter street address",
+    "enterCity": "Enter city",
+    "enterState": "Enter state",
+    "enterZipCode": "Enter ZIP code",
+    "enterUniqueId": "Enter unique ID",
+    "enterDepartment": "Enter department",
+    "enterPosition": "Enter position",
+    "enterBaseSalary": "Enter base salary",
+    "enterHourlyRate": "Enter hourly rate",
+    "enterNotesComments": "Enter any additional notes or comments...",
+    "placeholderText": "Placeholder text",
+    "value": "Value",
+    "displayLabel": "Display Label"
+  },
   "persons": {
     "title": "Person Management",
     "universalManagement": "Universal Person Management",
@@ -187,6 +206,7 @@
   },
   "payslips": {
     "title": "Payslip Generator",
+    "annualExcelView": "Annual Excel View",
     "generate": "Generate Payslip",
     "preview": "Preview",
     "download": "Download",
@@ -263,6 +283,25 @@
     "saveToBackend": "Save to Backend",
     "saving": "Saving...",
     "autoSaveEnabled": "Auto-save enabled"
+  },
+  "app": {
+    "features": {
+      "persons": "Universal database • Employees • Customers • Contractors • Search & filter • History tracking",
+      "template": "Expandable sections • Custom fields • Dynamic tables • Drag & drop",
+      "excel": "Monthly columns (Jan-Dec) • Annual totals • Person selection • Template support • Real-time calculations",
+      "basic": "Simple interface • Quick setup • Easy editing • Form-based"
+    },
+    "errors": {
+      "signOutFailed": "Failed to sign out. Please try again.",
+      "unexpectedError": "Unexpected error occurred.",
+      "viewLoadFailed": "Failed to load view. Please try again.",
+      "unexpectedErrorRefresh": "An unexpected error occurred. Please try refreshing the page."
+    },
+    "tooltips": {
+      "personsTab": "Universal person management for employees, customers, contractors, and more",
+      "excelTab": "Annual payslip with monthly columns and totals",
+      "basicTab": "Simple form-based payslip"
+    }
   },
   "templates": {
     "title": "Template Management",
