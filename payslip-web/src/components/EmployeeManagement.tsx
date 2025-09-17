@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import {
   EmployeeProfile,
   PayslipHistory,
@@ -313,6 +314,7 @@ interface Props {
 }
 
 const EmployeeManagement: React.FC<Props> = ({ onEmployeeSelect }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'employees' | 'history' | 'analytics' | 'alerts' | 'audit'>('employees');
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({});
   const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
@@ -429,7 +431,7 @@ const EmployeeManagement: React.FC<Props> = ({ onEmployeeSelect }) => {
     <>
       <SearchSection>
         <SearchInput
-          placeholder="Search by name, email, employee ID, department..."
+          placeholder={t('search.searchEmployees')}
           value={searchFilters.searchTerm || ''}
           onChange={(e) => handleSearch('searchTerm', e.target.value)}
         />
@@ -438,11 +440,11 @@ const EmployeeManagement: React.FC<Props> = ({ onEmployeeSelect }) => {
           onChange={(e) => handleSearch('department', e.target.value)}
         >
           <option value="">All Departments</option>
-          <option value="Engineering">Engineering</option>
-          <option value="Marketing">Marketing</option>
-          <option value="Sales">Sales</option>
-          <option value="HR">HR</option>
-          <option value="Finance">Finance</option>
+          <option value="Engineering">{t('departments.engineering')}</option>
+          <option value="Marketing">{t('departments.marketing')}</option>
+          <option value="Sales">{t('departments.sales')}</option>
+          <option value="HR">{t('departments.hr')}</option>
+          <option value="Finance">{t('departments.finance')}</option>
         </Select>
         <Select
           value={searchFilters.employmentStatus || ''}

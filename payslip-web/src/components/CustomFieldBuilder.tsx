@@ -169,7 +169,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ margin: 0, color: '#1565c0', fontSize: '24px' }}>
-              🛠️ Custom Field Builder - {category.charAt(0).toUpperCase() + category.slice(1)}
+              🛠️ {t('customFields.title')} - {category.charAt(0).toUpperCase() + category.slice(1)}
             </h2>
             <button 
               onClick={onClose}
@@ -190,9 +190,9 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
         <div style={{ padding: '0 20px', backgroundColor: '#f8f9fa' }}>
           <div style={{ display: 'flex', gap: '2px' }}>
             {[
-              { key: 'create', label: '➕ Create Field' },
-              { key: 'manage', label: '⚙️ Manage Fields' },
-              { key: 'templates', label: '📋 Templates' }
+              { key: 'create', label: `➕ ${t('customFields.createField')}` },
+              { key: 'manage', label: `⚙️ ${t('customFields.manageFields')}` },
+              { key: 'templates', label: `📋 ${t('customFields.templates')}` }
             ].map(tab => (
               <button
                 key={tab.key}
@@ -209,53 +209,53 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
         <div style={{ padding: '30px' }}>
           {activeTab === 'create' && (
             <div>
-              <h3 style={{ color: '#1565c0', marginBottom: '20px' }}>Create New Custom Field</h3>
+              <h3 style={{ color: '#1565c0', marginBottom: '20px' }}>{t('customFields.createNewField')}</h3>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                 <div>
-                  <label style={labelStyle}>Field Name (Internal)</label>
+                  <label style={labelStyle}>{t('customFields.fieldNameLabel')}</label>
                   <input
                     type="text"
                     value={newField.name || ''}
                     onChange={(e) => setNewField({ ...newField, name: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
                     style={fieldStyle}
-                    placeholder="e.g., custom_allowance"
+                    placeholder={t('customFields.fieldNamePlaceholder')}
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>Field Label (Display)</label>
+                  <label style={labelStyle}>{t('customFields.fieldLabelLabel')}</label>
                   <input
                     type="text"
                     value={newField.label || ''}
                     onChange={(e) => setNewField({ ...newField, label: e.target.value })}
                     style={fieldStyle}
-                    placeholder="e.g., Custom Allowance"
+                    placeholder={t('customFields.fieldLabelPlaceholder')}
                   />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                 <div>
-                  <label style={labelStyle}>Field Type</label>
+                  <label style={labelStyle}>{t('customFields.fieldTypeLabel')}</label>
                   <select
                     value={newField.type || 'text'}
                     onChange={(e) => setNewField({ ...newField, type: e.target.value as any })}
                     style={fieldStyle}
                   >
-                    <option value="text">Text</option>
-                    <option value="number">Number</option>
-                    <option value="date">Date</option>
-                    <option value="email">Email</option>
-                    <option value="phone">Phone</option>
-                    <option value="url">URL</option>
-                    <option value="textarea">Text Area</option>
-                    <option value="select">Dropdown</option>
-                    <option value="checkbox">Checkbox</option>
-                    <option value="radio">Radio Buttons</option>
+                    <option value="text">{t('customFields.fieldTypes.text')}</option>
+                    <option value="number">{t('customFields.fieldTypes.number')}</option>
+                    <option value="date">{t('customFields.fieldTypes.date')}</option>
+                    <option value="email">{t('customFields.fieldTypes.email')}</option>
+                    <option value="phone">{t('customFields.fieldTypes.phone')}</option>
+                    <option value="url">{t('customFields.fieldTypes.url')}</option>
+                    <option value="textarea">{t('customFields.fieldTypes.textarea')}</option>
+                    <option value="select">{t('customFields.fieldTypes.select')}</option>
+                    <option value="checkbox">{t('customFields.fieldTypes.checkbox')}</option>
+                    <option value="radio">{t('customFields.fieldTypes.radio')}</option>
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>Placeholder Text</label>
+                  <label style={labelStyle}>{t('customFields.placeholderLabel')}</label>
                   <input
                     type="text"
                     value={newField.placeholder || ''}
@@ -269,7 +269,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
               {(newField.type === 'select' || newField.type === 'radio') && (
                 <div style={{ marginBottom: '20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <label style={labelStyle}>Options</label>
+                    <label style={labelStyle}>{t('customFields.optionsLabel')}</label>
                     <button
                       onClick={addOption}
                       style={{
@@ -282,7 +282,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
                         fontSize: '12px'
                       }}
                     >
-                      + Add Option
+                      + {t('customFields.addOption')}
                     </button>
                   </div>
                   
@@ -328,7 +328,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
                     onChange={(e) => setNewField({ ...newField, required: e.target.checked })}
                     style={{ marginRight: '10px' }}
                   />
-                  Required Field
+                  {t('customFields.requiredField')}
                 </label>
               </div>
 
@@ -347,7 +347,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
                     fontWeight: 'bold'
                   }}
                 >
-                  🚀 Create Field
+                  🚀 {t('customFields.createFieldButton')}
                 </button>
               </div>
             </div>
@@ -355,11 +355,11 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
 
           {activeTab === 'manage' && (
             <div>
-              <h3 style={{ color: '#1565c0', marginBottom: '20px' }}>Manage Existing Fields</h3>
+              <h3 style={{ color: '#1565c0', marginBottom: '20px' }}>{t('customFields.manageFields')}</h3>
               
               {fields.length === 0 ? (
                 <p style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '40px' }}>
-                  No custom fields created yet for this category.
+                  {t('customFields.noFieldsMessage')}
                 </p>
               ) : (
                 <div style={{ display: 'grid', gap: '15px' }}>
@@ -377,7 +377,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
                             <span style={{ marginRight: '15px' }}>Name: {field.name}</span>
                             <span style={{ marginRight: '15px' }}>Type: {field.type}</span>
                             <span style={{ marginRight: '15px' }}>Required: {field.required ? 'Yes' : 'No'}</span>
-                            {field.isSystem && <span style={{ color: '#f44336', fontWeight: 'bold' }}>SYSTEM FIELD</span>}
+                            {field.isSystem && <span style={{ color: '#f44336', fontWeight: 'bold' }}>{t('customFields.systemField')}</span>}
                           </div>
                         </div>
                         
@@ -395,7 +395,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
                                 fontSize: '12px'
                               }}
                             >
-                              ✏️ Edit
+                              ✏️ {t('customFields.edit')}
                             </button>
                             <button
                               onClick={() => handleDeleteField(field.id)}
@@ -409,7 +409,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
                                 fontSize: '12px'
                               }}
                             >
-                              🗑️ Delete
+                              🗑️ {t('customFields.delete')}
                             </button>
                           </div>
                         )}
@@ -429,7 +429,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
 
           {activeTab === 'templates' && (
             <div>
-              <h3 style={{ color: '#1565c0', marginBottom: '20px' }}>Quick Templates</h3>
+              <h3 style={{ color: '#1565c0', marginBottom: '20px' }}>{t('customFields.quickTemplates')}</h3>
               
               {templates.map(templateCategory => (
                 <div key={templateCategory.category} style={{ marginBottom: '30px' }}>
@@ -463,7 +463,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
                             fontWeight: 'bold'
                           }}
                         >
-                          🚀 Use Template
+                          🚀 {t('customFields.useTemplate')}
                         </button>
                       </div>
                     ))}
@@ -494,10 +494,10 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
               maxWidth: '500px',
               width: '90%'
             }}>
-              <h3 style={{ color: '#1565c0', marginBottom: '20px' }}>Edit Field</h3>
+              <h3 style={{ color: '#1565c0', marginBottom: '20px' }}>{t('customFields.editField')}</h3>
               
               <div style={{ marginBottom: '15px' }}>
-                <label style={labelStyle}>Field Label</label>
+                <label style={labelStyle}>{t('customFields.fieldLabelLabel')}</label>
                 <input
                   type="text"
                   value={editingField.label}
@@ -514,7 +514,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
                     onChange={(e) => setEditingField({ ...editingField, required: e.target.checked })}
                     style={{ marginRight: '10px' }}
                   />
-                  Required Field
+                  {t('customFields.requiredField')}
                 </label>
               </div>
 
@@ -526,7 +526,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
                     onChange={(e) => setEditingField({ ...editingField, isActive: e.target.checked })}
                     style={{ marginRight: '10px' }}
                   />
-                  Active Field
+                  {t('customFields.activeField')}
                 </label>
               </div>
               
@@ -542,7 +542,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
                     cursor: 'pointer'
                   }}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleUpdateField}
@@ -556,7 +556,7 @@ export const CustomFieldBuilder: React.FC<CustomFieldBuilderProps> = ({
                     fontWeight: 'bold'
                   }}
                 >
-                  💾 Save
+                  💾 {t('customFields.save')}
                 </button>
               </div>
             </div>

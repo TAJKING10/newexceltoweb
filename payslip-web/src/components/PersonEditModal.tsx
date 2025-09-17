@@ -346,7 +346,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
       <ModalContent>
         <ModalHeader>
           <ModalTitle>
-            {person ? '✏️ Edit Person' : '➕ Add New Person'}
+            {person ? `✏️ ${t('personModal.editPerson')}` : `➕ ${t('personModal.addNewPerson')}`}
           </ModalTitle>
           <CloseButton onClick={onClose}>✕</CloseButton>
         </ModalHeader>
@@ -354,7 +354,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
         <ModalBody>
           {!person && (
             <>
-              <Label>Select Person Type</Label>
+              <Label>{t('personModal.selectPersonType')}</Label>
               <PersonTypeSelector>
                 {Object.entries(PERSON_TYPE_CONFIG).map(([type, config]) => (
                   <TypeOption
@@ -373,23 +373,23 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
 
           <TabsContainer>
             <Tab active={activeTab === 'basic'} onClick={() => setActiveTab('basic')}>
-              👤 Basic Info
+              👤 {t('personModal.basicInfo')}
             </Tab>
             <Tab active={activeTab === 'work'} onClick={() => setActiveTab('work')}>
-              💼 Work Details
+              💼 {t('personModal.workDetails')}
             </Tab>
             <Tab active={activeTab === 'compensation'} onClick={() => setActiveTab('compensation')}>
-              💰 Compensation
+              💰 {t('personModal.compensation')}
             </Tab>
             <Tab active={activeTab === 'notes'} onClick={() => setActiveTab('notes')}>
-              📝 Notes
+              📝 {t('personModal.notes')}
             </Tab>
           </TabsContainer>
 
           {activeTab === 'basic' && (
             <FormGrid>
               <InputGroup>
-                <Label>First Name *</Label>
+                <Label>{t('personModal.firstNameLabel')}</Label>
                 <Input
                   type="text"
                   value={formData.personalInfo?.firstName || ''}
@@ -399,7 +399,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               </InputGroup>
               
               <InputGroup>
-                <Label>Last Name *</Label>
+                <Label>{t('personModal.lastNameLabel')}</Label>
                 <Input
                   type="text"
                   value={formData.personalInfo?.lastName || ''}
@@ -409,7 +409,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               </InputGroup>
               
               <InputGroup>
-                <Label>Email *</Label>
+                <Label>{t('personModal.emailLabel')}</Label>
                 <Input
                   type="email"
                   value={formData.personalInfo?.email || ''}
@@ -419,7 +419,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               </InputGroup>
               
               <InputGroup>
-                <Label>Phone</Label>
+                <Label>{t('personModal.phoneLabel')}</Label>
                 <Input
                   type="tel"
                   value={formData.personalInfo?.phone || ''}
@@ -429,7 +429,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               </InputGroup>
               
               <InputGroup>
-                <Label>Street Address</Label>
+                <Label>{t('personModal.streetAddressLabel')}</Label>
                 <Input
                   type="text"
                   value={formData.personalInfo?.address?.street || ''}
@@ -439,7 +439,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               </InputGroup>
               
               <InputGroup>
-                <Label>City</Label>
+                <Label>{t('personModal.cityLabel')}</Label>
                 <Input
                   type="text"
                   value={formData.personalInfo?.address?.city || ''}
@@ -449,7 +449,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               </InputGroup>
               
               <InputGroup>
-                <Label>State</Label>
+                <Label>{t('personModal.stateLabel')}</Label>
                 <Input
                   type="text"
                   value={formData.personalInfo?.address?.state || ''}
@@ -459,7 +459,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               </InputGroup>
               
               <InputGroup>
-                <Label>ZIP Code</Label>
+                <Label>{t('personModal.zipCodeLabel')}</Label>
                 <Input
                   type="text"
                   value={formData.personalInfo?.address?.zipCode || ''}
@@ -473,7 +473,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
           {activeTab === 'work' && (
             <FormGrid>
               <InputGroup>
-                <Label>Person ID *</Label>
+                <Label>{t('personModal.personIdLabel')}</Label>
                 <Input
                   type="text"
                   value={formData.workInfo?.personId || ''}
@@ -483,7 +483,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               </InputGroup>
               
               <InputGroup>
-                <Label>Department</Label>
+                <Label>{t('personModal.departmentLabel')}</Label>
                 <Input
                   type="text"
                   value={formData.workInfo?.department || ''}
@@ -493,7 +493,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               </InputGroup>
               
               <InputGroup>
-                <Label>Position/Title</Label>
+                <Label>{t('personModal.positionLabel')}</Label>
                 <Input
                   type="text"
                   value={formData.workInfo?.position || ''}
@@ -503,32 +503,32 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               </InputGroup>
               
               <InputGroup>
-                <Label>Work Type</Label>
+                <Label>{t('personModal.workTypeLabel')}</Label>
                 <Select
                   value={formData.workInfo?.workType || 'full-time'}
                   onChange={(e) => handleInputChange('workInfo.workType', e.target.value)}
                 >
-                  <option value="full-time">Full-time</option>
-                  <option value="part-time">Part-time</option>
-                  <option value="contractor">Contractor</option>
-                  <option value="freelance">Freelance</option>
-                  <option value="consultant">Consultant</option>
-                  <option value="customer">Customer</option>
-                  <option value="vendor">Vendor</option>
+                  <option value="full-time">{t('personModal.workTypes.fullTime')}</option>
+                  <option value="part-time">{t('personModal.workTypes.partTime')}</option>
+                  <option value="contractor">{t('personModal.workTypes.contractor')}</option>
+                  <option value="freelance">{t('personModal.workTypes.freelance')}</option>
+                  <option value="consultant">{t('personModal.workTypes.consultant')}</option>
+                  <option value="customer">{t('personModal.workTypes.customer')}</option>
+                  <option value="vendor">{t('personModal.workTypes.vendor')}</option>
                 </Select>
               </InputGroup>
               
               <InputGroup>
-                <Label>Status</Label>
+                <Label>{t('personModal.statusLabel')}</Label>
                 <Select
                   value={formData.workInfo?.status || 'active'}
                   onChange={(e) => handleInputChange('workInfo.status', e.target.value)}
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="suspended">Suspended</option>
-                  <option value="terminated">Terminated</option>
-                  <option value="completed">Completed</option>
+                  <option value="active">{t('personModal.statuses.active')}</option>
+                  <option value="inactive">{t('personModal.statuses.inactive')}</option>
+                  <option value="suspended">{t('personModal.statuses.suspended')}</option>
+                  <option value="terminated">{t('personModal.statuses.terminated')}</option>
+                  <option value="completed">{t('personModal.statuses.completed')}</option>
                 </Select>
               </InputGroup>
             </FormGrid>
@@ -537,7 +537,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
           {activeTab === 'compensation' && (
             <FormGrid>
               <InputGroup>
-                <Label>Base Salary</Label>
+                <Label>{t('personModal.baseSalaryLabel')}</Label>
                 <Input
                   type="number"
                   value={formData.compensation?.baseSalary || 0}
@@ -547,7 +547,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               </InputGroup>
               
               <InputGroup>
-                <Label>Hourly Rate</Label>
+                <Label>{t('personModal.hourlyRateLabel')}</Label>
                 <Input
                   type="number"
                   value={formData.compensation?.hourlyRate || 0}
@@ -557,7 +557,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               </InputGroup>
               
               <InputGroup>
-                <Label>Currency</Label>
+                <Label>{t('personModal.currencyLabel')}</Label>
                 <Select
                   value={formData.compensation?.currency || 'USD'}
                   onChange={(e) => handleInputChange('compensation.currency', e.target.value)}
@@ -570,17 +570,17 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
               </InputGroup>
               
               <InputGroup>
-                <Label>Payment Method</Label>
+                <Label>{t('personModal.paymentMethodLabel')}</Label>
                 <Select
                   value={formData.compensation?.paymentMethod || 'direct-deposit'}
                   onChange={(e) => handleInputChange('compensation.paymentMethod', e.target.value)}
                 >
-                  <option value="direct-deposit">Direct Deposit</option>
-                  <option value="check">Check</option>
-                  <option value="paypal">PayPal</option>
-                  <option value="wire-transfer">Wire Transfer</option>
-                  <option value="cash">Cash</option>
-                  <option value="crypto">Cryptocurrency</option>
+                  <option value="direct-deposit">{t('personModal.paymentMethods.directDeposit')}</option>
+                  <option value="check">{t('personModal.paymentMethods.check')}</option>
+                  <option value="paypal">{t('personModal.paymentMethods.paypal')}</option>
+                  <option value="wire-transfer">{t('personModal.paymentMethods.wireTransfer')}</option>
+                  <option value="cash">{t('personModal.paymentMethods.cash')}</option>
+                  <option value="crypto">{t('personModal.paymentMethods.crypto')}</option>
                 </Select>
               </InputGroup>
             </FormGrid>
@@ -588,7 +588,7 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
 
           {activeTab === 'notes' && (
             <InputGroup>
-              <Label>Additional Notes</Label>
+              <Label>{t('personModal.additionalNotesLabel')}</Label>
               <TextArea
                 value={formData.notes || ''}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
@@ -599,9 +599,9 @@ const PersonEditModal: React.FC<PersonEditModalProps> = ({ person, isOpen, onClo
         </ModalBody>
 
         <ModalFooter>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>{t('personModal.cancel')}</Button>
           <Button variant="primary" onClick={handleSave}>
-            {person ? 'Update Person' : 'Create Person'}
+            {person ? t('personModal.updatePerson') : t('personModal.createPerson')}
           </Button>
         </ModalFooter>
       </ModalContent>

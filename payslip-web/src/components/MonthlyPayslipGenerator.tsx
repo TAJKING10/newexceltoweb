@@ -1852,7 +1852,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                   <div key={section.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                     <input
                       type="text"
-                      placeholder="Label"
+                      placeholder={t('misc.label')}
                       value={section.label}
                       onChange={(e) => {
                         setPayslipData(prev => ({
@@ -1871,7 +1871,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                     />
                     <input
                       type="text"
-                      placeholder="Value"
+                      placeholder={t('misc.value')}
                       value={section.value}
                       onChange={(e) => {
                         setPayslipData(prev => ({
@@ -1953,7 +1953,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                                 cancelEditingRowName();
                               }
                             }}
-                            placeholder="Enter row name..."
+                            placeholder={t('misc.enterRowName')}
                             autoFocus
                             style={{
                               flex: 1,
@@ -1970,7 +1970,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                               flex: 1, 
                               cursor: 'default' 
                             }}
-                            title="Use the edit button to rename this row"
+                            title={t('misc.useEditButton')}
                           >
                             {getDisplayRowName(row)}
                           </span>
@@ -2003,7 +2003,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                             display: 'block',
                             isolation: 'isolate'
                           }}
-                          title="Click to edit row name"
+                          title={t('misc.clickToEditRowName')}
                         >
                           ✏️ Edit
                         </button>
@@ -2103,7 +2103,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                           cancelEditingRowName();
                         }
                       }}
-                      placeholder="Enter row name..."
+                      placeholder={t('misc.enterRowName')}
                       autoFocus
                       style={{ 
                         flex: 1, 
@@ -2121,7 +2121,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                         cursor: 'default',
                         padding: '4px'
                       }}
-                      title="Use the edit button to rename this row"
+                      title={t('misc.useEditButton')}
                     >
                       {getDisplayRowName(row)}
                     </span>
@@ -2152,7 +2152,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                       zIndex: 10000,
                       pointerEvents: 'auto'
                     }}
-                    title="Click to edit row name"
+                    title={t('misc.clickToEditRowName')}
                   >
                     ✏️ Edit
                   </button>
@@ -2167,7 +2167,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                       fontSize: '10px',
                       cursor: 'pointer'
                     }}
-                    title="Delete row completely"
+                    title={t('misc.deleteRowCompletely')}
                   >
                     🗑️
                   </button>
@@ -2380,7 +2380,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                             cancelEditingRowName();
                           }
                         }}
-                        placeholder="Enter row name..."
+                        placeholder={t('misc.enterRowName')}
                         autoFocus
                         style={{
                           width: '100%',
@@ -2400,7 +2400,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                           gap: '8px',
                           cursor: 'default'
                         }}
-                        title="Use the edit button to rename this row"
+                        title={t('misc.useEditButton')}
                       >
                         <span 
                           style={{ 
@@ -2442,7 +2442,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                             display: 'block',
                             isolation: 'isolate'
                           }}
-                          title="Click to edit row name"
+                          title={t('misc.clickToEditRowName')}
                         >
                           ✏️ Edit
                         </button>
@@ -2551,7 +2551,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                           cancelEditingRowName();
                         }
                       }}
-                      placeholder="Enter row name..."
+                      placeholder={t('misc.enterRowName')}
                       autoFocus
                       style={{
                         width: '100%',
@@ -2572,7 +2572,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                           pointerEvents: 'none',
                           userSelect: 'none'
                         }}
-                        title="Use the edit button to rename this row"
+                        title={t('misc.useEditButton')}
                       >
                         {getDisplayRowName(row)}
                       </span>
@@ -2602,7 +2602,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                           zIndex: 10000,
                           pointerEvents: 'auto'
                         }}
-                        title="Click to edit row name"
+                        title={t('misc.clickToEditRowName')}
                       >
                         ✏️ Edit
                       </button>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { EmployeeProfile, EmployeeUpdateData } from '../types/EmployeeTypes';
 import { employeeManager } from '../utils/employeeManager';
 
@@ -15,6 +16,7 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<EmployeeUpdateData>({});
   const [activeTab, setActiveTab] = useState<'personal' | 'employment' | 'compensation' | 'benefits' | 'documents'>('personal');
   const [customFields, setCustomFields] = useState<Array<{ key: string; value: string; type: string }>>([]);
@@ -696,14 +698,14 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
               <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto auto', gap: '10px', marginBottom: '10px' }}>
                 <input
                   type="text"
-                  placeholder="Field Name"
+                  placeholder={t('misc.fieldName')}
                   value={field.key}
                   onChange={(e) => updateCustomField(index, 'key', e.target.value)}
                   style={fieldStyle}
                 />
                 <input
                   type={field.type}
-                  placeholder="Value"
+                  placeholder={t('misc.value')}
                   value={field.value}
                   onChange={(e) => updateCustomField(index, 'value', e.target.value)}
                   style={fieldStyle}

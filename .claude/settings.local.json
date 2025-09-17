@@ -64,7 +64,8 @@
       "Bash(start http://localhost:3051)",
       "Bash(PORT=3052 npx serve -s build -l 3052)",
       "Bash(start http://localhost:3052)",
-      "Bash(PORT=3297 npm start)"
+      "Bash(PORT=3297 npm start)",
+      "Bash(PORT=3277 npm start)"
     ],
     "deny": [],
     "ask": []

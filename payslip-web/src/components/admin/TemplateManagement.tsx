@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../supabaseClient';
 import { theme } from '../../styles/theme';
 import { InitializeSystem } from './InitializeSystem';
@@ -288,6 +289,7 @@ const EmptyDescription = styled.p`
 `;
 
 export const TemplateManagement: React.FC = () => {
+  const { t } = useTranslation();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -469,7 +471,7 @@ export const TemplateManagement: React.FC = () => {
         <Actions>
           <SearchInput
             type="text"
-            placeholder="Search templates..."
+            placeholder={t('search.searchTemplates')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
