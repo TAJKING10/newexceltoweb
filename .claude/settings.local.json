@@ -67,7 +67,17 @@
       "Bash(PORT=3297 npm start)",
       "Bash(PORT=3277 npm start)",
       "Bash(PORT=3288 npm start)",
-      "Bash(PORT=3267 npm start)"
+      "Bash(PORT=3267 npm start)",
+      "Bash(npx supabase:*)",
+      "Bash(start http://localhost:3267)",
+      "Bash(PORT=3270 npm start)",
+      "Bash(start http://localhost:3270)",
+      "Bash(PORT=3271 npm start)",
+      "Bash(PORT=3275 npm start)",
+      "Bash(PORT=3244 npm start)",
+      "Bash(start http://localhost:3244)",
+      "Bash(PORT=3369 npm start)",
+      "Bash(start http://localhost:3369)"
     ],
     "deny": [],
     "ask": []

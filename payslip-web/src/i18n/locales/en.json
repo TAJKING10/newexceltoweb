@@ -168,6 +168,7 @@
     "phone": "Phone",
     "position": "Position",
     "department": "Department",
+    "personType": "Person Type",
     "hireDate": "Hire Date",
     "salary": "Salary",
     "status": "Status",
@@ -249,6 +250,10 @@
     "healthInsurance": "Health Insurance",
     "totalDeductions": "Total Deductions",
     "netPay": "NET PAY",
+    "sicknessInsurance": "Sickness Insurance",
+    "pensionContribution": "Pension Contribution",
+    "dependencyInsurance": "Dependency Insurance",
+    "employerCost": "Employer Cost",
     "annualReport": "ANNUAL PAYSLIP REPORT",
     "annualStatement": "Employee Annual Statement",
     "year": "Year",
@@ -481,5 +486,119 @@
     "numeric": "Please enter a valid number",
     "positive": "Please enter a positive number",
     "date": "Please enter a valid date"
+  },
+  "customers": {
+    "title": "Customer Management",
+    "subtitle": "Manage your customers and their information",
+    "actions": {
+      "add": "Add Customer",
+      "edit": "Edit",
+      "delete": "Delete",
+      "update": "Update Customer",
+      "create": "Create Customer"
+    },
+    "stats": {
+      "total": "Total Customers",
+      "active": "Active",
+      "inactive": "Inactive",
+      "customers": "Customers"
+    },
+    "search": {
+      "placeholder": "Search customers..."
+    },
+    "filters": {
+      "allTypes": "All Types",
+      "allStatuses": "All Statuses"
+    },
+    "types": {
+      "customer": "Customer",
+      "vendor": "Vendor",
+      "contractor": "Contractor",
+      "freelancer": "Freelancer",
+      "consultant": "Consultant"
+    },
+    "workTypes": {
+      "customer": "Customer",
+      "fullTime": "Full-time",
+      "partTime": "Part-time",
+      "contractor": "Contractor",
+      "freelance": "Freelance",
+      "consultant": "Consultant",
+      "vendor": "Vendor"
+    },
+    "statuses": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "suspended": "Suspended",
+      "terminated": "Terminated",
+      "completed": "Completed"
+    },
+    "countries": {
+      "usa": "United States",
+      "canada": "Canada",
+      "uk": "United Kingdom",
+      "australia": "Australia",
+      "other": "Other"
+    },
+    "paymentMethods": {
+      "select": "Select payment method",
+      "directDeposit": "Direct Deposit",
+      "check": "Check",
+      "paypal": "PayPal",
+      "wireTransfer": "Wire Transfer",
+      "cash": "Cash",
+      "crypto": "Cryptocurrency"
+    },
+    "fields": {
+      "personId": "Customer ID",
+      "personType": "Customer Type",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone",
+      "street": "Street Address",
+      "city": "City",
+      "state": "State",
+      "zipCode": "ZIP Code",
+      "country": "Country",
+      "department": "Department",
+      "position": "Position/Title",
+      "workType": "Work Type",
+      "baseSalary": "Base Salary",
+      "hourlyRate": "Hourly Rate",
+      "currency": "Currency",
+      "paymentMethod": "Payment Method",
+      "notes": "Notes"
+    },
+    "tabs": {
+      "basic": "Basic Info",
+      "work": "Work Details",
+      "compensation": "Compensation",
+      "notes": "Notes"
+    },
+    "sections": {
+      "basicInfo": "Basic Information",
+      "address": "Address",
+      "workDetails": "Work Details",
+      "compensation": "Compensation",
+      "notes": "Additional Notes"
+    },
+    "edit": {
+      "title": "Edit Customer"
+    },
+    "add": {
+      "title": "Add New Customer"
+    },
+    "created": "Created",
+    "confirmDelete": "Are you sure you want to delete this customer?",
+    "empty": {
+      "noCustomers": "No customers yet",
+      "noResults": "No customers match your search",
+      "getStarted": "Add your first customer to get started",
+      "tryDifferent": "Try adjusting your search or filters"
+    },
+    "placeholders": {
+      "notes": "Add any additional notes about this customer..."
+    }
   }
 }

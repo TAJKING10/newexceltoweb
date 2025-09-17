@@ -168,6 +168,7 @@
     "phone": "Téléphone",
     "position": "Poste",
     "department": "Département",
+    "personType": "Type de personne",
     "hireDate": "Date d'embauche",
     "salary": "Salaire",
     "status": "Statut",
@@ -249,6 +250,10 @@
     "healthInsurance": "Assurance maladie",
     "totalDeductions": "Total des déductions",
     "netPay": "SALAIRE NET",
+    "sicknessInsurance": "Assurance maladie",
+    "pensionContribution": "Cotisation retraite",
+    "dependencyInsurance": "Assurance dépendance",
+    "employerCost": "Coût employeur",
     "annualReport": "RAPPORT ANNUEL DE PAIE",
     "annualStatement": "Relevé annuel des employés",
     "year": "Année",
@@ -677,5 +682,119 @@
     "autoSaveEnabled": "Auto-sauvegarde activée",
     "autoCalculated": "Auto-calculé",
     "autoCalculatedInfo": "= Champ fiscal Luxembourg auto-calculé (lecture seule) | ✏️ = Champ de saisie modifiable"
+  },
+  "customers": {
+    "title": "Gestion des clients",
+    "subtitle": "Gérez vos clients et leurs informations",
+    "actions": {
+      "add": "Ajouter un client",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "update": "Mettre à jour le client",
+      "create": "Créer un client"
+    },
+    "stats": {
+      "total": "Total des clients",
+      "active": "Actifs",
+      "inactive": "Inactifs",
+      "customers": "Clients"
+    },
+    "search": {
+      "placeholder": "Rechercher des clients..."
+    },
+    "filters": {
+      "allTypes": "Tous les types",
+      "allStatuses": "Tous les statuts"
+    },
+    "types": {
+      "customer": "Client",
+      "vendor": "Fournisseur",
+      "contractor": "Contractuel",
+      "freelancer": "Freelance",
+      "consultant": "Consultant"
+    },
+    "workTypes": {
+      "customer": "Client",
+      "fullTime": "Temps plein",
+      "partTime": "Temps partiel",
+      "contractor": "Contractuel",
+      "freelance": "Freelance",
+      "consultant": "Consultant",
+      "vendor": "Fournisseur"
+    },
+    "statuses": {
+      "active": "Actif",
+      "inactive": "Inactif",
+      "suspended": "Suspendu",
+      "terminated": "Résilié",
+      "completed": "Terminé"
+    },
+    "countries": {
+      "usa": "États-Unis",
+      "canada": "Canada",
+      "uk": "Royaume-Uni",
+      "australia": "Australie",
+      "other": "Autre"
+    },
+    "paymentMethods": {
+      "select": "Sélectionnez le mode de paiement",
+      "directDeposit": "Dépôt direct",
+      "check": "Chèque",
+      "paypal": "PayPal",
+      "wireTransfer": "Virement bancaire",
+      "cash": "Espèces",
+      "crypto": "Cryptomonnaie"
+    },
+    "fields": {
+      "personId": "ID Client",
+      "personType": "Type de client",
+      "firstName": "Prénom",
+      "lastName": "Nom de famille",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "street": "Adresse",
+      "city": "Ville",
+      "state": "État",
+      "zipCode": "Code postal",
+      "country": "Pays",
+      "department": "Département",
+      "position": "Poste/Titre",
+      "workType": "Type de travail",
+      "baseSalary": "Salaire de base",
+      "hourlyRate": "Taux horaire",
+      "currency": "Devise",
+      "paymentMethod": "Mode de paiement",
+      "notes": "Notes"
+    },
+    "tabs": {
+      "basic": "Informations de base",
+      "work": "Détails du travail",
+      "compensation": "Rémunération",
+      "notes": "Notes"
+    },
+    "sections": {
+      "basicInfo": "Informations de base",
+      "address": "Adresse",
+      "workDetails": "Détails du travail",
+      "compensation": "Rémunération",
+      "notes": "Notes supplémentaires"
+    },
+    "edit": {
+      "title": "Modifier le client"
+    },
+    "add": {
+      "title": "Ajouter un nouveau client"
+    },
+    "created": "Créé",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce client ?",
+    "empty": {
+      "noCustomers": "Aucun client pour le moment",
+      "noResults": "Aucun client ne correspond à votre recherche",
+      "getStarted": "Ajoutez votre premier client pour commencer",
+      "tryDifferent": "Essayez d'ajuster votre recherche ou vos filtres"
+    },
+    "placeholders": {
+      "notes": "Ajoutez des notes supplémentaires sur ce client..."
+    }
   }
 }

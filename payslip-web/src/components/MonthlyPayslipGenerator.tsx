@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useTranslation } from 'react-i18next';
-import { personManager } from '../utils/personManager';
+import { customerManager } from '../utils/customerManager';
 import { templateSync } from '../utils/templateSync';
 import { viewSync } from '../utils/viewSync';
 import { dataSync } from '../utils/dataSync';
 import { supabasePayslipService } from '../utils/supabasePayslipService';
 import { PayslipTemplate } from '../types/PayslipTypes';
-import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
+import { Customer } from '../utils/customerManager';
 import OptimizedCell from './OptimizedCell';
 // import VirtualizedPayslipTable from './VirtualizedPayslipTable'; // Disabled for now
 import '../styles/print.css';
@@ -335,11 +335,11 @@ interface MonthlyPayslipState {
 const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const { t } = useTranslation();
   const [selectedTemplate, setSelectedTemplate] = useState<PayslipTemplate | null>(null);
-  const [selectedPerson, setSelectedPerson] = useState<PersonProfile | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<Customer | null>(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedPersonType, setSelectedPersonType] = useState<'all' | 'employee' | 'customer' | 'contractor' | 'freelancer' | 'vendor' | 'consultant' | 'other'>('all');
   const [templates, setTemplates] = useState<PayslipTemplate[]>([]);
-  const [persons, setPersons] = useState<PersonProfile[]>([]);
+  const [persons, setPersons] = useState<Customer[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [editingRowName, setEditingRowName] = useState<string | null>(null);
   const [tempRowName, setTempRowName] = useState<string>('');
@@ -348,18 +348,18 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
   
   const defaultRows = React.useMemo(() => [
-    'Basic Salary',
-    'Housing Allowance', 
-    'Transport Allowance',
-    'Overtime Pay',
-    'Bonus',
-    'Gross Salary',
-    'Income Tax',
-    'Social Security',
-    'Health Insurance',
-    'Total Deductions',
-    'Net Salary'
-  ], []);
+    t('payslips.basicSalary', 'Basic Salary'),
+    t('payslips.housingAllowance', 'Housing Allowance'), 
+    t('payslips.transportAllowance', 'Transport Allowance'),
+    t('payslips.overtimePay', 'Overtime Pay'),
+    t('payslips.bonus', 'Bonus'),
+    t('payslips.grossSalary', 'Gross Salary'),
+    t('payslips.incomeTax', 'Income Tax'),
+    t('payslips.socialSecurity', 'Social Security'),
+    t('payslips.healthInsurance', 'Health Insurance'),
+    t('payslips.totalDeductions', 'Total Deductions'),
+    t('payslips.netSalary', 'Net Salary')
+  ], [t]);
 
   const [payslipData, setPayslipData] = useState<MonthlyPayslipState>({
     personName: 'John Doe',
@@ -376,25 +376,25 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       {
         id: 'earnings',
         name: t('payslips.earnings', 'EARNINGS'),
-        rows: [t('payslips.basicSalary', 'Basic Salary'), t('payslips.housingAllowance', 'Housing Allowance'), t('payslips.transportAllowance', 'Transport Allowance'), t('payslips.overtimePay', 'Overtime Pay'), t('payslips.bonus')],
+        rows: [t('payslips.basicSalary', 'Basic Salary'), t('payslips.housingAllowance', 'Housing Allowance'), t('payslips.transportAllowance', 'Transport Allowance'), t('payslips.overtimePay', 'Overtime Pay'), t('payslips.bonus', 'Bonus')],
         isCollapsed: false
       },
       {
         id: 'summary',
         name: t('payslips.summary', 'SUMMARY'),
-        rows: [t('payslips.grossSalary')],
+        rows: [t('payslips.grossSalary', 'Gross Salary')],
         isCollapsed: false
       },
       {
         id: 'deductions',
-        name: t('payslips.deductions'),
-        rows: [t('payslips.incomeTax', 'Income Tax'), t('payslips.socialSecurity'), t('payslips.healthInsurance'), t('payslips.totalDeductions', 'Total Deductions')],
+        name: t('payslips.deductions', 'DEDUCTIONS'),
+        rows: [t('payslips.incomeTax', 'Income Tax'), t('payslips.socialSecurity', 'Social Security'), t('payslips.healthInsurance', 'Health Insurance'), t('payslips.totalDeductions', 'Total Deductions')],
         isCollapsed: false
       },
       {
         id: 'final',
         name: t('payslips.netPay', 'NET PAY'),
-        rows: [t('payslips.netSalary')],
+        rows: [t('payslips.netSalary', 'Net Salary')],
         isCollapsed: false
       }
     ],
@@ -450,6 +450,61 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       totals: initialTotals
     }));
   }, [defaultRows]);
+
+  // Update payslipData when language changes
+  useEffect(() => {
+    setPayslipData(prev => ({
+      ...prev,
+      customRows: [...defaultRows],
+      groups: [
+        {
+          id: 'earnings',
+          name: t('payslips.earnings', 'EARNINGS'),
+          rows: [t('payslips.basicSalary', 'Basic Salary'), t('payslips.housingAllowance', 'Housing Allowance'), t('payslips.transportAllowance', 'Transport Allowance'), t('payslips.overtimePay', 'Overtime Pay'), t('payslips.bonus', 'Bonus')],
+          isCollapsed: false
+        },
+        {
+          id: 'summary',
+          name: t('payslips.summary', 'SUMMARY'),
+          rows: [t('payslips.grossSalary', 'Gross Salary')],
+          isCollapsed: false
+        },
+        {
+          id: 'deductions',
+          name: t('payslips.deductions', 'DEDUCTIONS'),
+          rows: [t('payslips.incomeTax', 'Income Tax'), t('payslips.socialSecurity', 'Social Security'), t('payslips.healthInsurance', 'Health Insurance'), t('payslips.totalDeductions', 'Total Deductions')],
+          isCollapsed: false
+        },
+        {
+          id: 'final',
+          name: t('payslips.netPay', 'NET PAY'),
+          rows: [t('payslips.netSalary', 'Net Salary')],
+          isCollapsed: false
+        }
+      ],
+      header: {
+        id: 'main-header',
+        title: t('payslips.annualReport', 'ANNUAL PAYSLIP REPORT'),
+        subtitle: t('payslips.annualStatement', 'Employee Annual Statement'),
+        companyInfo: {
+          name: t('settings.companyName', 'Universal Company Ltd.'),
+          address: t('settings.companyAddress', '123 Business Street, City, State 12345'),
+          phone: t('settings.companyPhone', '+1 (555) 123-4567'),
+          email: t('settings.companyEmail', 'hr@company.com')
+        }
+      },
+      subHeaders: [
+        {
+          id: 'info-header',
+          sections: [
+            { id: 'year', label: t('payslips.year', 'Year'), value: new Date().getFullYear().toString() },
+            { id: 'department', label: t('persons.department', 'Department'), value: prev.department || 'IT Department' },
+            { id: 'generated', label: t('payslips.generatedOn', 'Generated On'), value: new Date().toLocaleDateString() }
+          ]
+        }
+      ]
+    }));
+  }, [t, defaultRows]);
 
 
   // Force create essential templates immediately
@@ -560,7 +615,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       const loadPersonsAsync = async () => {
         try {
           console.log('📊 Excel View: Loading persons from Supabase...');
-          const loadedPersons = await personManager.getAllPersonsAsync();
+          const loadedPersons = await customerManager.getCustomers();
           setPersons(safeArray(loadedPersons));
           console.log(`✅ Excel View: Loaded ${loadedPersons.length} persons from database`);
           
@@ -570,10 +625,10 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             setSelectedPerson(person);
             setPayslipData(prev => ({
               ...prev,
-              personName: person.personalInfo?.fullName || 'Unknown',
-              personId: person.workInfo?.personId || 'N/A',
-              department: person.workInfo?.department || 'N/A',
-              position: person.workInfo?.position || person.workInfo?.title || 'N/A'
+              personName: person.full_name || 'Unknown',
+              personId: person.person_id || 'N/A',
+              department: person.department || 'N/A',
+              position: person.position || 'N/A'
             }));
           }
         } catch (error) {
@@ -624,7 +679,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           // Use persons state instead of loadedPersons since it's async loaded
           const person = persons.find((p: any) => p.id === personId);
           if (person && (!selectedPerson || selectedPerson.id !== personId)) {
-            console.log('📊 Excel View: Received cross-view person selection:', person.personalInfo?.fullName);
+            console.log('📊 Excel View: Received cross-view person selection:', person.full_name);
             setSelectedPerson(person);
             handlePersonChange(personId).catch(console.error);
           }
@@ -662,7 +717,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         if (syncedPerson) {
           setSelectedPerson(syncedPerson);
           handlePersonChange(syncedPersonId);
-          console.log('📊 Excel View: Applied synced person:', syncedPerson.personalInfo?.fullName);
+          console.log('📊 Excel View: Applied synced person:', syncedPerson.full_name);
         }
       }
 
@@ -732,7 +787,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     const safePeople = safeArray(persons);
     return selectedPersonType === 'all' 
       ? safePeople 
-      : safePeople.filter(person => person && person.type === selectedPersonType);
+      : safePeople.filter(person => person && person.person_type === selectedPersonType);
   }, [selectedPersonType, persons, safeArray]);
 
   // Optimized cell change - immediate UI updates only
@@ -815,13 +870,19 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           const monthData = { ...currentState.months[monthIndex] };
           monthData[rowName] = numValue; // Ensure the new value is included
           
-          // Calculate gross salary from all components
-          const grossSalary = (monthData['Basic Salary'] || 0) + 
+          // Calculate gross salary from all components using translated terms
+          const basicSalaryKey = t('payslips.basicSalary', 'Basic Salary');
+          const housingAllowanceKey = t('payslips.housingAllowance', 'Housing Allowance');
+          const transportAllowanceKey = t('payslips.transportAllowance', 'Transport Allowance');
+          const overtimePayKey = t('payslips.overtimePay', 'Overtime Pay');
+          const bonusKey = t('payslips.bonus', 'Bonus');
+          
+          const grossSalary = (monthData[basicSalaryKey] || 0) + 
                              (monthData['Allowances'] || 0) + 
-                             (monthData['Housing Allowance'] || 0) +
-                             (monthData['Transport Allowance'] || 0) +
-                             (monthData['Overtime Pay'] || 0) + 
-                             (monthData['Bonus'] || 0);
+                             (monthData[housingAllowanceKey] || 0) +
+                             (monthData[transportAllowanceKey] || 0) +
+                             (monthData[overtimePayKey] || 0) + 
+                             (monthData[bonusKey] || 0);
           
           console.log(`💰 Calculated gross salary: €${grossSalary}`);
           
@@ -836,22 +897,32 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               
               const employerContributions = LuxembourgTaxCalculator.calculateEmployerContributions(grossSalary);
               
-              // Update all calculated fields
-              monthData['Gross Salary'] = grossSalary;
-              monthData['Income Tax'] = taxResult.incomeTax;
-              monthData['Social Security Total'] = taxResult.socialSecurity.total;
-              monthData['Sickness Insurance'] = taxResult.socialSecurity.sickness;
-              monthData['Pension Contribution'] = taxResult.socialSecurity.pension;
-              monthData['Dependency Insurance'] = taxResult.socialSecurity.dependency;
-              monthData['Total Deductions'] = taxResult.incomeTax + taxResult.socialSecurity.total;
-              monthData['Net Salary'] = grossSalary - (taxResult.incomeTax + taxResult.socialSecurity.total);
-              monthData['Employer Cost'] = grossSalary + employerContributions.total;
+              // Update all calculated fields using translated keys
+              const grossSalaryKey = t('payslips.grossSalary', 'Gross Salary');
+              const incomeTaxKey = t('payslips.incomeTax', 'Income Tax');
+              const socialSecurityKey = t('payslips.socialSecurity', 'Social Security');
+              const sicknessInsuranceKey = t('payslips.sicknessInsurance', 'Sickness Insurance');
+              const pensionContributionKey = t('payslips.pensionContribution', 'Pension Contribution');
+              const dependencyInsuranceKey = t('payslips.dependencyInsurance', 'Dependency Insurance');
+              const totalDeductionsKey = t('payslips.totalDeductions', 'Total Deductions');
+              const netSalaryKey = t('payslips.netSalary', 'Net Salary');
+              const employerCostKey = t('payslips.employerCost', 'Employer Cost');
               
-              console.log(`✅ Luxembourg taxes calculated - Income Tax: €${taxResult.incomeTax.toFixed(2)}, Net: €${monthData['Net Salary'].toFixed(2)}`);
+              monthData[grossSalaryKey] = grossSalary;
+              monthData[incomeTaxKey] = taxResult.incomeTax;
+              monthData[socialSecurityKey + ' Total'] = taxResult.socialSecurity.total;
+              monthData[sicknessInsuranceKey] = taxResult.socialSecurity.sickness;
+              monthData[pensionContributionKey] = taxResult.socialSecurity.pension;
+              monthData[dependencyInsuranceKey] = taxResult.socialSecurity.dependency;
+              monthData[totalDeductionsKey] = taxResult.incomeTax + taxResult.socialSecurity.total;
+              monthData[netSalaryKey] = grossSalary - (taxResult.incomeTax + taxResult.socialSecurity.total);
+              monthData[employerCostKey] = grossSalary + employerContributions.total;
               
-              // Recalculate totals for all tax-related rows
-              const taxRows = ['Gross Salary', 'Income Tax', 'Social Security Total', 'Sickness Insurance', 
-                              'Pension Contribution', 'Dependency Insurance', 'Total Deductions', 'Net Salary', 'Employer Cost'];
+              console.log(`✅ Luxembourg taxes calculated - Income Tax: €${taxResult.incomeTax.toFixed(2)}, Net: €${monthData[netSalaryKey].toFixed(2)}`);
+              
+              // Recalculate totals for all tax-related rows using translated keys
+              const taxRows = [grossSalaryKey, incomeTaxKey, socialSecurityKey + ' Total', sicknessInsuranceKey, 
+                              pensionContributionKey, dependencyInsuranceKey, totalDeductionsKey, netSalaryKey, employerCostKey];
               const newTotals = { ...currentState.totals };
               
               taxRows.forEach(row => {
@@ -913,7 +984,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       setSelectedPerson(person);
       
       // Get person name for fallback loading
-      const personName = person.personalInfo?.fullName;
+      const personName = person.full_name;
       
       console.log(`👤 Person changed to: ${personName} (ID: ${personId})`);
       
@@ -990,7 +1061,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   }, [safeArray, selectedPerson, payslipData]);
 
   // Create empty personalized template with zero values (for people without database records)
-  const createEmptyPersonalizedTemplate = (person: PersonProfile): MonthlyPayslipState => {
+  const createEmptyPersonalizedTemplate = (person: Customer): MonthlyPayslipState => {
     const emptyMonths: any = {};
     const emptyTotals: any = {};
     
@@ -1009,10 +1080,10 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
     return {
       // Basic person info but empty financial data
-      personName: person.personalInfo?.fullName || '',
-      personId: person.workInfo?.personId || '',
-      department: person.workInfo?.department || '',
-      position: person.workInfo?.position || person.workInfo?.title || '',
+      personName: person.full_name || '',
+      personId: person.person_id || '',
+      department: person.department || '',
+      position: person.position || '',
       year: new Date().getFullYear(),
       months: emptyMonths,
       totals: emptyTotals,
@@ -1022,48 +1093,48 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       groups: [
         {
           id: 'earnings',
-          name: 'EARNINGS',
-          rows: ['Basic Salary', 'Housing Allowance', 'Transport Allowance', 'Overtime Pay', 'Bonus'],
+          name: t('payslips.earnings', 'EARNINGS'),
+          rows: [t('payslips.basicSalary', 'Basic Salary'), t('payslips.housingAllowance', 'Housing Allowance'), t('payslips.transportAllowance', 'Transport Allowance'), t('payslips.overtimePay', 'Overtime Pay'), t('payslips.bonus', 'Bonus')],
           isCollapsed: false
         },
         {
           id: 'summary',
-          name: 'SUMMARY',
-          rows: ['Gross Salary'],
+          name: t('payslips.summary', 'SUMMARY'),
+          rows: [t('payslips.grossSalary', 'Gross Salary')],
           isCollapsed: false
         },
         {
           id: 'deductions',
-          name: 'DEDUCTIONS',
-          rows: ['Income Tax', 'Social Security', 'Health Insurance', 'Total Deductions'],
+          name: t('payslips.deductions', 'DEDUCTIONS'),
+          rows: [t('payslips.incomeTax', 'Income Tax'), t('payslips.socialSecurity', 'Social Security'), t('payslips.healthInsurance', 'Health Insurance'), t('payslips.totalDeductions', 'Total Deductions')],
           isCollapsed: false
         },
         {
           id: 'final',
-          name: 'NET PAY',
-          rows: ['Net Salary'],
+          name: t('payslips.netPay', 'NET PAY'),
+          rows: [t('payslips.netSalary', 'Net Salary')],
           isCollapsed: false
         }
       ],
       header: {
         id: 'main-header',
-        title: `ANNUAL PAYSLIP REPORT - ${person.personalInfo?.fullName || 'Employee'}`,
-        subtitle: `${PERSON_TYPE_CONFIG[person.type]?.label || person.type} Annual Statement`,
+        title: `${t('payslips.annualReport', 'ANNUAL PAYSLIP REPORT')} - ${person.full_name || t('persons.employee', 'Employee')}`,
+        subtitle: `${person.person_type?.charAt(0).toUpperCase() + person.person_type?.slice(1) || 'Customer'} ${t('payslips.annualStatement', 'Annual Statement')}`,
         companyInfo: {
-          name: 'Universal Company Ltd.',
-          address: '123 Business Street, City, State 12345',
-          phone: '+1 (555) 123-4567',
-          email: 'hr@company.com'
+          name: t('settings.companyName', 'Universal Company Ltd.'),
+          address: t('settings.companyAddress', '123 Business Street, City, State 12345'),
+          phone: t('settings.companyPhone', '+1 (555) 123-4567'),
+          email: t('settings.companyEmail', 'hr@company.com')
         }
       },
       subHeaders: [
         {
           id: 'info-header',
           sections: [
-            { id: 'year', label: 'Year', value: new Date().getFullYear().toString() },
-            { id: 'type', label: 'Person Type', value: PERSON_TYPE_CONFIG[person.type]?.label || person.type },
-            { id: 'department', label: 'Department', value: person.workInfo?.department || 'N/A' },
-            { id: 'generated', label: 'Generated On', value: new Date().toLocaleDateString() }
+            { id: 'year', label: t('payslips.year', 'Year'), value: new Date().getFullYear().toString() },
+            { id: 'type', label: t('persons.personType', 'Person Type'), value: person.person_type?.charAt(0).toUpperCase() + person.person_type?.slice(1) || 'Customer' },
+            { id: 'department', label: t('persons.department', 'Department'), value: person.department || 'N/A' },
+            { id: 'generated', label: t('payslips.generatedOn', 'Generated On'), value: new Date().toLocaleDateString() }
           ]
         }
       ]
@@ -1071,7 +1142,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   };
 
   // Create fresh personalized template for user
-  const createFreshPersonalizedTemplate = (person: PersonProfile): MonthlyPayslipState => {
+  const createFreshPersonalizedTemplate = (person: Customer): MonthlyPayslipState => {
     const freshMonths: any = {};
     const freshTotals: any = {};
     
@@ -1090,10 +1161,10 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
     return {
       // Editable common information from person (pre-populated but editable)
-      personName: person.personalInfo?.fullName || '',
-      personId: person.workInfo?.personId || '',
-      department: person.workInfo?.department || '',
-      position: person.workInfo?.position || person.workInfo?.title || '',
+      personName: person.full_name || '',
+      personId: person.person_id || '',
+      department: person.department || '',
+      position: person.position || '',
       year: new Date().getFullYear(),
       months: freshMonths,
       totals: freshTotals,
@@ -1103,48 +1174,48 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       groups: [
         {
           id: 'earnings',
-          name: 'EARNINGS',
-          rows: ['Basic Salary', 'Housing Allowance', 'Transport Allowance', 'Overtime Pay', 'Bonus'],
+          name: t('payslips.earnings', 'EARNINGS'),
+          rows: [t('payslips.basicSalary', 'Basic Salary'), t('payslips.housingAllowance', 'Housing Allowance'), t('payslips.transportAllowance', 'Transport Allowance'), t('payslips.overtimePay', 'Overtime Pay'), t('payslips.bonus', 'Bonus')],
           isCollapsed: false
         },
         {
           id: 'summary',
-          name: 'SUMMARY',
-          rows: ['Gross Salary'],
+          name: t('payslips.summary', 'SUMMARY'),
+          rows: [t('payslips.grossSalary', 'Gross Salary')],
           isCollapsed: false
         },
         {
           id: 'deductions',
-          name: 'DEDUCTIONS',
-          rows: ['Income Tax', 'Social Security', 'Health Insurance', 'Total Deductions'],
+          name: t('payslips.deductions', 'DEDUCTIONS'),
+          rows: [t('payslips.incomeTax', 'Income Tax'), t('payslips.socialSecurity', 'Social Security'), t('payslips.healthInsurance', 'Health Insurance'), t('payslips.totalDeductions', 'Total Deductions')],
           isCollapsed: false
         },
         {
           id: 'final',
-          name: 'NET PAY',
-          rows: ['Net Salary'],
+          name: t('payslips.netPay', 'NET PAY'),
+          rows: [t('payslips.netSalary', 'Net Salary')],
           isCollapsed: false
         }
       ],
       header: {
         id: 'main-header',
-        title: `ANNUAL PAYSLIP REPORT - ${person.personalInfo?.fullName || 'Employee'}`,
-        subtitle: `${PERSON_TYPE_CONFIG[person.type]?.label || person.type} Annual Statement`,
+        title: `${t('payslips.annualReport', 'ANNUAL PAYSLIP REPORT')} - ${person.full_name || t('persons.employee', 'Employee')}`,
+        subtitle: `${person.person_type?.charAt(0).toUpperCase() + person.person_type?.slice(1) || 'Customer'} ${t('payslips.annualStatement', 'Annual Statement')}`,
         companyInfo: {
-          name: 'Universal Company Ltd.',
-          address: '123 Business Street, City, State 12345',
-          phone: '+1 (555) 123-4567',
-          email: 'hr@company.com'
+          name: t('settings.companyName', 'Universal Company Ltd.'),
+          address: t('settings.companyAddress', '123 Business Street, City, State 12345'),
+          phone: t('settings.companyPhone', '+1 (555) 123-4567'),
+          email: t('settings.companyEmail', 'hr@company.com')
         }
       },
       subHeaders: [
         {
           id: 'info-header',
           sections: [
-            { id: 'year', label: 'Year', value: new Date().getFullYear().toString() },
-            { id: 'type', label: 'Person Type', value: PERSON_TYPE_CONFIG[person.type]?.label || person.type },
-            { id: 'department', label: 'Department', value: person.workInfo?.department || 'N/A' },
-            { id: 'generated', label: 'Generated On', value: new Date().toLocaleDateString() }
+            { id: 'year', label: t('payslips.year', 'Year'), value: new Date().getFullYear().toString() },
+            { id: 'type', label: t('persons.personType', 'Person Type'), value: person.person_type?.charAt(0).toUpperCase() + person.person_type?.slice(1) || 'Customer' },
+            { id: 'department', label: t('persons.department', 'Department'), value: person.department || 'N/A' },
+            { id: 'generated', label: t('payslips.generatedOn', 'Generated On'), value: new Date().toLocaleDateString() }
           ]
         }
       ]
@@ -1631,9 +1702,9 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             }}
           >
             <option value="all">🌟 {t('payslips.allTypes', 'All Types')}</option>
-            {Object.entries(PERSON_TYPE_CONFIG || {}).map(([type, config]) => (
+            {['customer', 'contractor', 'freelancer', 'vendor', 'consultant'].map((type) => (
               <option key={type} value={type}>
-                {config?.icon || ''} {config?.label || type}s
+                {type === 'customer' ? '👤' : type === 'contractor' ? '🔧' : type === 'freelancer' ? '💼' : type === 'vendor' ? '🏪' : type === 'consultant' ? '🎯' : '👤'} {type.charAt(0).toUpperCase() + type.slice(1)}s
               </option>
             ))}
           </Select>
@@ -1657,9 +1728,9 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           >
             <option value="">{t('payslips.choosePerson', 'Choose Person...')}</option>
             {safeArray(filteredPersons).map(person => (
-              person && person.id && person.personalInfo ? (
+              person && person.id && person.full_name ? (
                 <option key={person.id} value={person.id}>
-                  {PERSON_TYPE_CONFIG[person.type]?.icon || ''} {person.personalInfo.fullName || 'Unknown'} - {person.workInfo?.personId || 'No ID'}
+                  {person.person_type === 'customer' ? '👤' : person.person_type === 'contractor' ? '🔧' : person.person_type === 'freelancer' ? '💼' : person.person_type === 'vendor' ? '🏪' : person.person_type === 'consultant' ? '🎯' : '👤'} {person.full_name || 'Unknown'} - {person.person_id || 'No ID'}
                 </option>
               ) : null
             ))}
@@ -1774,7 +1845,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           <Label style={{ color: '#f44336' }}>{t('basicView.freshStart')}:</Label>
           <Button 
             onClick={() => {
-              if (selectedPerson && window.confirm(`Reset all data for ${selectedPerson.personalInfo?.fullName}? This will create a completely fresh template with all values at 0.`)) {
+              if (selectedPerson && window.confirm(`Reset all data for ${selectedPerson.full_name}? This will create a completely fresh template with all values at 0.`)) {
                 const freshData = createFreshPersonalizedTemplate(selectedPerson);
                 setPayslipData(freshData);
                 // Note: Database records remain for audit trail

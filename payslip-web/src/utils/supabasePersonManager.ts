@@ -21,74 +21,80 @@ export class SupabasePersonManager {
     }
   }
 
-  // Convert Supabase employee record to PersonProfile
-  private mapEmployeeToPersonProfile(employee: any): PersonProfile {
+  // Convert Supabase customer record to PersonProfile
+  private mapCustomerToPersonProfile(customer: any): PersonProfile {
     return {
-      id: employee.id,
-      type: 'employee', // Default to employee since this comes from employees table
+      id: customer.id,
+      type: customer.person_type || 'customer',
       personalInfo: {
-        firstName: employee.user_id ? '' : '', // Would need to join with profiles table
-        lastName: '',
-        fullName: employee.user_id ? '' : '', // Would need to join with profiles table
-        email: employee.user_id ? '' : '', // Would need to join with profiles table
-        phone: employee.phone || '',
-        address: employee.address || {
+        firstName: customer.first_name || '',
+        lastName: customer.last_name || '',
+        fullName: customer.full_name || '',
+        email: customer.email || '',
+        phone: customer.phone || '',
+        address: customer.address || {
           street: '',
           city: '',
           state: '',
           zipCode: '',
           country: 'USA'
         },
-        emergencyContact: employee.emergency_contact || undefined
+        emergencyContact: undefined // Not stored in customers table currently
       },
       workInfo: {
-        personId: employee.employee_id,
-        department: employee.department || '',
-        position: employee.position || '',
-        workType: 'full-time',
-        status: 'active',
-        startDate: employee.hire_date ? new Date(employee.hire_date) : undefined
+        personId: customer.person_id,
+        department: customer.department || '',
+        position: customer.position || '',
+        workType: customer.work_type || 'customer',
+        status: customer.status || 'active',
+        startDate: undefined // Not applicable for customers
       },
       compensation: {
-        baseSalary: employee.salary ? parseFloat(employee.salary) : undefined,
-        currency: employee.currency || 'EUR',
+        baseSalary: customer.base_salary ? parseFloat(customer.base_salary) : undefined,
+        hourlyRate: customer.hourly_rate ? parseFloat(customer.hourly_rate) : undefined,
+        currency: customer.currency || 'EUR',
         payFrequency: 'monthly',
-        salaryType: 'salary',
-        paymentMethod: 'direct-deposit',
-        bankAccount: employee.bank_details || undefined,
-        taxInfo: employee.tax_info || undefined
+        salaryType: customer.base_salary ? 'salary' : (customer.hourly_rate ? 'hourly' : 'commission'),
+        paymentMethod: customer.payment_method || 'direct-deposit',
+        bankAccount: undefined,
+        taxInfo: undefined
       },
       documents: [],
-      createdDate: new Date(employee.created_at),
-      lastModified: new Date(employee.updated_at),
-      createdBy: this.currentUser,
-      modifiedBy: this.currentUser,
+      createdDate: new Date(customer.created_at),
+      lastModified: new Date(customer.updated_at),
+      createdBy: customer.created_by_user_id,
+      modifiedBy: customer.created_by_user_id,
       tags: [],
-      notes: employee.notes || ''
+      notes: customer.notes || '',
+      benefits: {},
+      customFields: customer.custom_fields || {}
     };
   }
 
-  // Convert PersonProfile to Supabase employee record
-  private mapPersonProfileToEmployee(person: PersonProfile, isUpdate = false): any {
+  // Convert PersonProfile to Supabase customer record
+  private mapPersonProfileToCustomer(person: PersonProfile, isUpdate = false): any {
     const baseData: any = {
-      employee_id: person.workInfo.personId,
+      person_id: person.workInfo.personId,
+      first_name: person.personalInfo.firstName,
+      last_name: person.personalInfo.lastName,
+      email: person.personalInfo.email,
+      phone: person.personalInfo.phone,
+      address: person.personalInfo.address || {},
+      person_type: person.type || 'customer',
+      work_type: person.workInfo.workType || 'customer',
+      status: person.workInfo.status || 'active',
       department: person.workInfo.department,
       position: person.workInfo.position,
-      hire_date: person.workInfo.startDate ? person.workInfo.startDate.toISOString().split('T')[0] : null,
-      salary: person.compensation.baseSalary,
+      base_salary: person.compensation.baseSalary,
+      hourly_rate: person.compensation.hourlyRate,
       currency: person.compensation.currency || 'EUR',
-      phone: person.personalInfo.phone,
-      address: person.personalInfo.address,
-      emergency_contact: person.personalInfo.emergencyContact,
-      bank_details: person.compensation.bankAccount,
-      tax_info: person.compensation.taxInfo,
+      payment_method: person.compensation.paymentMethod,
       notes: person.notes,
-      updated_at: new Date().toISOString()
+      custom_fields: person.customFields || {}
     };
 
     if (!isUpdate) {
-      baseData.owner_id = this.currentUser;
-      baseData.created_at = new Date().toISOString();
+      baseData.created_by_user_id = this.currentUser;
     }
 
     return baseData;
@@ -97,43 +103,30 @@ export class SupabasePersonManager {
   // Person CRUD Operations
   async createPerson(personData: PersonCreationData): Promise<string | null> {
     try {
-      // For now, we'll create a basic employee record
-      // In a full implementation, you might also create a profile record
-      const employeeData = {
-        employee_id: personData.workInfo?.personId || this.generatePersonId(personData.type || 'employee'),
-        department: personData.workInfo?.department,
-        position: personData.workInfo?.position,
-        hire_date: personData.workInfo?.startDate ? personData.workInfo.startDate.toISOString().split('T')[0] : null,
-        salary: personData.compensation?.baseSalary,
-        currency: personData.compensation?.currency || 'EUR',
-        phone: personData.personalInfo?.phone,
-        address: personData.personalInfo?.address || {
-          street: '',
-          city: '',
-          state: '',
-          zipCode: '',
-          country: 'USA'
-        },
-        emergency_contact: personData.personalInfo?.emergencyContact,
-        bank_details: personData.compensation?.bankAccount,
-        tax_info: personData.compensation?.taxInfo,
-        notes: personData.notes,
-        owner_id: await this.getCurrentUserId()
-      };
-
-      const { data, error } = await supabase
-        .from('employees')
-        .insert([employeeData])
-        .select()
-        .single();
+      // Use the database function for proper validation and security
+      const { data, error } = await supabase.rpc('create_customer', {
+        p_person_id: personData.workInfo?.personId || this.generatePersonId(personData.type || 'customer'),
+        p_first_name: personData.personalInfo?.firstName || '',
+        p_last_name: personData.personalInfo?.lastName || '',
+        p_email: personData.personalInfo?.email || '',
+        p_phone: personData.personalInfo?.phone,
+        p_person_type: personData.type || 'customer',
+        p_work_type: personData.workInfo?.workType || 'customer',
+        p_department: personData.workInfo?.department,
+        p_position: personData.workInfo?.position,
+        p_base_salary: personData.compensation?.baseSalary,
+        p_currency: personData.compensation?.currency || 'EUR',
+        p_address: personData.personalInfo?.address || {},
+        p_custom_fields: personData.customFields || {}
+      });
 
       if (error) {
-        console.error('Error creating employee:', error);
+        console.error('Error creating customer:', error);
         return null;
       }
 
-      console.log('✅ Created employee in Supabase:', data.employee_id);
-      return data.id;
+      console.log('✅ Created customer in Supabase:', data);
+      return data;
     } catch (error) {
       console.error('Error in createPerson:', error);
       return null;
@@ -144,41 +137,44 @@ export class SupabasePersonManager {
     try {
       const updateData: any = {};
 
+      if (updates.personalInfo) {
+        if (updates.personalInfo.firstName) updateData.first_name = updates.personalInfo.firstName;
+        if (updates.personalInfo.lastName) updateData.last_name = updates.personalInfo.lastName;
+        if (updates.personalInfo.email) updateData.email = updates.personalInfo.email;
+        if (updates.personalInfo.phone) updateData.phone = updates.personalInfo.phone;
+        if (updates.personalInfo.address) updateData.address = updates.personalInfo.address;
+      }
+
       if (updates.workInfo) {
-        if (updates.workInfo.personId) updateData.employee_id = updates.workInfo.personId;
+        if (updates.workInfo.personId) updateData.person_id = updates.workInfo.personId;
         if (updates.workInfo.department) updateData.department = updates.workInfo.department;
         if (updates.workInfo.position) updateData.position = updates.workInfo.position;
-        if (updates.workInfo.startDate) updateData.hire_date = updates.workInfo.startDate.toISOString().split('T')[0];
+        if (updates.workInfo.workType) updateData.work_type = updates.workInfo.workType;
+        if (updates.workInfo.status) updateData.status = updates.workInfo.status;
       }
 
       if (updates.compensation) {
-        if (updates.compensation.baseSalary) updateData.salary = updates.compensation.baseSalary;
+        if (updates.compensation.baseSalary) updateData.base_salary = updates.compensation.baseSalary;
+        if (updates.compensation.hourlyRate) updateData.hourly_rate = updates.compensation.hourlyRate;
         if (updates.compensation.currency) updateData.currency = updates.compensation.currency;
-        if (updates.compensation.bankAccount) updateData.bank_details = updates.compensation.bankAccount;
-        if (updates.compensation.taxInfo) updateData.tax_info = updates.compensation.taxInfo;
+        if (updates.compensation.paymentMethod) updateData.payment_method = updates.compensation.paymentMethod;
       }
 
-      if (updates.personalInfo) {
-        if (updates.personalInfo.phone) updateData.phone = updates.personalInfo.phone;
-        if (updates.personalInfo.address) updateData.address = updates.personalInfo.address;
-        if (updates.personalInfo.emergencyContact) updateData.emergency_contact = updates.personalInfo.emergencyContact;
-      }
-
+      if (updates.type) updateData.person_type = updates.type;
       if (updates.notes) updateData.notes = updates.notes;
-
-      updateData.updated_at = new Date().toISOString();
+      if (updates.customFields) updateData.custom_fields = updates.customFields;
 
       const { error } = await supabase
-        .from('employees')
+        .from('customers')
         .update(updateData)
         .eq('id', personId);
 
       if (error) {
-        console.error('Error updating employee:', error);
+        console.error('Error updating customer:', error);
         return false;
       }
 
-      console.log('✅ Updated employee in Supabase:', personId);
+      console.log('✅ Updated customer in Supabase:', personId);
       return true;
     } catch (error) {
       console.error('Error in updatePerson:', error);
@@ -189,16 +185,16 @@ export class SupabasePersonManager {
   async deletePerson(personId: string): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from('employees')
+        .from('customers')
         .delete()
         .eq('id', personId);
 
       if (error) {
-        console.error('Error deleting employee:', error);
+        console.error('Error deleting customer:', error);
         return false;
       }
 
-      console.log('✅ Deleted employee from Supabase:', personId);
+      console.log('✅ Deleted customer from Supabase:', personId);
       return true;
     } catch (error) {
       console.error('Error in deletePerson:', error);
@@ -209,31 +205,17 @@ export class SupabasePersonManager {
   async getPerson(personId: string): Promise<PersonProfile | null> {
     try {
       const { data, error } = await supabase
-        .from('employees')
-        .select(`
-          *,
-          profiles!employees_user_id_fkey (
-            id,
-            email,
-            full_name
-          )
-        `)
+        .from('customers')
+        .select('*')
         .eq('id', personId)
         .single();
 
       if (error) {
-        console.error('Error getting employee:', error);
+        console.error('Error getting customer:', error);
         return null;
       }
 
-      // Merge profile data if available
-      const person = this.mapEmployeeToPersonProfile(data);
-      if (data.profiles) {
-        person.personalInfo.email = data.profiles.email || '';
-        person.personalInfo.fullName = data.profiles.full_name || '';
-      }
-
-      return person;
+      return this.mapCustomerToPersonProfile(data);
     } catch (error) {
       console.error('Error in getPerson:', error);
       return null;
@@ -242,36 +224,46 @@ export class SupabasePersonManager {
 
   async getAllPersons(): Promise<PersonProfile[]> {
     try {
-      const { data, error } = await supabase
-        .from('employees')
-        .select(`
-          *,
-          profiles!employees_user_id_fkey (
-            id,
-            email,
-            full_name
-          )
-        `)
-        .order('created_at', { ascending: false });
+      // Use the database function to respect RLS policies
+      const { data, error } = await supabase.rpc('get_my_customers');
 
       if (error) {
-        console.error('Error getting employees:', error);
+        console.error('Error getting customers:', error);
         return [];
       }
 
-      const persons = data.map(employee => {
-        const person = this.mapEmployeeToPersonProfile(employee);
-        // Merge profile data if available
-        if (employee.profiles) {
-          person.personalInfo.email = employee.profiles.email || '';
-          person.personalInfo.fullName = employee.profiles.full_name || person.workInfo.personId || 'Unknown Employee';
-        } else {
-          person.personalInfo.fullName = person.workInfo.personId || 'Unknown Employee';
-        }
-        return person;
-      });
+      // If the function doesn't work, fall back to direct query
+      if (!data || data.length === 0) {
+        const { data: customerData, error: customerError } = await supabase
+          .from('customers')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      console.log(`✅ Loaded ${persons.length} employees from Supabase`);
+        if (customerError) {
+          console.error('Error getting customers (fallback):', customerError);
+          return [];
+        }
+
+        const persons = customerData.map(customer => this.mapCustomerToPersonProfile(customer));
+        console.log(`✅ Loaded ${persons.length} customers from Supabase (fallback)`);
+        return persons;
+      }
+
+      // Map the function result to full customer records
+      const customerIds = data.map((customer: any) => customer.id);
+      const { data: customerData, error: customerError } = await supabase
+        .from('customers')
+        .select('*')
+        .in('id', customerIds)
+        .order('created_at', { ascending: false });
+
+      if (customerError) {
+        console.error('Error getting full customer data:', customerError);
+        return [];
+      }
+
+      const persons = customerData.map(customer => this.mapCustomerToPersonProfile(customer));
+      console.log(`✅ Loaded ${persons.length} customers from Supabase`);
       return persons;
     } catch (error) {
       console.error('Error in getAllPersons:', error);
@@ -280,73 +272,62 @@ export class SupabasePersonManager {
   }
 
   async getPersonsByType(type: PersonType): Promise<PersonProfile[]> {
-    // For now, all records from employees table are treated as employees
-    // In a full implementation, you might have a type field or separate tables
-    if (type === 'employee') {
-      return this.getAllPersons();
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('person_type', type)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error getting customers by type:', error);
+        return [];
+      }
+
+      return data.map(customer => this.mapCustomerToPersonProfile(customer));
+    } catch (error) {
+      console.error('Error in getPersonsByType:', error);
+      return [];
     }
-    return [];
   }
 
   // Search and filter
   async searchPersons(filters: PersonFilters): Promise<PersonProfile[]> {
     try {
       let query = supabase
-        .from('employees')
-        .select(`
-          *,
-          profiles!employees_user_id_fkey (
-            id,
-            email,
-            full_name
-          )
-        `);
+        .from('customers')
+        .select('*');
 
       // Apply filters
       if (filters.department) {
         query = query.eq('department', filters.department);
       }
 
+      if (filters.personType) {
+        query = query.eq('person_type', filters.personType);
+      }
+
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+
+      if (filters.workType) {
+        query = query.eq('work_type', filters.workType);
+      }
+
       if (filters.searchTerm) {
         const searchTerm = `%${filters.searchTerm}%`;
-        query = query.or(`employee_id.ilike.${searchTerm},department.ilike.${searchTerm},position.ilike.${searchTerm},phone.ilike.${searchTerm}`);
+        query = query.or(`person_id.ilike.${searchTerm},first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},email.ilike.${searchTerm},department.ilike.${searchTerm},position.ilike.${searchTerm},phone.ilike.${searchTerm}`);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error searching employees:', error);
+        console.error('Error searching customers:', error);
         return [];
       }
 
-      const persons = data.map(employee => {
-        const person = this.mapEmployeeToPersonProfile(employee);
-        // Merge profile data if available
-        if (employee.profiles) {
-          person.personalInfo.email = employee.profiles.email || '';
-          person.personalInfo.fullName = employee.profiles.full_name || person.workInfo.personId || 'Unknown Employee';
-        } else {
-          person.personalInfo.fullName = person.workInfo.personId || 'Unknown Employee';
-        }
-        return person;
-      });
-
-      // Additional client-side filtering for fields not easily filtered in SQL
-      let results = persons;
-
-      if (filters.personType && filters.personType !== 'employee') {
-        results = [];
-      }
-
-      if (filters.status) {
-        results = results.filter(person => person.workInfo.status === filters.status);
-      }
-
-      if (filters.workType) {
-        results = results.filter(person => person.workInfo.workType === filters.workType);
-      }
-
-      return results;
+      return data.map(customer => this.mapCustomerToPersonProfile(customer));
     } catch (error) {
       console.error('Error in searchPersons:', error);
       return [];

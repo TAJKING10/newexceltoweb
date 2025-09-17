@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import PayslipGenerator from './components/PayslipGenerator';
 import MonthlyPayslipGenerator from './components/MonthlyPayslipGenerator';
 // import EnhancedTemplateBuilder from './components/EnhancedTemplateBuilder'; // Commented out - template builder disabled
-import PersonManagement from './components/PersonManagement';
+import CustomerManagement from './components/CustomerManagement';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginScreen } from './components/auth/LoginScreen';
@@ -180,7 +180,7 @@ const AppContent: React.FC = () => {
           }}
         >
           {currentView === 'persons' && (
-            <PersonManagement />
+            <CustomerManagement />
           )}
           
           {/* Template builder disabled

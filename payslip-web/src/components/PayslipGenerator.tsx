@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useTranslation } from 'react-i18next';
-import { personManager } from '../utils/personManager';
+import { customerManager } from '../utils/customerManager';
 import { templateSync } from '../utils/templateSync';
 import { viewSync } from '../utils/viewSync';
 import { dataSync } from '../utils/dataSync';
 import { supabasePayslipService } from '../utils/supabasePayslipService';
 import { PayslipTemplate, SectionDefinition, FieldDefinition } from '../types/PayslipTypes';
-import { PersonProfile, PERSON_TYPE_CONFIG } from '../types/PersonTypes';
+import { Customer } from '../utils/customerManager';
 
 const Container = styled.div`
   padding: 20px;
@@ -296,12 +296,12 @@ interface CustomPayslipData {
 const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const { t } = useTranslation();
   const [selectedTemplate, setSelectedTemplate] = useState<PayslipTemplate | null>(null);
-  const [selectedPerson, setSelectedPerson] = useState<PersonProfile | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<Customer | null>(null);
   const [selectedPersonType, setSelectedPersonType] = useState<'all' | 'employee' | 'customer' | 'contractor' | 'freelancer' | 'vendor' | 'consultant' | 'other'>('all');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [templates, setTemplates] = useState<PayslipTemplate[]>([]);
-  const [persons, setPersons] = useState<PersonProfile[]>([]);
+  const [persons, setPersons] = useState<Customer[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -480,7 +480,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       const loadPersonsAsync = async () => {
         try {
           console.log('📝 Basic View: Loading persons from Supabase...');
-          const loadedPersons = await personManager.getAllPersonsAsync();
+          const loadedPersons = await customerManager.getCustomers();
           setPersons(safeArray(loadedPersons));
           console.log(`✅ Basic View: Loaded ${loadedPersons.length} persons from database`);
           
@@ -540,7 +540,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           // Use persons state instead of loadedPersons since it's async loaded
           const person = persons.find((p: any) => p.id === personId);
           if (person && (!selectedPerson || selectedPerson.id !== personId)) {
-            console.log('📝 Basic View: Received cross-view person selection:', person.personalInfo?.fullName);
+            console.log('📝 Basic View: Received cross-view person selection:', person.full_name);
             setSelectedPerson(person);
             handlePersonChange(personId);
           }
@@ -572,7 +572,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         if (syncedPerson) {
           setSelectedPerson(syncedPerson);
           handlePersonChange(syncedPersonId);
-          console.log('📝 Basic View: Applied synced person:', syncedPerson.personalInfo?.fullName);
+          console.log('📝 Basic View: Applied synced person:', syncedPerson.full_name);
         }
       }
 
@@ -607,7 +607,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   }, [safeArray]);
 
   // Initialize template with synchronized data
-  const initializeFromTemplate = (template: PayslipTemplate, person?: PersonProfile) => {
+  const initializeFromTemplate = (template: PayslipTemplate, person?: Customer) => {
     // First, try to load existing synchronized data
     const existingSyncedData = dataSync.loadData(template.id, person?.id);
     
@@ -623,8 +623,8 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     // Initialize header from template (personalized if person provided)
     if (template.header) {
       newData.header = {
-        title: person ? `${template.header.title || 'PAYSLIP'} - ${person.personalInfo?.fullName || 'Employee'}` : (template.header.title || 'PAYSLIP'),
-        subtitle: person ? `${PERSON_TYPE_CONFIG[person.type]?.label || person.type} Pay Statement` : (template.header.subtitle || 'Pay Statement'),
+        title: person ? `${template.header.title || 'PAYSLIP'} - ${person.full_name || 'Employee'}` : (template.header.title || 'PAYSLIP'),
+        subtitle: person ? `${person.person_type?.charAt(0).toUpperCase() + person.person_type?.slice(1) || 'Customer'} Pay Statement` : (template.header.subtitle || 'Pay Statement'),
         companyInfo: {
           name: template.header.companyInfo?.name || 'Universal Company Ltd.',
           address: template.header.companyInfo?.address || '123 Business Street, City, State 12345',
@@ -653,7 +653,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             { id: 'period', label: 'Pay Period', value: 'January 2025' },
             { id: 'date', label: 'Pay Date', value: new Date().toLocaleDateString() },
             { id: 'method', label: 'Payment Method', value: 'Direct Deposit' },
-            ...(person ? [{ id: 'type', label: 'Person Type', value: PERSON_TYPE_CONFIG[person.type]?.label || person.type }] : [])
+            ...(person ? [{ id: 'type', label: 'Person Type', value: person.person_type?.charAt(0).toUpperCase() + person.person_type?.slice(1) || 'Customer' }] : [])
           ]
         }
       ];
@@ -679,16 +679,16 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   };
 
   // Populate ONLY editable common person data (rest stays at 0/empty)
-  const populatePersonData = (person: PersonProfile) => {
+  const populatePersonData = (person: Customer) => {
     setPayslipData(prev => ({
       ...prev,
       // Pre-populate common editable fields from person data
-      employeeName: person.personalInfo?.fullName || '',
-      employeeId: person.workInfo?.personId || '',
-      department: person.workInfo?.department || '',
-      position: person.workInfo?.position || person.workInfo?.title || '',
-      email: person.personalInfo?.email || '',
-      phone: person.personalInfo?.phone || '',
+      employeeName: person.full_name || '',
+      employeeId: person.person_id || '',
+      department: person.department || '',
+      position: person.position || '',
+      email: person.email || '',
+      phone: person.phone || '',
       // Keep financial fields at 0 for fresh start
       basicSalary: 0,
       allowances: 0,
@@ -708,7 +708,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     const safePeople = safeArray(persons);
     return selectedPersonType === 'all' 
       ? safePeople 
-      : safePeople.filter(person => person && person.type === selectedPersonType);
+      : safePeople.filter(person => person && person.person_type === selectedPersonType);
   }, [selectedPersonType, persons, safeArray]);
 
   // Handle template selection
@@ -1461,9 +1461,9 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             }}
           >
             <option value="all">🌟 {t('payslips.allTypes', 'All Types')}</option>
-            {Object.entries(PERSON_TYPE_CONFIG || {}).map(([type, config]) => (
+            {['customer', 'contractor', 'freelancer', 'vendor', 'consultant'].map((type) => (
               <option key={type} value={type}>
-                {config?.icon || ''} {config?.label || type}s
+                {type === 'customer' ? '👤' : type === 'contractor' ? '🔧' : type === 'freelancer' ? '💼' : type === 'vendor' ? '🏪' : type === 'consultant' ? '🎯' : '👤'} {type.charAt(0).toUpperCase() + type.slice(1)}s
               </option>
             ))}
           </Select>
@@ -1487,9 +1487,9 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           >
             <option value="">Choose Person...</option>
             {safeArray(filteredPersons).map(person => (
-              person && person.id && person.personalInfo ? (
+              person && person.id && person.full_name ? (
                 <option key={person.id} value={person.id}>
-                  {PERSON_TYPE_CONFIG[person.type]?.icon || ''} {person.personalInfo.fullName || 'Unknown'} - {person.workInfo?.personId || 'No ID'}
+                  {person.person_type === 'customer' ? '👤' : person.person_type === 'contractor' ? '🔧' : person.person_type === 'freelancer' ? '💼' : person.person_type === 'vendor' ? '🏪' : person.person_type === 'consultant' ? '🎯' : '👤'} {person.full_name || 'Unknown'} - {person.person_id || 'No ID'}
                 </option>
               ) : null
             ))}
@@ -1667,7 +1667,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           <Label style={{ color: '#f44336' }}>{t('basicView.freshStart')}:</Label>
           <Button 
             onClick={() => {
-              if (selectedPerson && window.confirm(`Reset all data for ${selectedPerson.personalInfo?.fullName}? This will create a completely fresh payslip with all values at 0.`)) {
+              if (selectedPerson && window.confirm(`Reset all data for ${selectedPerson.full_name}? This will create a completely fresh payslip with all values at 0.`)) {
                 if (selectedTemplate) {
                   initializeFromTemplate(selectedTemplate, selectedPerson);
                   populatePersonData(selectedPerson);
@@ -2009,7 +2009,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         }}>
           <h3 style={{ color: '#e65100' }}>Generated on {new Date().toLocaleDateString()}</h3>
           <div style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
-            {selectedPerson ? `for ${PERSON_TYPE_CONFIG[selectedPerson.type]?.label || selectedPerson.type} ${selectedPerson.personalInfo?.fullName}` : 'Please select a person'}
+            {selectedPerson ? `for ${selectedPerson.person_type?.charAt(0).toUpperCase() + selectedPerson.person_type?.slice(1) || 'Customer'} ${selectedPerson.full_name}` : 'Please select a person'}
           </div>
         </div>
       </PayslipContainer>
