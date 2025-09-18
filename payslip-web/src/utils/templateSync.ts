@@ -65,12 +65,20 @@ class TemplateSyncService {
     templates.push(...defaults);
     this.saveTemplates(templates);
 
-    console.log(`📋 TemplateSyncService: Loaded ${templates.length} templates`);
-    templates.forEach(t => {
-      console.log(`  - ${this.getTemplateIcon(t.type)} ${t.name} (${t.type})`);
+    // Final deduplication to ensure no duplicate IDs
+    const uniqueTemplates = templates.reduce((acc, template) => {
+      if (!acc.find(t => t.id === template.id)) {
+        acc.push(template);
+      }
+      return acc;
+    }, [] as PayslipTemplate[]);
+
+    console.log(`📋 TemplateSyncService: Loaded ${uniqueTemplates.length} unique templates`);
+    uniqueTemplates.forEach(t => {
+      console.log(`  - ${this.getTemplateIcon(t.type)} ${t.name} (${t.type}) [ID: ${t.id}]`);
     });
 
-    return templates;
+    return uniqueTemplates;
   }
 
   /**

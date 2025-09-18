@@ -48,21 +48,29 @@ const PayslipSheet = styled.div`
   }
 `;
 
-const EditModeToggle = styled.button<{ isActive: boolean }>`
+const EditModeToggle = styled.button`
   position: absolute;
   top: 20px;
   left: 20px;
   padding: 10px 20px;
-  background-color: ${props => props.isActive ? '#ff9800' : '#4caf50'};
+  background-color: #4caf50;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   font-weight: bold;
   z-index: 10;
-  
+
   &:hover {
-    background-color: ${props => props.isActive ? '#f57c00' : '#45a049'};
+    background-color: #45a049;
+  }
+
+  &.active {
+    background-color: #ff9800;
+
+    &:hover {
+      background-color: #f57c00;
+    }
   }
 `;
 
@@ -124,34 +132,50 @@ const ExcelGrid = styled.div`
   min-width: 1800px;
 `;
 
-const Cell = styled.div<{ 
-  isHeader?: boolean; 
-  isCalculated?: boolean; 
-  isEditable?: boolean;
-  colSpan?: number;
-  isTotal?: boolean;
-  isGroupHeader?: boolean;
-}>`
-  background-color: ${props => 
-    props.isHeader ? '#4472c4' : 
-    props.isGroupHeader ? '#2e7d32' :
-    props.isTotal ? '#ffd700' :
-    props.isCalculated ? '#f2f2f2' : 
-    props.isEditable ? 'white' : '#fafafa'
-  };
-  color: ${props => props.isHeader || props.isTotal || props.isGroupHeader ? 'white' : '#333'};
+const Cell = styled.div`
   padding: 8px 12px;
   border: 1px solid #ccc;
-  font-size: ${props => props.isHeader ? '12px' : '14px'};
-  font-weight: ${props => props.isHeader || props.isCalculated || props.isTotal || props.isGroupHeader ? 'bold' : 'normal'};
   min-height: 40px;
   display: flex;
   align-items: center;
-  justify-content: ${props => props.isHeader || props.isGroupHeader ? 'center' : 'flex-start'};
-  grid-column: ${props => props.colSpan ? `span ${props.colSpan}` : 'auto'};
-  
-  &:hover {
-    background-color: ${props => props.isEditable ? '#e3f2fd' : 'inherit'};
+  justify-content: flex-start;
+  background-color: #fafafa;
+  color: #333;
+  font-size: 14px;
+  font-weight: normal;
+
+  &.header {
+    background-color: #4472c4;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    justify-content: center;
+  }
+
+  &.group-header {
+    background-color: #2e7d32;
+    color: white;
+    font-weight: bold;
+    justify-content: center;
+  }
+
+  &.total {
+    background-color: #ffd700;
+    color: white;
+    font-weight: bold;
+  }
+
+  &.editable {
+    background-color: white;
+
+    &:hover {
+      background-color: #e3f2fd;
+    }
+  }
+
+  &.calculated {
+    background-color: #f2f2f2;
+    font-weight: bold;
   }
 `;
 
@@ -790,10 +814,48 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       : safePeople.filter(person => person && person.person_type === selectedPersonType);
   }, [selectedPersonType, persons, safeArray]);
 
+  // Debounced save to prevent excessive backend calls
+  const debouncedSave = useCallback(
+    debounce(async (monthIndex: number, rowName: string, value: string) => {
+      if (selectedTemplate && selectedPerson) {
+        console.log(`🔥 AUTO-SAVE: ${selectedPerson.full_name} - ${rowName} month ${monthIndex}: ${value}`);
+
+        // Save to local sync first (for cross-view synchronization)
+        const saveKey = `${selectedTemplate.id}-${selectedPerson.id}`;
+        console.log(`💾 Auto-save with key: ${saveKey}`);
+        dataSync.saveData(selectedTemplate.id, payslipData, selectedPerson.id);
+
+        // Also auto-save to Supabase database if we have a selected person
+        try {
+          const result = await supabasePayslipService.saveAnnualPayslipView(
+            payslipData,
+            selectedPerson,
+            selectedTemplate
+          );
+
+          if (result.success) {
+            console.log(`✅ Database auto-save successful for ${selectedPerson.full_name}`);
+          } else {
+            console.warn(`⚠️ Database auto-save failed for ${selectedPerson.full_name}:`, result.error);
+          }
+        } catch (error) {
+          console.error('Excel View: Auto-save error:', error);
+        }
+
+        console.log(`✅ Local sync completed for ${selectedPerson.full_name}`);
+      } else {
+        console.warn('⚠️ Cannot auto-save: missing template or person');
+      }
+    }, 2000), // Increased to 2 seconds to match Basic View
+    [selectedTemplate, selectedPerson, payslipData]
+  );
+
   // Optimized cell change - immediate UI updates only
   const handleCellChange = useCallback((monthIndex: number, rowName: string, value: string) => {
     const numValue = parseFloat(value) || 0;
-    
+
+    console.log(`📝 Cell change: ${rowName} month ${monthIndex} = ${value}`);
+
     // Immediate UI update for responsiveness
     setPayslipData(prev => ({
       ...prev,
@@ -805,7 +867,11 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         }
       }
     }));
-  }, []);
+
+    // Trigger auto-save after cell change
+    console.log(`💾 Triggering auto-save for cell change`);
+    debouncedSave(monthIndex, rowName, value);
+  }, [debouncedSave]);
 
   // Debounced calculation trigger
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -961,42 +1027,61 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         });
       });
     }
-    
-    // Save to backend (debounced)
-    debouncedSave(monthIndex, rowName, value);
-  }, [payslipData.taxClass, payslipData.hasChildren]);
 
-  // Debounced save to prevent excessive backend calls
-  const debouncedSave = useCallback(
-    debounce((monthIndex: number, rowName: string, value: string) => {
-      if (selectedTemplate) {
-        dataSync.saveData(selectedTemplate.id, payslipData, selectedPerson?.id);
-        console.log(`💾 Excel View: Data saved for ${rowName} month ${monthIndex}`);
-      }
-    }, 500),
-    [selectedTemplate, selectedPerson, payslipData]
-  );
+    // Save to backend (debounced) - only if we have template and person
+    if (selectedTemplate && selectedPerson) {
+      debouncedSave(monthIndex, rowName, value);
+    }
+  }, [payslipData.taxClass, payslipData.hasChildren, selectedTemplate, selectedPerson]);
 
   // Handle person selection - load data immediately and show empty values if no database record
   const handlePersonChange = async (personId: string) => {
     const person = safeArray(filteredPersons).find(p => p.id === personId);
     if (person) {
+      console.log(`🔄 CUSTOMER CHANGE: Switching to ${person.full_name} (ID: ${personId})`);
+
+      // STEP 1: Clear current state immediately to reset the page
       setSelectedPerson(person);
-      
-      // Get person name for fallback loading
-      const personName = person.full_name;
-      
-      console.log(`👤 Person changed to: ${personName} (ID: ${personId})`);
-      
-      // Try to load existing data from database first
-      const hasLoadedData = await loadPersonalizedData(person.id, payslipData.year, personName);
-      
-      // If no saved data found, create empty template (not template defaults)
-      if (!hasLoadedData) {
-        console.log('📄 No database record found - creating empty payslip');
-        const emptyData = createEmptyPersonalizedTemplate(person);
-        setPayslipData(emptyData);
+
+      // STEP 2: Check for existing synchronized data for this person and current template
+      if (selectedTemplate) {
+        console.log(`🔍 Looking for synced data with key: ${selectedTemplate.id}-${personId}`);
+        const existingSyncedData = dataSync.loadData(selectedTemplate.id, personId);
+
+        if (existingSyncedData && Object.keys(existingSyncedData).length > 0) {
+          console.log(`📂 SUCCESS: Loading existing synced data for ${person.full_name}`);
+          setPayslipData({ ...existingSyncedData });
+          console.log(`✅ Page reset complete - data loaded for ${person.full_name}`);
+          return;
+        } else {
+          console.log(`❌ No valid synced data found for ${person.full_name} with template ${selectedTemplate.name}`);
+        }
+      } else {
+        console.log(`⚠️ No template selected when switching to ${person.full_name}`);
       }
+
+      // STEP 3: Try to load existing data from database
+      console.log(`🔍 Checking database for ${person.full_name}...`);
+
+      // Create fresh empty template first
+      const emptyData = createEmptyPersonalizedTemplate(person);
+      setPayslipData({ ...emptyData });
+      console.log(`🆕 Reset to empty template for ${person.full_name}`);
+
+      const hasLoadedData = await loadPersonalizedData(person.id, payslipData.year, person.full_name);
+
+      // STEP 4: If no saved data found, keep the empty template and save it
+      if (!hasLoadedData) {
+        console.log(`📄 No database record found - using empty payslip for ${person.full_name}`);
+
+        // Save this empty data as the initial state for this customer
+        if (selectedTemplate) {
+          console.log(`💾 Saving empty template for ${person.full_name} with key: ${selectedTemplate.id}-${personId}`);
+          dataSync.saveData(selectedTemplate.id, emptyData, personId);
+        }
+      }
+
+      console.log(`✅ Customer change complete for ${person.full_name}`);
     }
   };
 
@@ -1601,24 +1686,41 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       alert('Please select a person first!');
       return;
     }
-    
+
+    if (!selectedTemplate) {
+      alert('Please select a template first!');
+      return;
+    }
+
+    console.log(`🔥 MANUAL SAVE: Starting save for ${selectedPerson.full_name}`);
+
     try {
+      // STEP 1: Force immediate local sync save for cross-view synchronization
+      console.log(`💾 Saving to local sync with key: ${selectedTemplate.id}-${selectedPerson.id}`);
+      dataSync.saveData(selectedTemplate.id, payslipData, selectedPerson.id);
+      console.log(`✅ Local sync completed for ${selectedPerson.full_name}`);
+
+      // STEP 2: Force refresh to ensure data is immediately available
+      dataSync.forceRefresh(selectedTemplate.id, selectedPerson.id);
+
+      // STEP 3: Save to database
+      console.log(`🏛️ Saving to database for ${selectedPerson.full_name}...`);
       const result = await supabasePayslipService.saveAnnualPayslipView(
-        payslipData, 
-        selectedPerson, 
+        payslipData,
+        selectedPerson,
         selectedTemplate
       );
-      
+
       if (result.success) {
-        alert('✅ Annual payslip data saved to database successfully!');
-        console.log('💾 Saved to database with ID:', result.id);
+        alert(`✅ Data saved successfully for ${selectedPerson.full_name}!`);
+        console.log(`💾 Database save completed with ID:`, result.id);
       } else {
-        alert(`❌ Error saving to database: ${result.error}`);
+        alert(`❌ Database error: ${result.error}`);
         console.error('Database save error:', result.error);
       }
     } catch (error) {
-      console.error('Save error:', error);
-      alert('❌ Error saving payslip data to database');
+      console.error('Manual save error:', error);
+      alert(`❌ Error saving data for ${selectedPerson.full_name}`);
     }
   };
 
@@ -1761,7 +1863,13 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             }}
           >
             <option value="" style={{ color: '#999' }}>Choose Template Type...</option>
-            {safeArray(templates).map(template => (
+            {safeArray(templates).reduce((acc, template) => {
+              // Deduplicate templates by ID before rendering
+              if (template && template.id && !acc.find(t => t.id === template.id)) {
+                acc.push(template);
+              }
+              return acc;
+            }, [] as any[]).map(template => (
               template && template.id ? (
                 <option 
                   key={template.id} 
@@ -2250,8 +2358,8 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       )}
 
       <PayslipSheet>
-        <EditModeToggle 
-          isActive={editMode}
+        <EditModeToggle
+          className={editMode ? 'active' : ''}
           onClick={() => setEditMode(!editMode)}
         >
           {editMode ? `📝 ${t('basicView.exitEditMode')}` : `🎨 ${t('basicView.editMode')}`}
@@ -2390,21 +2498,21 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         {/* Excel Grid */}
         <ExcelGrid>
           {/* Header Row */}
-          <Cell isHeader>DESCRIPTION</Cell>
+          <Cell className="header">DESCRIPTION</Cell>
           {monthNames.map(month => (
-            <Cell key={month} isHeader>{month}</Cell>
+            <Cell key={month} className="header">{month}</Cell>
           ))}
-          <Cell isHeader>TOTAL</Cell>
+          <Cell className="header">TOTAL</Cell>
 
           {/* Data Rows organized by Groups */}
           {safeArray(payslipData.groups).map(group => (
             <React.Fragment key={group.id}>
               {/* Group Header with Add Row Button */}
-              <Cell isGroupHeader colSpan={13}>
+              <Cell className="group-header" colSpan={13}>
                 {group.name}
               </Cell>
               {editMode && (
-                <Cell isGroupHeader>
+                <Cell className="group-header">
                   <button
                     onClick={() => addRowToGroup(group.id)}
                     style={{
@@ -2423,7 +2531,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                   </button>
                 </Cell>
               )}
-              {!editMode && <Cell isGroupHeader></Cell>}
+              {!editMode && <Cell className="group-header"></Cell>}
               
               {/* Group Rows */}
               {!group.isCollapsed && safeArray(group.rows).map(row => (
@@ -2543,7 +2651,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                       />
                     );
                   })}
-                  <Cell isTotal>
+                  <Cell className="total">
                     {(payslipData.totals[row] || 0).toLocaleString()}
                   </Cell>
                 </React.Fragment>
@@ -2588,10 +2696,10 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             .filter(row => !payslipData.groups.some(group => group.rows.includes(row)))
             .length > 0 && (
             <>
-              <Cell isGroupHeader colSpan={13}>
+              <Cell className="group-header" colSpan={13}>
                 UNGROUPED ROWS
               </Cell>
-              <Cell isGroupHeader></Cell>
+              <Cell className="group-header"></Cell>
             </>
           )}
           
@@ -2745,7 +2853,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                     />
                   );
                 })}
-                <Cell isTotal>
+                <Cell className="total">
                   {(payslipData.totals[row] || 0).toLocaleString()}
                 </Cell>
               </React.Fragment>

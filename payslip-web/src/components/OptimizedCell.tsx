@@ -10,23 +10,23 @@ interface OptimizedCellProps {
   onCellCommit: (monthIndex: number, rowName: string, value: string) => void;
 }
 
-const CellContainer = styled.div<{ isEditable: boolean; isCalculated: boolean }>`
-  background-color: ${props => 
-    props.isCalculated ? '#f2f2f2' : 
-    props.isEditable ? 'white' : '#fafafa'
+const CellContainer = styled.div<{ $isEditable: boolean; $isCalculated: boolean }>`
+  background-color: ${props =>
+    props.$isCalculated ? '#f2f2f2' :
+    props.$isEditable ? 'white' : '#fafafa'
   };
   color: #333;
   padding: 8px 12px;
   border: 1px solid #ccc;
   font-size: 14px;
-  font-weight: ${props => props.isCalculated ? 'bold' : 'normal'};
+  font-weight: ${props => props.$isCalculated ? 'bold' : 'normal'};
   min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  
+
   &:hover {
-    background-color: ${props => props.isEditable ? '#e3f2fd' : 'inherit'};
+    background-color: ${props => props.$isEditable ? '#e3f2fd' : 'inherit'};
   }
 `;
 
@@ -90,7 +90,7 @@ const OptimizedCell = memo<OptimizedCellProps>(({
 
   if (isCalculated) {
     return (
-      <CellContainer isEditable={false} isCalculated={true}>
+      <CellContainer $isEditable={false} $isCalculated={true}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -109,7 +109,7 @@ const OptimizedCell = memo<OptimizedCellProps>(({
   }
 
   return (
-    <CellContainer isEditable={true} isCalculated={false}>
+    <CellContainer $isEditable={true} $isCalculated={false}>
       <CellInput
         type="number"
         step="0.01"

@@ -1599,7 +1599,13 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             }}
           >
             <option value="" style={{ color: '#999' }}>Choose Template Type...</option>
-            {safeArray(templates).map(template => (
+            {safeArray(templates).reduce((acc, template) => {
+              // Deduplicate templates by ID before rendering
+              if (template && template.id && !acc.find(t => t.id === template.id)) {
+                acc.push(template);
+              }
+              return acc;
+            }, [] as any[]).map(template => (
               template && template.id ? (
                 <option 
                   key={template.id} 

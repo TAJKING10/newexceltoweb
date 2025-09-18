@@ -21,7 +21,7 @@ class DataSyncService {
     try {
       const existingData = this.getAllData();
       const key = this.getDataKey(templateId, personId);
-      
+
       const syncedData: SyncedData = {
         templateId,
         personId,
@@ -32,8 +32,9 @@ class DataSyncService {
       existingData[key] = syncedData;
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(existingData));
 
-      console.log(`💾 DataSync: Saved data for template ${templateId}${personId ? ` and person ${personId}` : ''}`);
-      
+      console.log(`💾 DataSync: Saved data with key "${key}" for template ${templateId}${personId ? ` and person ${personId}` : ''}`);
+      console.log(`📊 DataSync: Total stored entries: ${Object.keys(existingData).length}`);
+
       // Notify all listeners
       this.notifyListeners(templateId, personId);
     } catch (error) {
@@ -48,13 +49,17 @@ class DataSyncService {
     try {
       const allData = this.getAllData();
       const key = this.getDataKey(templateId, personId);
-      
+
+      console.log(`🔍 DataSync: Looking for key "${key}"`);
+      console.log(`📊 DataSync: Available keys: ${Object.keys(allData).join(', ')}`);
+
       const syncedData = allData[key];
       if (syncedData) {
-        console.log(`📂 DataSync: Loaded data for template ${templateId}${personId ? ` and person ${personId}` : ''}`);
+        console.log(`📂 DataSync: Found and loaded data with key "${key}"`);
         return syncedData.data;
       }
-      
+
+      console.log(`❌ DataSync: No data found for key "${key}"`);
       return null;
     } catch (error) {
       console.error('Error loading synced data:', error);
