@@ -69,20 +69,20 @@ class SupabasePayslipService {
       }
 
       // Generate view name
-      const viewName = `${selectedPerson?.personalInfo?.fullName || selectedPerson?.name || 'Unknown'} - Annual ${payslipData.year || new Date().getFullYear()}`;
+      const viewName = `${selectedPerson?.full_name || selectedPerson?.name || 'Unknown'} - Annual ${payslipData.year || new Date().getFullYear()}`;
 
       // Prepare data for saving
       const saveData: Partial<SavedPayslipView> = {
         view_name: viewName,
         view_type: 'annual',
-        description: `Annual payslip report for ${selectedPerson?.personalInfo?.fullName || selectedPerson?.name || 'Unknown'} - ${payslipData.year || new Date().getFullYear()}`,
+        description: `Annual payslip report for ${selectedPerson?.full_name || selectedPerson?.name || 'Unknown'} - ${payslipData.year || new Date().getFullYear()}`,
         person_id: selectedPerson?.id || null,
-        person_name: selectedPerson?.personalInfo?.fullName || selectedPerson?.name || 'Unknown',
-        person_email: selectedPerson?.personalInfo?.email || selectedPerson?.email || null,
-        person_type: selectedPerson?.type || 'employee',
-        employee_id: selectedPerson?.workInfo?.personId || selectedPerson?.employeeId || null,
-        department: selectedPerson?.workInfo?.department || selectedPerson?.department || null,
-        position: selectedPerson?.workInfo?.position || selectedPerson?.position || null,
+        person_name: selectedPerson?.full_name || selectedPerson?.name || 'Unknown',
+        person_email: selectedPerson?.email || null,
+        person_type: selectedPerson?.person_type || 'employee',
+        employee_id: selectedPerson?.person_id || selectedPerson?.employeeId || null,
+        department: selectedPerson?.department || null,
+        position: selectedPerson?.position || null,
         template_id: selectedTemplate?.id || null, // Now accepts text template IDs directly
         template_name: selectedTemplate?.name || null,
         payslip_year: payslipData.year || new Date().getFullYear(),
@@ -416,7 +416,7 @@ class SupabasePayslipService {
 
       // Generate view name
       const monthName = new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long' });
-      const viewName = `${selectedPerson?.personalInfo?.fullName || selectedPerson?.name || 'Unknown'} - ${monthName} ${selectedYear}`;
+      const viewName = `${selectedPerson?.full_name || selectedPerson?.name || 'Unknown'} - ${monthName} ${selectedYear}`;
 
       // Calculate pay period
       const payPeriodStart = new Date(selectedYear, selectedMonth, 1).toISOString().split('T')[0];
@@ -431,14 +431,14 @@ class SupabasePayslipService {
       const saveData: Partial<SavedPayslipView> = {
         view_name: viewName,
         view_type: 'basic',
-        description: `Basic payslip for ${selectedPerson?.personalInfo?.fullName || selectedPerson?.name || 'Unknown'} - ${monthName} ${selectedYear}`,
+        description: `Basic payslip for ${selectedPerson?.full_name || selectedPerson?.name || 'Unknown'} - ${monthName} ${selectedYear}`,
         person_id: selectedPerson?.id || null,
-        person_name: selectedPerson?.personalInfo?.fullName || selectedPerson?.name || 'Unknown',
-        person_email: selectedPerson?.personalInfo?.email || selectedPerson?.email || null,
-        person_type: selectedPerson?.type || 'employee',
-        employee_id: selectedPerson?.workInfo?.personId || selectedPerson?.employeeId || null,
-        department: selectedPerson?.workInfo?.department || selectedPerson?.department || null,
-        position: selectedPerson?.workInfo?.position || selectedPerson?.position || null,
+        person_name: selectedPerson?.full_name || selectedPerson?.name || 'Unknown',
+        person_email: selectedPerson?.email || null,
+        person_type: selectedPerson?.person_type || 'employee',
+        employee_id: selectedPerson?.person_id || selectedPerson?.employeeId || null,
+        department: selectedPerson?.department || null,
+        position: selectedPerson?.position || null,
         template_id: selectedTemplate?.id || null,
         template_name: selectedTemplate?.name || null,
         payslip_year: selectedYear,

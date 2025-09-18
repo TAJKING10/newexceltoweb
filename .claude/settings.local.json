@@ -93,7 +93,22 @@
       "Bash(TSC_COMPILE_ON_ERROR=true PORT=3553 npm start)",
       "Bash(start http://localhost:3553)",
       "Bash(TSC_COMPILE_ON_ERROR=true PORT=3569 npm start)",
-      "Bash(start http://localhost:3569)"
+      "Bash(start http://localhost:3569)",
+      "Bash(PORT=3570 npm start)",
+      "Bash(start http://localhost:3570)",
+      "Bash(npx tsc:*)",
+      "Bash(PORT=3571 npm start)",
+      "Bash(start http://localhost:3571)",
+      "Bash(PORT=3559 npm start)",
+      "Bash(start http://localhost:3559)",
+      "Bash(TSC_COMPILE_ON_ERROR=true PORT=3588 npm start)",
+      "Bash(PORT=3588 npm start)",
+      "Bash(start http://localhost:3588)",
+      "Bash(PORT=3678 npm start)",
+      "Bash(start http://localhost:3678)",
+      "Bash(PORT=3579 npm start)",
+      "Bash(start http://localhost:3579)",
+      "Bash(PORT=3777 npm start)"
     ],
     "deny": [],
     "ask": []

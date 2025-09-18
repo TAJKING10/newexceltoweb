@@ -1,16 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import { useTranslation } from 'react-i18next';
 import { customerManager } from '../utils/customerManager';
+import { customerExcelService } from '../utils/customerExcelService';
 import { templateSync } from '../utils/templateSync';
 import { viewSync } from '../utils/viewSync';
 import { dataSync } from '../utils/dataSync';
 import { supabasePayslipService } from '../utils/supabasePayslipService';
+import { personSync } from '../utils/personSyncService';
 import { PayslipTemplate } from '../types/PayslipTypes';
 import { Customer } from '../utils/customerManager';
 import OptimizedCell from './OptimizedCell';
 // import VirtualizedPayslipTable from './VirtualizedPayslipTable'; // Disabled for now
 import '../styles/print.css';
+import * as XLSX from 'xlsx';
 
 // Debounce utility function
 function debounce<T extends (...args: any[]) => void>(func: T, delay: number): T {
@@ -132,7 +135,7 @@ const ExcelGrid = styled.div`
   min-width: 1800px;
 `;
 
-const Cell = styled.div`
+const Cell = styled.div<{ colSpan?: number }>`
   padding: 8px 12px;
   border: 1px solid #ccc;
   min-height: 40px;
@@ -143,6 +146,7 @@ const Cell = styled.div`
   color: #333;
   font-size: 14px;
   font-weight: normal;
+  grid-column: ${props => props.colSpan ? `span ${props.colSpan}` : 'span 1'};
 
   &.header {
     background-color: #4472c4;
@@ -212,11 +216,16 @@ const SaveButton = styled.button`
   border-radius: 5px;
   cursor: pointer;
   font-weight: bold;
-  
-  &:hover {
+
+  &:hover:not(:disabled) {
     background-color: #1976d2;
   }
-  
+
+  &:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+
   @media print {
     display: none;
   }
@@ -367,6 +376,8 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const [editMode, setEditMode] = useState(false);
   const [editingRowName, setEditingRowName] = useState<string | null>(null);
   const [tempRowName, setTempRowName] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   // const [useVirtualization, setUseVirtualization] = useState(true); // Enable virtualization by default
 
   const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -717,6 +728,21 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         }
       });
 
+      // Subscribe to new personSync service for unified person selection
+      const unsubscribePersonSyncService = personSync.onPersonChange((person) => {
+        if (person && (!selectedPerson || selectedPerson.id !== person.id)) {
+          console.log('📊 Excel View: Received PersonSync person selection:', person.full_name);
+          setSelectedPerson(person);
+          // Load data for this person if we have a template
+          if (selectedTemplate) {
+            handlePersonChange(person.id).catch(console.error);
+          }
+        } else if (!person && selectedPerson) {
+          console.log('📊 Excel View: Received PersonSync person clear');
+          setSelectedPerson(null);
+        }
+      });
+
       const unsubscribeYearSync = viewSync.onYearChange((year) => {
         if (year !== selectedYear) {
           console.log('📊 Excel View: Received cross-view year selection:', year);
@@ -774,6 +800,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         unsubscribeViewSync();
         unsubscribePersonSync();
         unsubscribePersonTypeSync();
+        unsubscribePersonSyncService();
         unsubscribeYearSync();
         unsubscribeDataSync();
       };
@@ -814,41 +841,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       : safePeople.filter(person => person && person.person_type === selectedPersonType);
   }, [selectedPersonType, persons, safeArray]);
 
-  // Debounced save to prevent excessive backend calls
-  const debouncedSave = useCallback(
-    debounce(async (monthIndex: number, rowName: string, value: string) => {
-      if (selectedTemplate && selectedPerson) {
-        console.log(`🔥 AUTO-SAVE: ${selectedPerson.full_name} - ${rowName} month ${monthIndex}: ${value}`);
-
-        // Save to local sync first (for cross-view synchronization)
-        const saveKey = `${selectedTemplate.id}-${selectedPerson.id}`;
-        console.log(`💾 Auto-save with key: ${saveKey}`);
-        dataSync.saveData(selectedTemplate.id, payslipData, selectedPerson.id);
-
-        // Also auto-save to Supabase database if we have a selected person
-        try {
-          const result = await supabasePayslipService.saveAnnualPayslipView(
-            payslipData,
-            selectedPerson,
-            selectedTemplate
-          );
-
-          if (result.success) {
-            console.log(`✅ Database auto-save successful for ${selectedPerson.full_name}`);
-          } else {
-            console.warn(`⚠️ Database auto-save failed for ${selectedPerson.full_name}:`, result.error);
-          }
-        } catch (error) {
-          console.error('Excel View: Auto-save error:', error);
-        }
-
-        console.log(`✅ Local sync completed for ${selectedPerson.full_name}`);
-      } else {
-        console.warn('⚠️ Cannot auto-save: missing template or person');
-      }
-    }, 2000), // Increased to 2 seconds to match Basic View
-    [selectedTemplate, selectedPerson, payslipData]
-  );
+  // Removed autosave functionality - now using manual save only
 
   // Optimized cell change - immediate UI updates only
   const handleCellChange = useCallback((monthIndex: number, rowName: string, value: string) => {
@@ -868,10 +861,12 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       }
     }));
 
-    // Trigger auto-save after cell change
-    console.log(`💾 Triggering auto-save for cell change`);
-    debouncedSave(monthIndex, rowName, value);
-  }, [debouncedSave]);
+    // Save to local sync for cross-view synchronization (but no autosave to database)
+    if (selectedTemplate && selectedPerson) {
+      console.log(`💾 Updating local sync for cross-view synchronization`);
+      dataSync.saveData(selectedTemplate.id, payslipData, selectedPerson.id);
+    }
+  }, []);
 
   // Debounced calculation trigger
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1028,9 +1023,9 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       });
     }
 
-    // Save to backend (debounced) - only if we have template and person
+    // Update local sync for cross-view synchronization (no autosave to database)
     if (selectedTemplate && selectedPerson) {
-      debouncedSave(monthIndex, rowName, value);
+      dataSync.saveData(selectedTemplate.id, payslipData, selectedPerson.id);
     }
   }, [payslipData.taxClass, payslipData.hasChildren, selectedTemplate, selectedPerson]);
 
@@ -1040,7 +1035,10 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     if (person) {
       console.log(`🔄 CUSTOMER CHANGE: Switching to ${person.full_name} (ID: ${personId})`);
 
-      // STEP 1: Clear current state immediately to reset the page
+      setIsLoading(true);
+
+      // STEP 1: Update personSync and current state immediately to reset the page
+      personSync.setSelectedPerson(person, 'Excel View');
       setSelectedPerson(person);
 
       // STEP 2: Check for existing synchronized data for this person and current template
@@ -1082,6 +1080,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       }
 
       console.log(`✅ Customer change complete for ${person.full_name}`);
+      setIsLoading(false);
     }
   };
 
@@ -1307,37 +1306,131 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     };
   };
 
-  // Load personalized data from Supabase database
+  // Load personalized data from Supabase database and customer Excel files
   const loadPersonalizedData = async (personId: string, year?: number, personName?: string) => {
     try {
       const currentYear = year || payslipData.year || new Date().getFullYear();
-      console.log(`📂 Loading data for person ${personId}, year ${currentYear}`);
-      
-      // First try loading by person ID
+      console.log(`📂 Excel View: Loading data for person ${personId}, year ${currentYear}`);
+
+      // STEP 1: Try loading from saved_payslip_views (annual view data)
       let result = await supabasePayslipService.loadAnnualPayslipView(personId, currentYear);
-      
+
       // If that fails and we have a person name, try loading by name as fallback
       if (!result.success && personName) {
-        console.log('📂 Fallback: Loading by person name:', personName);
+        console.log('📂 Excel View: Fallback - Loading by person name:', personName);
         result = await supabasePayslipService.loadAnnualPayslipViewByName(personName, currentYear);
       }
-      
-      // If both fail, try loading the most recent data for this year (ultimate fallback)
+
+      // STEP 2: If no annual data found, try loading from customer Excel files
       if (!result.success) {
-        console.log('📂 Ultimate fallback: Loading most recent data for year:', currentYear);
+        console.log('📂 Excel View: Trying to load from customer Excel files...');
+        try {
+          const excelResult = await customerExcelService.loadCustomerExcelFile(
+            personId,
+            `${personName}_Payslip_${currentYear}.xlsx`
+          );
+
+          if (excelResult.success && excelResult.data?.file_data) {
+            console.log('✅ Excel View: Found customer Excel file, converting to payslip data');
+            const workbook = excelResult.data.file_data;
+
+            // Convert Excel data back to payslip format
+            if (workbook.Sheets) {
+              const mainSheetName = Object.keys(workbook.Sheets)[0];
+              const worksheet = workbook.Sheets[mainSheetName];
+
+              if (worksheet) {
+                const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                // Extract payslip structure from Excel data
+                if (sheetData.length > 1) {
+                  const headers = sheetData[0] as string[];
+                  const customRows = headers.slice(1); // Remove 'Month' column
+
+                  const months: any = {};
+                  const totals: any = {};
+
+                  // Initialize months
+                  for (let i = 0; i < 12; i++) {
+                    months[i] = {};
+                    customRows.forEach(rowName => {
+                      months[i][rowName] = 0;
+                    });
+                  }
+
+                  // Initialize totals
+                  customRows.forEach(rowName => {
+                    totals[rowName] = 0;
+                  });
+
+                  // Parse data rows
+                  for (let i = 1; i < sheetData.length; i++) {
+                    const row = sheetData[i] as any[];
+                    if (row.length > 1) {
+                      const monthIndex = parseInt(row[0]) || 0;
+                      if (monthIndex >= 0 && monthIndex < 12) {
+                        for (let j = 1; j < row.length && j - 1 < customRows.length; j++) {
+                          const rowName = customRows[j - 1];
+                          const value = parseFloat(row[j]) || 0;
+                          months[monthIndex][rowName] = value;
+                          totals[rowName] = (totals[rowName] || 0) + value;
+                        }
+                      }
+                    }
+                  }
+
+                  // Check metadata sheet for additional info
+                  let taxClass = 1;
+                  let hasChildren = false;
+                  if (workbook.Sheets['Metadata']) {
+                    const metadataData = XLSX.utils.sheet_to_json(workbook.Sheets['Metadata']);
+                    if (metadataData.length > 0) {
+                      const metadata = metadataData[0] as any;
+                      taxClass = metadata.tax_class || 1;
+                      hasChildren = metadata.has_children || false;
+                    }
+                  }
+
+                  const excelPayslipData = {
+                    ...payslipData,
+                    year: currentYear,
+                    customRows,
+                    months,
+                    totals,
+                    taxClass,
+                    hasChildren,
+                    personName: personName || 'Unknown',
+                    personId: personId
+                  };
+
+                  console.log('✅ Excel View: Successfully converted Excel data to payslip format');
+                  setPayslipData(excelPayslipData);
+                  return true;
+                }
+              }
+            }
+          }
+        } catch (excelError) {
+          console.warn('⚠️ Excel View: Error loading customer Excel file:', excelError);
+        }
+      }
+
+      // STEP 3: If both fail, try loading the most recent data for this year (ultimate fallback)
+      if (!result.success) {
+        console.log('📂 Excel View: Ultimate fallback - Loading most recent data for year:', currentYear);
         result = await supabasePayslipService.loadMostRecentAnnualPayslipView(currentYear);
       }
-      
+
       if (result.success && result.data) {
-        console.log('✅ Successfully loaded personalized data from database');
+        console.log('✅ Excel View: Successfully loaded personalized data from database');
         setPayslipData(result.data);
         return true;
       } else {
-        console.log('ℹ️ No saved data found in database, using template defaults');
+        console.log('ℹ️ Excel View: No saved data found, using template defaults');
         return false;
       }
     } catch (error) {
-      console.error('Error loading personalized data from database:', error);
+      console.error('❌ Excel View: Error loading personalized data:', error);
       return false;
     }
   };
@@ -1692,6 +1785,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       return;
     }
 
+    setIsSaving(true);
     console.log(`🔥 MANUAL SAVE: Starting save for ${selectedPerson.full_name}`);
 
     try {
@@ -1711,6 +1805,68 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         selectedTemplate
       );
 
+      // STEP 4: Save customer-specific Excel file with proper structure
+      try {
+        console.log('💾 Excel View: Saving customer Excel data...');
+
+        // Create proper Excel workbook structure
+        const workbook = XLSX.utils.book_new();
+
+        // Convert months data to worksheet format
+        const worksheetData = [];
+        const headers = ['Month', ...payslipData.customRows];
+        worksheetData.push(headers);
+
+        // Add monthly data
+        if (payslipData.months) {
+          Object.keys(payslipData.months).forEach(monthKey => {
+            const monthIndex = parseInt(monthKey);
+            const monthData = payslipData.months[monthIndex];
+            const row = [monthKey];
+            payslipData.customRows.forEach(rowName => {
+              row.push((monthData as any)?.[rowName] || 0);
+            });
+            worksheetData.push(row);
+          });
+        }
+
+        // Create worksheet and add to workbook
+        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+        XLSX.utils.book_append_sheet(workbook, worksheet, `${selectedPerson.full_name}_${selectedYear}`);
+
+        // Add metadata sheet
+        const metadataSheet = XLSX.utils.json_to_sheet([{
+          person_name: selectedPerson.full_name,
+          person_id: selectedPerson.id,
+          template_name: selectedTemplate.name,
+          template_id: selectedTemplate.id,
+          year: selectedYear,
+          department: selectedPerson.department || '',
+          position: selectedPerson.position || '',
+          last_modified: new Date().toISOString(),
+          tax_class: payslipData.taxClass || 1,
+          has_children: payslipData.hasChildren || false
+        }]);
+        XLSX.utils.book_append_sheet(workbook, metadataSheet, 'Metadata');
+
+        // Save to customer Excel service
+        const saveResult = await customerExcelService.saveCustomerExcelFile(
+          selectedPerson.id,
+          selectedPerson.full_name,
+          `${selectedPerson.full_name}_Payslip_${selectedYear}.xlsx`,
+          workbook,
+          `Monthly payslip for ${selectedPerson.full_name} - ${selectedYear} (Template: ${selectedTemplate.name})`
+        );
+
+        if (saveResult.success) {
+          console.log(`✅ Excel View: Customer Excel file saved for ${selectedPerson.full_name}`);
+        } else {
+          console.warn(`⚠️ Excel View: Customer Excel save failed:`, saveResult.error);
+        }
+      } catch (error) {
+        console.error('❌ Excel View: Customer Excel save error:', error);
+      }
+
       if (result.success) {
         alert(`✅ Data saved successfully for ${selectedPerson.full_name}!`);
         console.log(`💾 Database save completed with ID:`, result.id);
@@ -1721,6 +1877,8 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     } catch (error) {
       console.error('Manual save error:', error);
       alert(`❌ Error saving data for ${selectedPerson.full_name}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1814,17 +1972,21 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
         <InputGroup>
           <Label>Select Person:</Label>
-          <Select 
-            value={selectedPerson?.id || ''} 
+          <Select
+            value={selectedPerson?.id || ''}
             onChange={(e) => {
               const personId = e.target.value;
-              handlePersonChange(personId).catch(console.error);
-              // Sync person selection across views
               if (personId) {
+                handlePersonChange(personId).catch(console.error);
+                // Sync person selection across views (both old and new sync services)
                 viewSync.setSelectedPerson(personId);
                 console.log('📊 Excel View: Person selected and synced to Basic View:', personId);
               } else {
+                // Clear selection
+                personSync.clearSelectedPerson('Excel View');
+                setSelectedPerson(null);
                 viewSync.setSelectedPerson(null);
+                console.log('📊 Excel View: Person selection cleared');
               }
             }}
           >
@@ -2365,7 +2527,9 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           {editMode ? `📝 ${t('basicView.exitEditMode')}` : `🎨 ${t('basicView.editMode')}`}
         </EditModeToggle>
 
-        <SaveButton onClick={handleSave}>💾 Save</SaveButton>
+        <SaveButton onClick={handleSave} disabled={isSaving}>
+          {isSaving ? '⏳ Saving...' : '💾 Save'}
+        </SaveButton>
         <PrintButton onClick={handlePrint}>🖨️ Print</PrintButton>
 
         {/* Header */}
