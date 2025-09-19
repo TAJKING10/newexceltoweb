@@ -304,6 +304,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
   const [persons, setPersons] = useState<Customer[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const [payslipData, setPayslipData] = useState<CustomPayslipData>({
@@ -479,19 +480,19 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       // Load persons from Supabase asynchronously
       const loadPersonsAsync = async () => {
         try {
+          setIsLoading(true);
           console.log('📝 Basic View: Loading persons from Supabase...');
           const loadedPersons = await customerManager.getCustomers();
           setPersons(safeArray(loadedPersons));
           console.log(`✅ Basic View: Loaded ${loadedPersons.length} persons from database`);
           
-          // Set default person if available
-          if (safeArray(loadedPersons).length > 0) {
-            setSelectedPerson(loadedPersons[0]);
-            populatePersonData(loadedPersons[0]);
-          }
+          // Don't auto-select first person - let user choose
+          // This ensures "Choose Person..." is shown initially
         } catch (error) {
           console.error('❌ Basic View: Error loading persons from database:', error);
           setPersons([]);
+        } finally {
+          setIsLoading(false);
         }
       };
       
@@ -1473,6 +1474,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           <Label>Select Person:</Label>
           <Select 
             value={selectedPerson?.id || ''} 
+            disabled={isLoading}
             onChange={(e) => {
               const personId = e.target.value;
               handlePersonChange(personId);
@@ -1485,7 +1487,9 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               }
             }}
           >
-            <option value="">Choose Person...</option>
+            <option value="">
+              {isLoading ? '⏳ Loading...' : t('payslips.choosePerson', 'Choose Person...')}
+            </option>
             {safeArray(filteredPersons).map(person => (
               person && person.id && person.full_name ? (
                 <option key={person.id} value={person.id}>

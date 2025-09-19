@@ -251,13 +251,22 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Load customers on component mount and setup personSync subscription
+  // Load customers on component mount and force fresh start
   useEffect(() => {
     const loadCustomers = async () => {
       try {
+        // FORCE CLEAR: Ensure no person is selected
+        console.log('📋 Basic View: FORCING CLEAR STATE - No auto-selection allowed');
+        setSelectedCustomer(null);
+        personSync.clearSelectedPerson('Basic View - Force Clear');
+
         const customerList = await customerManager.getCustomers();
         setCustomers(customerList);
         console.log('📋 Basic View: Loaded customers list, no auto-selection');
+
+        // Double-check: Clear again after loading
+        setSelectedCustomer(null);
+        console.log('📋 Basic View: Double-checked - selectedCustomer is null');
       } catch (error) {
         console.error('Error loading customers:', error);
       }
@@ -266,48 +275,13 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
     loadCustomers();
 
     // NO AUTO-SELECTION ON PAGE LOAD - user must manually select
-
-    // Subscribe to personSync changes from Excel view
-    const unsubscribePersonSync = personSync.onPersonChange((person) => {
-      if (person && (!selectedCustomer || selectedCustomer.id !== person.id)) {
-        console.log('📊 Basic View: Received cross-view person selection:', person.full_name);
-        // Find customer in current list and update selection
-        const customer = customers.find(c => c.id === person.id);
-        if (customer) {
-          setSelectedCustomer(customer);
-          // Load customer data with proper isolation
-          handleCustomerChange(customer.id).catch(console.error);
-        }
-      } else if (!person && selectedCustomer) {
-        console.log('📊 Basic View: Received cross-view person clear');
-        setSelectedCustomer(null);
-        // Reset to completely empty payslip data
-        setPayslipData({
-          personName: '',
-          personId: '',
-          department: '',
-          position: '',
-          year: new Date().getFullYear(),
-          basicSalary: 0,
-          allowances: 0,
-          overtime: 0,
-          bonus: 0,
-          commission: 0,
-          grossSalary: 0,
-          incomeTax: 0,
-          socialSecurity: 0,
-          totalDeductions: 0,
-          netSalary: 0,
-          taxClass: 1,
-          hasChildren: false
-        });
-      }
-    });
+    // DISABLED: Cross-view sync to prevent automatic selection
+    // Users must manually select a person in Basic view
 
     return () => {
-      unsubscribePersonSync();
+      // No cleanup needed since we're not subscribing to cross-view changes
     };
-  }, [customers, selectedCustomer]);
+  }, []); // Remove dependencies to prevent re-running
 
   // Load customer data helper function - matches Excel view logic exactly
   const loadCustomerData = useCallback(async (customer: Customer) => {
@@ -513,34 +487,64 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
 
   return (
     <Container>
-      <Title>👤 Customer Basic View</Title>
+      <Title>👤 Basic View</Title>
       
       <ControlPanel>
         <FormRow>
           <InputGroup>
-            <Label>Select Customer</Label>
+            <Label>Select Person:</Label>
             <Select
-              value={selectedCustomer?.id || ''}
+              value=""
               onChange={(e) => {
                 const customerId = e.target.value;
+                console.log('📊 Basic View: User manually selected person:', customerId);
                 if (customerId) {
                   handleCustomerChange(customerId).catch(console.error);
-                } else {
-                  // Clear selection
-                  personSync.clearSelectedPerson('Basic View');
-                  setSelectedCustomer(null);
-                  console.log('📊 Basic View: Customer selection cleared');
                 }
               }}
               disabled={isLoading}
             >
-              <option value="">Choose a customer...</option>
+              <option value="">Choose Person...</option>
               {customers.map(customer => (
                 <option key={customer.id} value={customer.id}>
                   {customer.full_name} - {customer.email}
                 </option>
               ))}
             </Select>
+            {selectedCustomer && (
+              <div style={{
+                marginTop: '8px',
+                padding: '8px 12px',
+                backgroundColor: '#e3f2fd',
+                border: '1px solid #1976d2',
+                borderRadius: '4px',
+                fontSize: '14px',
+                color: '#1976d2',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <span>👤 Selected: {selectedCustomer.full_name}</span>
+                <button
+                  onClick={() => {
+                    personSync.clearSelectedPerson('Basic View');
+                    setSelectedCustomer(null);
+                    console.log('📊 Basic View: Customer selection cleared');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#1976d2',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    padding: '2px 6px'
+                  }}
+                  title="Clear selection"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
           </InputGroup>
 
           <InputGroup>
@@ -745,15 +749,15 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
       )}
 
       {!selectedCustomer && (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '40px', 
-          backgroundColor: '#f8f9fa', 
+        <div style={{
+          textAlign: 'center',
+          padding: '40px',
+          backgroundColor: '#f8f9fa',
           borderRadius: '8px',
           margin: '20px 0'
         }}>
-          <h3 style={{ color: '#666', marginBottom: '10px' }}>👤 Select a Customer</h3>
-          <p style={{ color: '#999' }}>Choose a customer from the dropdown above to view and edit their payslip data.</p>
+          <h3 style={{ color: '#666', marginBottom: '10px' }}>👤 Select a Person</h3>
+          <p style={{ color: '#999' }}>Choose a person from the dropdown above to view and edit their payslip data.</p>
         </div>
       )}
     </Container>
