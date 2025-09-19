@@ -120,6 +120,24 @@ const PayslipSheet = styled.div`
   position: relative;
 `;
 
+const LoadingOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  z-index: 1000;
+  font-size: 18px;
+  font-weight: bold;
+  color: #1976d2;
+`;
+
 const FieldGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -239,6 +257,7 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
       try {
         const customerList = await customerManager.getCustomers();
         setCustomers(customerList);
+        console.log('📋 Basic View: Loaded customers list, no auto-selection');
       } catch (error) {
         console.error('Error loading customers:', error);
       }
@@ -246,27 +265,29 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
 
     loadCustomers();
 
+    // NO AUTO-SELECTION ON PAGE LOAD - user must manually select
+
     // Subscribe to personSync changes from Excel view
     const unsubscribePersonSync = personSync.onPersonChange((person) => {
       if (person && (!selectedCustomer || selectedCustomer.id !== person.id)) {
-        console.log('👤 Basic View: Received PersonSync person selection:', person.full_name);
+        console.log('📊 Basic View: Received cross-view person selection:', person.full_name);
         // Find customer in current list and update selection
         const customer = customers.find(c => c.id === person.id);
         if (customer) {
           setSelectedCustomer(customer);
-          // Load customer data
-          loadCustomerData(customer);
+          // Load customer data with proper isolation
+          handleCustomerChange(customer.id).catch(console.error);
         }
       } else if (!person && selectedCustomer) {
-        console.log('👤 Basic View: Received PersonSync person clear');
+        console.log('📊 Basic View: Received cross-view person clear');
         setSelectedCustomer(null);
-        // Reset to default payslip data
-        setPayslipData(prev => ({
-          ...prev,
+        // Reset to completely empty payslip data
+        setPayslipData({
           personName: '',
           personId: '',
           department: '',
           position: '',
+          year: new Date().getFullYear(),
           basicSalary: 0,
           allowances: 0,
           overtime: 0,
@@ -276,8 +297,10 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
           incomeTax: 0,
           socialSecurity: 0,
           totalDeductions: 0,
-          netSalary: 0
-        }));
+          netSalary: 0,
+          taxClass: 1,
+          hasChildren: false
+        });
       }
     });
 
@@ -286,26 +309,53 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
     };
   }, [customers, selectedCustomer]);
 
-  // Load customer data helper function
+  // Load customer data helper function - matches Excel view logic exactly
   const loadCustomerData = useCallback(async (customer: Customer) => {
     setIsLoading(true);
     try {
-      console.log('👤 Basic View: Loading customer data for:', customer.full_name);
+      console.log(`🔄 BASIC VIEW CUSTOMER CHANGE: Switching to ${customer.full_name} (ID: ${customer.id})`);
 
-      // Try to load existing basic payslip data from Supabase
-      const loadResult = await supabasePayslipService.loadBasicPayslipViewByName(
-        customer.full_name,
+      // STEP 1: Clear existing data first to prevent contamination
+      console.log(`🧹 Basic View: Clearing any existing cached data for ${customer.full_name}`);
+      const emptyData = {
+        personName: customer.full_name,
+        personId: customer.id,
+        department: customer.department || '',
+        position: customer.position || '',
+        year: payslipData.year,
+        basicSalary: 0,
+        allowances: 0,
+        overtime: 0,
+        bonus: 0,
+        commission: 0,
+        grossSalary: 0,
+        incomeTax: 0,
+        socialSecurity: 0,
+        totalDeductions: 0,
+        netSalary: 0,
+        taxClass: 1,
+        hasChildren: false
+      };
+
+      console.log(`🆕 Basic View: Clearing all data and resetting to empty template for ${customer.full_name}`);
+      setPayslipData(emptyData);
+
+      // STEP 2: Try to load existing data specifically for this person from database
+      console.log(`🔍 Basic View: Looking for saved data for ${customer.full_name} in database...`);
+      const loadResult = await supabasePayslipService.loadBasicPayslipView(
+        customer.id, // Use person ID for proper isolation
         payslipData.year,
         0 // Use month 0 (January) as default for basic view
       );
 
+      // STEP 3: Handle the result - load data if found, otherwise keep empty template
       if (loadResult.success && loadResult.data) {
-        console.log('✅ Basic View: Found existing data for customer');
+        console.log('✅ Basic View: Successfully loaded personalized data from database');
         const existingData = loadResult.data.payslipData || {};
         const calculatedValues = loadResult.data.calculatedValues || {};
 
-        setPayslipData(prev => ({
-          ...prev,
+        setPayslipData({
+          ...emptyData,
           ...existingData,
           personName: customer.full_name,
           personId: customer.id,
@@ -317,48 +367,15 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
           incomeTax: calculatedValues.incomeTax || existingData.incomeTax || 0,
           socialSecurity: calculatedValues.socialSecurity || existingData.socialSecurity || 0,
           totalDeductions: calculatedValues.totalDeductions || existingData.totalDeductions || 0
-        }));
+        });
+        console.log(`✅ Basic View: Successfully loaded saved data for ${customer.full_name}`);
       } else {
-        console.log('ℹ️ Basic View: No existing data found, initializing with customer info');
-        // Initialize with customer data
-        setPayslipData(prev => ({
-          ...prev,
-          personName: customer.full_name,
-          personId: customer.id,
-          department: customer.department || '',
-          position: customer.position || '',
-          basicSalary: 0,
-          allowances: 0,
-          overtime: 0,
-          bonus: 0,
-          commission: 0,
-          grossSalary: 0,
-          incomeTax: 0,
-          socialSecurity: 0,
-          totalDeductions: 0,
-          netSalary: 0
-        }));
+        console.log(`ℹ️ Basic View: No saved data found for ${customer.full_name} - keeping empty template with all zeros`);
+        // Keep the empty template already set in STEP 1
       }
     } catch (error) {
-      console.error('❌ Basic View: Error loading customer data:', error);
-      // Initialize with basic customer data
-      setPayslipData(prev => ({
-        ...prev,
-        personName: customer.full_name,
-        personId: customer.id,
-        department: customer.department || '',
-        position: customer.position || '',
-        basicSalary: 0,
-        allowances: 0,
-        overtime: 0,
-        bonus: 0,
-        commission: 0,
-        grossSalary: 0,
-        incomeTax: 0,
-        socialSecurity: 0,
-        totalDeductions: 0,
-        netSalary: 0
-      }));
+      console.error(`❌ Basic View: Error during customer change to ${customer.full_name}:`, error);
+      // Keep the empty template already set in STEP 1
     } finally {
       setIsLoading(false);
     }
@@ -411,16 +428,17 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
     calculateTaxes();
   }, [calculateTaxes]);
 
-  // Handle customer selection
+  // Handle customer selection - matches Excel view exactly
   const handleCustomerChange = async (customerId: string) => {
     const customer = customers.find(c => c.id === customerId);
     if (customer) {
-      console.log(`👤 Basic View: Customer selected - ${customer.full_name}`);
+      console.log(`🔄 BASIC VIEW CUSTOMER CHANGE: Switching to ${customer.full_name} (ID: ${customerId})`);
 
-      // Update personSync to notify Excel view
+      // STEP 1: Update personSync to notify Excel view immediately
       personSync.setSelectedPerson(customer, 'Basic View');
-
       setSelectedCustomer(customer);
+
+      // STEP 2: Load customer data with proper isolation
       await loadCustomerData(customer);
     }
   };
@@ -433,7 +451,7 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
     }));
   };
 
-  // Save data
+  // Save data - matches Excel view exactly
   const handleSave = async () => {
     if (!selectedCustomer) {
       alert('Please select a customer first!');
@@ -442,9 +460,9 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
 
     setIsSaving(true);
     try {
-      console.log('💾 Basic View: Saving data for customer:', selectedCustomer.full_name);
+      console.log(`💾 BASIC VIEW SAVE: Saving data for ${selectedCustomer.full_name} (ID: ${selectedCustomer.id})`);
 
-      // Prepare calculated values for saving
+      // Prepare calculated values for saving - exactly like Excel view
       const calculatedValues = {
         grossSalary: payslipData.grossSalary,
         netSalary: payslipData.netSalary,
@@ -453,7 +471,7 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
         totalDeductions: payslipData.totalDeductions
       };
 
-      // Save to Supabase using basic payslip view service
+      // Save to Supabase using basic payslip view service with proper person data
       const saveResult = await supabasePayslipService.saveBasicPayslipView(
         payslipData,
         {
@@ -462,8 +480,8 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
           name: selectedCustomer.full_name,
           email: selectedCustomer.email,
           person_type: 'customer',
-          department: selectedCustomer.department,
-          position: selectedCustomer.position
+          department: selectedCustomer.department || payslipData.department,
+          position: selectedCustomer.position || payslipData.position
         },
         null, // No template for basic view
         payslipData.year,
@@ -472,15 +490,15 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
       );
 
       if (saveResult.success) {
-        console.log('✅ Basic View: Data saved successfully to Supabase');
-        alert('✅ Data saved successfully!');
+        console.log(`✅ Basic View: Successfully saved data to Supabase with ID: ${saveResult.id}`);
+        alert('✅ Data saved successfully to Supabase!');
       } else {
-        console.error('❌ Basic View: Save failed:', saveResult.error);
+        console.error(`❌ Basic View: Save failed for ${selectedCustomer.full_name}:`, saveResult.error);
         alert(`❌ Save failed: ${saveResult.error}`);
       }
     } catch (error) {
-      console.error('❌ Basic View: Save error:', error);
-      alert('❌ Error saving data');
+      console.error(`❌ Basic View: Save error for ${selectedCustomer.full_name}:`, error);
+      alert('❌ Error saving data to Supabase');
     } finally {
       setIsSaving(false);
     }
@@ -506,12 +524,12 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
               onChange={(e) => {
                 const customerId = e.target.value;
                 if (customerId) {
-                  handleCustomerChange(customerId);
+                  handleCustomerChange(customerId).catch(console.error);
                 } else {
                   // Clear selection
                   personSync.clearSelectedPerson('Basic View');
                   setSelectedCustomer(null);
-                  console.log('👤 Basic View: Customer selection cleared');
+                  console.log('📊 Basic View: Customer selection cleared');
                 }
               }}
               disabled={isLoading}
@@ -562,7 +580,16 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
 
       {selectedCustomer && (
         <PayslipSheet>
-          <SaveButton onClick={handleSave} disabled={isSaving}>
+          {isLoading && (
+            <LoadingOverlay>
+              <div>🔄 Loading customer data...</div>
+              <div style={{ fontSize: '14px', marginTop: '10px', opacity: 0.8 }}>
+                Please wait while we fetch the data for {selectedCustomer.full_name}
+              </div>
+            </LoadingOverlay>
+          )}
+
+          <SaveButton onClick={handleSave} disabled={isSaving || isLoading}>
             {isSaving ? 'Saving...' : '💾 Save'}
           </SaveButton>
           <RefreshButton onClick={handleRefresh} disabled={isLoading}>
