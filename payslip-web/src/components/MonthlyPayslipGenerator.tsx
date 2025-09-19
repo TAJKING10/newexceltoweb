@@ -51,6 +51,24 @@ const PayslipSheet = styled.div`
   }
 `;
 
+const LoadingOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  z-index: 1000;
+  font-size: 18px;
+  font-weight: bold;
+  color: #1976d2;
+`;
+
 const EditModeToggle = styled.button`
   position: absolute;
   top: 20px;
@@ -654,18 +672,8 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           setPersons(safeArray(loadedPersons));
           console.log(`✅ Excel View: Loaded ${loadedPersons.length} persons from database`);
           
-          // Set default person if available
-          if (safeArray(loadedPersons).length > 0) {
-            const person = loadedPersons[0];
-            setSelectedPerson(person);
-            setPayslipData(prev => ({
-              ...prev,
-              personName: person.full_name || 'Unknown',
-              personId: person.person_id || 'N/A',
-              department: person.department || 'N/A',
-              position: person.position || 'N/A'
-            }));
-          }
+          // Don't auto-select any person - let user choose
+          console.log('✅ Excel View: Persons loaded, waiting for user selection');
         } catch (error) {
           console.error('❌ Excel View: Error loading persons from database:', error);
           setPersons([]);
@@ -1037,50 +1045,47 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
       setIsLoading(true);
 
-      // STEP 1: Update personSync and current state immediately to reset the page
-      personSync.setSelectedPerson(person, 'Excel View');
-      setSelectedPerson(person);
+      try {
+        // STEP 1: Update personSync and current state immediately
+        personSync.setSelectedPerson(person, 'Excel View');
+        setSelectedPerson(person);
 
-      // STEP 2: Check for existing synchronized data for this person and current template
-      if (selectedTemplate) {
-        console.log(`🔍 Looking for synced data with key: ${selectedTemplate.id}-${personId}`);
-        const existingSyncedData = dataSync.loadData(selectedTemplate.id, personId);
+        // STEP 2: Create fresh empty template for this person first (clear all previous data)
+        const emptyData = createEmptyPersonalizedTemplate(person);
+        console.log(`🆕 Clearing all data and resetting to empty template for ${person.full_name}`);
+        setPayslipData({ ...emptyData });
 
-        if (existingSyncedData && Object.keys(existingSyncedData).length > 0) {
-          console.log(`📂 SUCCESS: Loading existing synced data for ${person.full_name}`);
-          setPayslipData({ ...existingSyncedData });
-          console.log(`✅ Page reset complete - data loaded for ${person.full_name}`);
-          return;
+        // STEP 3: Try to load existing data specifically for this person from database
+        console.log(`🔍 Looking for saved data for ${person.full_name} in database...`);
+        const hasLoadedData = await loadPersonalizedData(person.id, selectedYear, person.full_name);
+
+        // STEP 4: If no data found, keep the empty template (all zeros)
+        if (!hasLoadedData) {
+          console.log(`ℹ️ No saved data found for ${person.full_name} - keeping empty template with all zeros`);
+          // Keep the empty data - don't load any old data from other users
         } else {
-          console.log(`❌ No valid synced data found for ${person.full_name} with template ${selectedTemplate.name}`);
+          console.log(`✅ Successfully loaded saved data for ${person.full_name}`);
         }
-      } else {
-        console.log(`⚠️ No template selected when switching to ${person.full_name}`);
-      }
 
-      // STEP 3: Try to load existing data from database
-      console.log(`🔍 Checking database for ${person.full_name}...`);
-
-      // Create fresh empty template first
-      const emptyData = createEmptyPersonalizedTemplate(person);
-      setPayslipData({ ...emptyData });
-      console.log(`🆕 Reset to empty template for ${person.full_name}`);
-
-      const hasLoadedData = await loadPersonalizedData(person.id, payslipData.year, person.full_name);
-
-      // STEP 4: If no saved data found, keep the empty template and save it
-      if (!hasLoadedData) {
-        console.log(`📄 No database record found - using empty payslip for ${person.full_name}`);
-
-        // Save this empty data as the initial state for this customer
+        // STEP 5: Update sync data with the current state for this person
         if (selectedTemplate) {
-          console.log(`💾 Saving empty template for ${person.full_name} with key: ${selectedTemplate.id}-${personId}`);
-          dataSync.saveData(selectedTemplate.id, emptyData, personId);
+          console.log(`💾 Updating sync data for ${person.full_name}`);
+          // Get the current payslip data state and save it for this person
+          setPayslipData(currentData => {
+            dataSync.saveData(selectedTemplate.id, currentData, personId);
+            return currentData;
+          });
         }
-      }
 
-      console.log(`✅ Customer change complete for ${person.full_name}`);
-      setIsLoading(false);
+      } catch (error) {
+        console.error(`❌ Error during person change to ${person.full_name}:`, error);
+        // On error, ensure we still have clean empty data
+        const emptyData = createEmptyPersonalizedTemplate(person);
+        setPayslipData({ ...emptyData });
+      } finally {
+        console.log(`✅ Person change complete for ${person.full_name}`);
+        setIsLoading(false);
+      }
     }
   };
 
@@ -1974,6 +1979,7 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           <Label>Select Person:</Label>
           <Select
             value={selectedPerson?.id || ''}
+            disabled={isLoading}
             onChange={(e) => {
               const personId = e.target.value;
               if (personId) {
@@ -1990,7 +1996,9 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               }
             }}
           >
-            <option value="">{t('payslips.choosePerson', 'Choose Person...')}</option>
+            <option value="">
+              {isLoading ? '⏳ Loading...' : t('payslips.choosePerson', 'Choose Person...')}
+            </option>
             {safeArray(filteredPersons).map(person => (
               person && person.id && person.full_name ? (
                 <option key={person.id} value={person.id}>
@@ -2520,6 +2528,15 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       )}
 
       <PayslipSheet>
+        {isLoading && (
+          <LoadingOverlay>
+            <div>⏳ Loading person data...</div>
+            <div style={{ fontSize: '14px', marginTop: '10px', opacity: 0.7 }}>
+              Please wait while we load the data for the selected person
+            </div>
+          </LoadingOverlay>
+        )}
+
         <EditModeToggle
           className={editMode ? 'active' : ''}
           onClick={() => setEditMode(!editMode)}
