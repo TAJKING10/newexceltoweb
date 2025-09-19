@@ -111,7 +111,11 @@
       "Bash(PORT=3777 npm start)",
       "Read(//c/Users/Toufi/OneDrive/Pictures/Screenshots/**)",
       "Bash(start http://localhost:3777)",
-      "Bash(PORT=4000 npm start)"
+      "Bash(PORT=4000 npm start)",
+      "Bash(start http://localhost:4000)",
+      "Bash(PORT=3589 npm start)",
+      "Bash(start http://localhost:3589)",
+      "Bash(PORT=3699 npm start)"
     ],
     "deny": [],
     "ask": []

@@ -188,11 +188,8 @@ class SupabasePayslipService {
 
       console.log('📂 Loading payslip data for person:', personId, 'year:', year);
 
-      // Try multiple approaches to find the saved data
-      let data, error;
-      
-      // First try: exact person_id match
-      ({ data, error } = await supabase
+      // Only try exact person_id match - NO fallback to avoid data cross-contamination
+      const { data, error } = await supabase
         .from('saved_payslip_views')
         .select('*')
         .eq('owner_id', user.id)
@@ -200,20 +197,7 @@ class SupabasePayslipService {
         .eq('payslip_year', year)
         .eq('view_type', 'annual')
         .order('updated_at', { ascending: false })
-        .limit(1));
-
-      // If no exact match, try loading by any matching criteria for this user/year
-      if ((!data || data.length === 0) && !error) {
-        console.log('📂 No exact person_id match, trying broader search...');
-        ({ data, error } = await supabase
-          .from('saved_payslip_views')
-          .select('*')
-          .eq('owner_id', user.id)
-          .eq('payslip_year', year)
-          .eq('view_type', 'annual')
-          .order('updated_at', { ascending: false })
-          .limit(1));
-      }
+        .limit(1);
 
       if (error) {
         console.error('❌ Error loading payslip view:', error);
@@ -546,11 +530,8 @@ class SupabasePayslipService {
 
       console.log('📂 Loading basic payslip data for person:', personId, 'year:', year, 'month:', month + 1);
 
-      // Try multiple approaches to find the saved data
-      let data, error;
-      
-      // First try: exact person_id match
-      ({ data, error } = await supabase
+      // Only try exact person_id match - NO fallback to avoid data cross-contamination
+      const { data, error } = await supabase
         .from('saved_payslip_views')
         .select('*')
         .eq('owner_id', user.id)
@@ -559,21 +540,7 @@ class SupabasePayslipService {
         .eq('payslip_month', month + 1) // JavaScript months are 0-based, database expects 1-based
         .eq('view_type', 'basic')
         .order('updated_at', { ascending: false })
-        .limit(1));
-
-      // If no exact match, try loading by any matching criteria for this user/year/month
-      if ((!data || data.length === 0) && !error) {
-        console.log('📂 No exact person_id match, trying broader search...');
-        ({ data, error } = await supabase
-          .from('saved_payslip_views')
-          .select('*')
-          .eq('owner_id', user.id)
-          .eq('payslip_year', year)
-          .eq('payslip_month', month + 1)
-          .eq('view_type', 'basic')
-          .order('updated_at', { ascending: false })
-          .limit(1));
-      }
+        .limit(1);
 
       if (error) {
         console.error('❌ Error loading basic payslip view:', error);

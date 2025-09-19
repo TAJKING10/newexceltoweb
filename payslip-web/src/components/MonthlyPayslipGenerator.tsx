@@ -871,8 +871,12 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
     // Save to local sync for cross-view synchronization (but no autosave to database)
     if (selectedTemplate && selectedPerson) {
-      console.log(`💾 Updating local sync for cross-view synchronization`);
-      dataSync.saveData(selectedTemplate.id, payslipData, selectedPerson.id);
+      console.log(`💾 Updating local sync for ${selectedPerson.full_name} - ${rowName} month ${monthIndex}: ${value}`);
+      // Use the updated payslipData state from the setPayslipData above
+      setPayslipData(currentData => {
+        dataSync.saveData(selectedTemplate.id, currentData, selectedPerson.id);
+        return currentData;
+      });
     }
   }, []);
 
@@ -1033,7 +1037,11 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
 
     // Update local sync for cross-view synchronization (no autosave to database)
     if (selectedTemplate && selectedPerson) {
-      dataSync.saveData(selectedTemplate.id, payslipData, selectedPerson.id);
+      console.log(`💾 Updating sync after calculation for ${selectedPerson.full_name}`);
+      setPayslipData(currentData => {
+        dataSync.saveData(selectedTemplate.id, currentData, selectedPerson.id);
+        return currentData;
+      });
     }
   }, [payslipData.taxClass, payslipData.hasChildren, selectedTemplate, selectedPerson]);
 
@@ -1050,31 +1058,38 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         personSync.setSelectedPerson(person, 'Excel View');
         setSelectedPerson(person);
 
-        // STEP 2: Create fresh empty template for this person first (clear all previous data)
+        // STEP 2: Clear any existing cached data for this person to prevent contamination
+        if (selectedTemplate) {
+          console.log(`🧹 Clearing any existing cached data for ${person.full_name}`);
+          // Clear the cache first to ensure clean state
+          dataSync.clearData(selectedTemplate.id, personId);
+        }
+
+        // STEP 3: Create fresh empty template for this person first (clear all previous data)
         const emptyData = createEmptyPersonalizedTemplate(person);
         console.log(`🆕 Clearing all data and resetting to empty template for ${person.full_name}`);
         setPayslipData({ ...emptyData });
 
-        // STEP 3: Try to load existing data specifically for this person from database
+        // STEP 4: Try to load existing data specifically for this person from database
         console.log(`🔍 Looking for saved data for ${person.full_name} in database...`);
         const hasLoadedData = await loadPersonalizedData(person.id, selectedYear, person.full_name);
 
-        // STEP 4: If no data found, keep the empty template (all zeros)
+        // STEP 5: Handle the result and save correct data to sync
         if (!hasLoadedData) {
           console.log(`ℹ️ No saved data found for ${person.full_name} - keeping empty template with all zeros`);
-          // Keep the empty data - don't load any old data from other users
+          // Save the empty template to sync for this person
+          if (selectedTemplate) {
+            dataSync.saveData(selectedTemplate.id, emptyData, personId);
+          }
         } else {
           console.log(`✅ Successfully loaded saved data for ${person.full_name}`);
-        }
-
-        // STEP 5: Update sync data with the current state for this person
-        if (selectedTemplate) {
-          console.log(`💾 Updating sync data for ${person.full_name}`);
-          // Get the current payslip data state and save it for this person
-          setPayslipData(currentData => {
-            dataSync.saveData(selectedTemplate.id, currentData, personId);
-            return currentData;
-          });
+          // The data was already set by loadPersonalizedData, save current state to sync
+          if (selectedTemplate) {
+            setPayslipData(currentData => {
+              dataSync.saveData(selectedTemplate.id, currentData, personId);
+              return currentData;
+            });
+          }
         }
 
       } catch (error) {
@@ -1317,14 +1332,11 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
       const currentYear = year || payslipData.year || new Date().getFullYear();
       console.log(`📂 Excel View: Loading data for person ${personId}, year ${currentYear}`);
 
-      // STEP 1: Try loading from saved_payslip_views (annual view data)
+      // STEP 1: Try loading from saved_payslip_views (annual view data) - NO FALLBACKS
       let result = await supabasePayslipService.loadAnnualPayslipView(personId, currentYear);
+      console.log(`📂 Excel View: Direct person ID lookup result: ${result.success ? 'SUCCESS' : 'NO DATA FOUND'}`);
 
-      // If that fails and we have a person name, try loading by name as fallback
-      if (!result.success && personName) {
-        console.log('📂 Excel View: Fallback - Loading by person name:', personName);
-        result = await supabasePayslipService.loadAnnualPayslipViewByName(personName, currentYear);
-      }
+      // NO FALLBACK BY NAME to prevent data cross-contamination
 
       // STEP 2: If no annual data found, try loading from customer Excel files
       if (!result.success) {
@@ -1420,18 +1432,13 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         }
       }
 
-      // STEP 3: If both fail, try loading the most recent data for this year (ultimate fallback)
-      if (!result.success) {
-        console.log('📂 Excel View: Ultimate fallback - Loading most recent data for year:', currentYear);
-        result = await supabasePayslipService.loadMostRecentAnnualPayslipView(currentYear);
-      }
-
+      // STEP 3: If no personal data found, return false (do NOT load other users' data)
       if (result.success && result.data) {
         console.log('✅ Excel View: Successfully loaded personalized data from database');
         setPayslipData(result.data);
         return true;
       } else {
-        console.log('ℹ️ Excel View: No saved data found, using template defaults');
+        console.log('ℹ️ Excel View: No saved data found for this specific person - will use empty template');
         return false;
       }
     } catch (error) {
