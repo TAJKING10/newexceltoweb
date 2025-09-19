@@ -23,14 +23,22 @@ const LanguageSwitcherWrapper = styled.div`
 `;
 
 const LoginCard = styled.div`
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: ${theme.borderRadius['2xl']};
-  box-shadow: ${theme.shadows['2xl']};
+  box-shadow: ${theme.shadows.glassmorphism};
   padding: ${theme.spacing[8]};
   width: 100%;
-  max-width: 400px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: 420px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: ${theme.shadows.glassmorphismLight}, ${theme.shadows.lg};
+    transform: translateY(-2px);
+  }
 `;
 
 const Logo = styled.div`
@@ -73,25 +81,37 @@ const Label = styled.label`
 `;
 
 const Input = styled.input`
-  padding: ${theme.spacing[3]} ${theme.spacing[4]};
-  border: 2px solid ${theme.colors.border.light};
-  border-radius: ${theme.borderRadius.lg};
+  padding: ${theme.spacing[4]} ${theme.spacing[5]};
+  border: 2px solid ${theme.colors.gray[300]};
+  border-radius: ${theme.borderRadius.xl};
   font-size: ${theme.typography.fontSize.base};
-  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
-  background: white;
+  font-family: ${theme.typography.fontFamily.primary};
+  font-weight: ${theme.typography.fontWeight.medium};
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
 
   &:focus {
     outline: none;
     border-color: ${theme.colors.primary.main};
-    box-shadow: 0 0 0 3px ${theme.colors.primary.main}20;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 0 4px rgba(0, 34, 110, 0.1), ${theme.shadows.md};
+    transform: translateY(-1px);
   }
 
   &:invalid {
     border-color: ${theme.colors.error.main};
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
   }
 
   &::placeholder {
-    color: ${theme.colors.text.tertiary};
+    color: ${theme.colors.gray[500]};
+    font-weight: ${theme.typography.fontWeight.normal};
+  }
+
+  &:hover:not(:focus) {
+    border-color: ${theme.colors.gray[400]};
+    background: rgba(255, 255, 255, 0.9);
   }
 `;
 
@@ -101,26 +121,40 @@ const LoginButton = styled.button.withConfig({
   background: ${theme.colors.gradients.primary};
   color: white;
   border: none;
-  padding: ${theme.spacing[4]} ${theme.spacing[6]};
-  border-radius: ${theme.borderRadius.lg};
-  font-weight: ${theme.typography.fontWeight.semibold};
-  font-size: ${theme.typography.fontSize.base};
+  padding: ${theme.spacing[4]} ${theme.spacing[8]};
+  border-radius: ${theme.borderRadius.xl};
+  font-family: ${theme.typography.fontFamily.primary};
+  font-weight: ${theme.typography.fontWeight.bold};
+  font-size: ${theme.typography.fontSize.lg};
   cursor: ${props => props.loading ? 'not-allowed' : 'pointer'};
-  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
   position: relative;
-  opacity: ${props => props.loading ? 0.7 : 1};
-  
+  opacity: ${props => props.loading ? 0.8 : 1};
+  box-shadow: ${theme.shadows.md};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+
   &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: ${theme.shadows.lg};
+    background: ${theme.colors.gradients.cool};
+    transform: translateY(-3px);
+    box-shadow: ${theme.shadows.lg}, ${theme.shadows.glow};
   }
-  
-  &:active {
-    transform: translateY(0);
+
+  &:active:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: ${theme.shadows.md};
   }
-  
+
   &:disabled {
     cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.secondary.main};
+    outline-offset: 2px;
   }
 `;
 
@@ -220,8 +254,8 @@ export const LoginScreen: React.FC = () => {
       
       <LoginCard>
         <Logo>
-          <LogoText>🚀 UPP</LogoText>
-          <LogoSubtext>{t('auth.login.title')}</LogoSubtext>
+          <LogoText>⚡ Advensys Payslip</LogoText>
+          <LogoSubtext>Professional Payroll Management</LogoSubtext>
         </Logo>
         
         <Form onSubmit={handleSubmit}>

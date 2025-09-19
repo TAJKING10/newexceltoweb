@@ -1,5 +1,5 @@
 export const theme = {
-  // Modern Color Palette
+  // Advensys Brand Color Palette
   colors: {
     primary: {
       50: '#f0f4ff',
@@ -7,29 +7,44 @@ export const theme = {
       200: '#c7dcff',
       300: '#a4c4ff',
       400: '#7ca0ff',
-      500: '#5b7cff',
-      600: '#4c63f2',
-      700: '#3f4dde',
-      800: '#353eb4',
-      900: '#2f358f',
-      main: '#5b7cff',
-      dark: '#3f4dde',
-      light: '#a4c4ff'
+      500: '#003ABD',
+      600: '#002d96',
+      700: '#00226E',
+      800: '#001a58',
+      900: '#001347',
+      main: '#00226E',
+      dark: '#001347',
+      light: '#003ABD'
     },
     secondary: {
-      50: '#fef2f2',
-      100: '#fee2e2',
-      200: '#fecaca',
-      300: '#fca5a5',
-      400: '#f87171',
-      500: '#ef4444',
-      600: '#dc2626',
-      700: '#b91c1c',
-      800: '#991b1b',
-      900: '#7f1d1d',
-      main: '#ef4444',
-      dark: '#b91c1c',
-      light: '#f87171'
+      50: '#fff9f0',
+      100: '#fef3e0',
+      200: '#fde4b8',
+      300: '#fcd078',
+      400: '#fbbf47',
+      500: '#FFC200',
+      600: '#e6ac00',
+      700: '#cc9900',
+      800: '#b38600',
+      900: '#997300',
+      main: '#FFC200',
+      dark: '#cc9900',
+      light: '#fcd078'
+    },
+    accent: {
+      50: '#fff4f2',
+      100: '#ffe8e4',
+      200: '#ffd0c7',
+      300: '#ffb8aa',
+      400: '#ff9c87',
+      500: '#FF785E',
+      600: '#e65a3c',
+      700: '#cc3d1f',
+      800: '#b3250a',
+      900: '#991100',
+      main: '#FF785E',
+      dark: '#cc3d1f',
+      light: '#ff9c87'
     },
     success: {
       50: '#ecfdf5',
@@ -77,17 +92,17 @@ export const theme = {
       light: '#f87171'
     },
     gray: {
-      50: '#f9fafb',
-      100: '#f3f4f6',
-      200: '#e5e7eb',
-      300: '#d1d5db',
-      400: '#9ca3af',
-      500: '#6b7280',
-      600: '#4b5563',
-      700: '#374151',
-      800: '#1f2937',
-      900: '#111827',
-      950: '#030712'
+      50: '#fcfcfd',
+      100: '#f8f9fb',
+      200: '#f2f4f7',
+      300: '#e4e7ec',
+      400: '#d0d5dd',
+      500: '#98a2b3',
+      600: '#667085',
+      700: '#475467',
+      800: '#344054',
+      900: '#1d2939',
+      950: '#020617'
     },
     background: {
       primary: '#ffffff',
@@ -110,12 +125,15 @@ export const theme = {
     },
     // Gradient combinations
     gradients: {
-      primary: 'linear-gradient(135deg, #5b7cff 0%, #3f4dde 100%)',
+      primary: 'linear-gradient(135deg, #00226E 0%, #003ABD 100%)',
+      accent: 'linear-gradient(135deg, #FFC200 0%, #FF785E 100%)',
+      hero: 'linear-gradient(135deg, #00226E 0%, #003ABD 50%, #FFC200 100%)',
+      overlay: 'linear-gradient(135deg, rgba(0, 34, 110, 0.9) 0%, rgba(0, 58, 189, 0.8) 100%)',
       secondary: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
-      warm: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-      cool: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-      sunset: 'linear-gradient(135deg, #f472b6 0%, #be185d 100%)',
-      ocean: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
+      warm: 'linear-gradient(135deg, #FFC200 0%, #FF785E 100%)',
+      cool: 'linear-gradient(135deg, #003ABD 0%, #00226E 100%)',
+      sunset: 'linear-gradient(135deg, #FF785E 0%, #FFC200 100%)',
+      ocean: 'linear-gradient(135deg, #003ABD 0%, #00226E 100%)',
       forest: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
     }
   },
@@ -123,8 +141,8 @@ export const theme = {
   // Typography Scale
   typography: {
     fontFamily: {
-      primary: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
-      secondary: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
+      primary: "'Barlow', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
+      secondary: "'Barlow', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
       mono: "'JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', monospace"
     },
     fontSize: {
@@ -215,8 +233,10 @@ export const theme = {
     xl: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
     '2xl': '0 50px 100px -20px rgba(0, 0, 0, 0.25)',
     inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
-    glow: '0 0 20px rgba(91, 124, 255, 0.3)',
-    glowLg: '0 0 40px rgba(91, 124, 255, 0.4)'
+    glow: '0 0 20px rgba(0, 34, 110, 0.3)',
+    glowLg: '0 0 40px rgba(0, 34, 110, 0.4)',
+    glassmorphism: '0 8px 32px rgba(0, 34, 110, 0.1)',
+    glassmorphismLight: '0 4px 16px rgba(255, 194, 0, 0.2)'
   },
   
   // Z-index scale

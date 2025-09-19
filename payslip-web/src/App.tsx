@@ -95,7 +95,7 @@ const AppContent: React.FC = () => {
     <AppContainer>
       <Header>
         <HeaderContent>
-          <Title>🚀 {t('auth.login.title')}</Title>
+          <Title>⚡ Advensys Payslip</Title>
           <UserSection>
             <LanguageSwitcher />
             <UserWelcome>{t('dashboard.welcome')}, {profile.full_name || profile.email}</UserWelcome>
@@ -327,15 +327,16 @@ const AppContainer = styled.div`
 `;
 
 const Header = styled.header`
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   padding: ${theme.spacing[8]} ${theme.spacing[6]};
-  border-bottom: 1px solid ${theme.colors.border.light};
-  box-shadow: ${theme.shadows.sm};
+  border-bottom: 1px solid ${theme.colors.gray[200]};
+  box-shadow: ${theme.shadows.glassmorphism};
   position: sticky;
   top: 0;
   z-index: ${theme.zIndex.sticky};
-  backdrop-filter: blur(10px);
-  
+
   @media (max-width: ${theme.breakpoints.md}) {
     padding: ${theme.spacing[6]} ${theme.spacing[4]};
   }
@@ -397,18 +398,19 @@ const NavTab = styled.button<{ isActive: boolean; disabled?: boolean }>`
   user-select: none;
   opacity: ${props => props.disabled ? 0.6 : 1};
   
-  background: ${props => props.isActive 
-    ? theme.colors.gradients.primary 
-    : theme.colors.background.primary};
-  color: ${props => props.isActive 
-    ? theme.colors.text.inverse 
-    : theme.colors.text.secondary};
-  border: 2px solid ${props => props.isActive 
-    ? 'transparent' 
-    : theme.colors.border.light};
-  box-shadow: ${props => props.isActive 
-    ? `${theme.shadows.md}, ${theme.shadows.glow}` 
-    : theme.shadows.xs};
+  background: ${props => props.isActive
+    ? theme.colors.gradients.primary
+    : 'rgba(255, 255, 255, 0.8)'};
+  color: ${props => props.isActive
+    ? theme.colors.text.inverse
+    : theme.colors.gray[700]};
+  border: 2px solid ${props => props.isActive
+    ? 'transparent'
+    : theme.colors.gray[200]};
+  box-shadow: ${props => props.isActive
+    ? `${theme.shadows.md}, ${theme.shadows.glow}`
+    : theme.shadows.sm};
+  backdrop-filter: ${props => props.isActive ? 'none' : 'blur(10px)'};
   
   &::before {
     content: '';
@@ -426,20 +428,21 @@ const NavTab = styled.button<{ isActive: boolean; disabled?: boolean }>`
   }
   
   &:hover:not(:disabled) {
-    background: ${props => props.isActive 
-      ? theme.colors.gradients.primary 
-      : theme.colors.primary[50]};
-    color: ${props => props.isActive 
-      ? theme.colors.text.inverse 
+    background: ${props => props.isActive
+      ? theme.colors.gradients.primary
+      : 'rgba(255, 255, 255, 0.95)'};
+    color: ${props => props.isActive
+      ? theme.colors.text.inverse
       : theme.colors.primary.main};
-    border-color: ${props => props.isActive 
-      ? 'transparent' 
+    border-color: ${props => props.isActive
+      ? 'transparent'
       : theme.colors.primary.light};
     transform: translateY(-3px) scale(1.02);
-    box-shadow: ${props => props.isActive 
-      ? `${theme.shadows.lg}, ${theme.shadows.glowLg}` 
-      : `${theme.shadows.lg}, 0 0 15px rgba(91, 124, 255, 0.2)`};
-    
+    box-shadow: ${props => props.isActive
+      ? `${theme.shadows.lg}, ${theme.shadows.glowLg}`
+      : `${theme.shadows.lg}, 0 0 20px rgba(0, 34, 110, 0.15)`};
+    backdrop-filter: blur(15px);
+
     &::before {
       opacity: 1;
     }

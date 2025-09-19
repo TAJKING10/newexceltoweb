@@ -65,11 +65,32 @@ const ChartsContainer = styled.div`
 `;
 
 const ChartCard = styled.div`
-  background: white;
-  border-radius: ${theme.borderRadius.xl};
-  padding: ${theme.spacing[6]};
-  border: 1px solid ${theme.colors.border.light};
-  box-shadow: ${theme.shadows.sm};
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: ${theme.borderRadius['2xl']};
+  padding: ${theme.spacing[8]};
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: ${theme.shadows.glassmorphism};
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: ${theme.colors.gradients.accent};
+    border-radius: ${theme.borderRadius['2xl']} ${theme.borderRadius['2xl']} 0 0;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: ${theme.shadows.glassmorphismLight}, ${theme.shadows.lg};
+    transform: translateY(-2px);
+  }
 `;
 
 const ChartTitle = styled.h3`
@@ -107,16 +128,32 @@ const MetricValue = styled.span`
 `;
 
 const StatCard = styled.div`
-  background: white;
-  border-radius: ${theme.borderRadius.xl};
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: ${theme.borderRadius['2xl']};
   padding: ${theme.spacing[6]};
-  border: 1px solid ${theme.colors.border.light};
-  box-shadow: ${theme.shadows.sm};
-  transition: all ${theme.animation.duration.normal};
-  
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: ${theme.shadows.glassmorphism};
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background: ${theme.colors.gradients.accent};
+    border-radius: 0 2px 2px 0;
+  }
+
   &:hover {
-    box-shadow: ${theme.shadows.md};
-    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: ${theme.shadows.glassmorphismLight}, ${theme.shadows.lg};
+    transform: translateY(-4px) scale(1.01);
   }
 `;
 
@@ -128,15 +165,27 @@ const StatHeader = styled.div`
 `;
 
 const StatIcon = styled.div`
-  width: 48px;
-  height: 48px;
-  border-radius: ${theme.borderRadius.lg};
+  width: 56px;
+  height: 56px;
+  border-radius: ${theme.borderRadius.xl};
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${theme.typography.fontSize['xl']};
+  font-size: ${theme.typography.fontSize['2xl']};
   background: ${theme.colors.gradients.primary};
   color: white;
+  box-shadow: ${theme.shadows.md};
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: ${theme.colors.gradients.accent};
+    z-index: -1;
+    opacity: 0.3;
+  }
 `;
 
 const StatValue = styled.div`

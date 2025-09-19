@@ -17,10 +17,12 @@ const DashboardContainer = styled.div`
 `;
 
 const Header = styled.header`
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   padding: ${theme.spacing[6]} ${theme.spacing[8]};
-  border-bottom: 1px solid ${theme.colors.border.light};
-  box-shadow: ${theme.shadows.sm};
+  border-bottom: 1px solid ${theme.colors.gray[200]};
+  box-shadow: ${theme.shadows.glassmorphism};
   position: sticky;
   top: 0;
   z-index: ${theme.zIndex.sticky};
@@ -209,7 +211,7 @@ export const AdminDashboard: React.FC = () => {
       <Header>
         <HeaderContent>
           <HeaderLeft>
-            <Title>🔧 {t('admin.title')}</Title>
+            <Title>⚡ Advensys Payslip - Admin</Title>
           </HeaderLeft>
           
           <HeaderRight>
