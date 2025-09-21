@@ -694,6 +694,100 @@ class SupabasePayslipService {
       return { success: false, error: error.message || 'Unknown error occurred' };
     }
   }
+
+  /**
+   * Admin function: Get ALL annual payslips from ALL users (for admin panel)
+   */
+  async getAllAnnualPayslipViewsForAdmin(): Promise<{ success: boolean; data?: SavedPayslipView[]; error?: string }> {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      const { data, error } = await supabase
+        .from('saved_payslip_views')
+        .select('*')
+        .eq('view_type', 'annual')
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error loading all payslip views for admin:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log(`📊 Admin loaded ${data?.length || 0} annual payslips from all users`);
+      return { success: true, data: data || [] };
+
+    } catch (error: any) {
+      console.error('❌ Error in getAllAnnualPayslipViewsForAdmin:', error);
+      return { success: false, error: error.message || 'Unknown error occurred' };
+    }
+  }
+
+  /**
+   * Admin function: Get ALL basic payslips from ALL users (for admin panel)
+   */
+  async getAllBasicPayslipViewsForAdmin(): Promise<{ success: boolean; data?: SavedPayslipView[]; error?: string }> {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      const { data, error } = await supabase
+        .from('saved_payslip_views')
+        .select('*')
+        .eq('view_type', 'basic')
+        .order('payslip_year', { ascending: false })
+        .order('payslip_month', { ascending: false })
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error loading all basic payslip views for admin:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log(`📝 Admin loaded ${data?.length || 0} basic payslips from all users`);
+      return { success: true, data: data || [] };
+
+    } catch (error: any) {
+      console.error('❌ Error in getAllBasicPayslipViewsForAdmin:', error);
+      return { success: false, error: error.message || 'Unknown error occurred' };
+    }
+  }
+
+  /**
+   * Admin function: Get ALL payslips (both basic and annual) from ALL users
+   */
+  async getAllPayslipsForAdmin(): Promise<{ success: boolean; data?: SavedPayslipView[]; error?: string }> {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      const { data, error } = await supabase
+        .from('saved_payslip_views')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error loading all payslips for admin:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log(`🔧 Admin loaded ${data?.length || 0} total payslips from all users`);
+      return { success: true, data: data || [] };
+
+    } catch (error: any) {
+      console.error('❌ Error in getAllPayslipsForAdmin:', error);
+      return { success: false, error: error.message || 'Unknown error occurred' };
+    }
+  }
 }
 
 // Export singleton instance

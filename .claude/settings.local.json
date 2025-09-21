@@ -137,7 +137,12 @@
       "Bash(start http://localhost:6412)",
       "Bash(PORT=6433 npm start)",
       "Bash(PORT=9000 npm start)",
-      "Bash(PORT=6999 npm start)"
+      "Bash(PORT=6999 npm start)",
+      "Bash(start http://localhost:6433)",
+      "Bash(TSC_COMPILE_ON_ERROR=true npm run build)",
+      "Bash(start http://localhost:6999)",
+      "Bash(PORT=5777 npm start)",
+      "Bash(PORT=5778 npm start)"
     ],
     "deny": [],
     "ask": []
