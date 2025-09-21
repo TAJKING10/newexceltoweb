@@ -651,7 +651,7 @@ export const EmployeeManagement: React.FC = () => {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                placeholder="employee@company.com"
+                placeholder={t('placeholders.enterEmailAddress', 'employee@company.com')}
               />
             </FormGroup>
 

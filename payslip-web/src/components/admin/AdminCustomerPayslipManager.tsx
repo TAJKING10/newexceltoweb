@@ -646,7 +646,7 @@ export const AdminCustomerPayslipManager: React.FC = () => {
             </CreateButton>
 
             <SearchInput
-              placeholder="Search customers..."
+              placeholder={t('placeholders.searchCustomers', 'Search customers...')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />

@@ -29,7 +29,14 @@
     "enhanced": "Enhanced",
     "editor": "Editor",
     "notProvided": "Not provided",
-    "notSet": "Not set"
+    "notSet": "Not set",
+    "text": "Text",
+    "number": "Number",
+    "date": "Date",
+    "email": "Email",
+    "allDepartments": "All Departments",
+    "allStatus": "All Status",
+    "allTypes": "All Types"
   },
   "auth": {
     "email": "Email Address",
@@ -142,7 +149,15 @@
     "enterNotesComments": "Enter any additional notes or comments...",
     "placeholderText": "Placeholder text",
     "value": "Value",
-    "displayLabel": "Display Label"
+    "displayLabel": "Display Label",
+    "enterName": "Enter name",
+    "enterEmail": "Enter email",
+    "enterPhone": "Enter phone",
+    "enterAddress": "Enter address",
+    "enterNotes": "Enter notes",
+    "searchCustomers": "Search customers...",
+    "formulaExample": "e.g., basicSalary * 0.15",
+    "numericValue": "0.00"
   },
   "persons": {
     "title": "Person Management",
@@ -255,7 +270,7 @@
     "dependencyInsurance": "Dependency Insurance",
     "employerCost": "Employer Cost",
     "annualReport": "ANNUAL PAYSLIP REPORT",
-    "annualStatement": "Employee Annual Statement",
+    "annualStatement": "Annual Employee Statement",
     "year": "Year",
     "month": "Month",
     "taxClass": "Tax Class",
@@ -278,16 +293,26 @@
     "emailPlaceholder": "Email",
     "ungrouped": "Ungrouped",
     "monthlyGrossSalaryPlaceholder": "Monthly gross salary",
-     "selectYearMonth": "Select Year & Month",
+    "selectYearMonth": "Select Year and Month",
     "selectTemplate": "Select Template",
     "freshStart": "Fresh Start",
-    "resetTemplate": "Reset to Fresh Template",
+    "resetTemplate": "Reset to Blank Template",
     "autoCalculated": "Auto-calculated",
     "editMode": "Edit Mode",
     "exitEditMode": "Exit Edit Mode",
     "saveToBackend": "Save to Backend",
     "saving": "Saving...",
-    "autoSaveEnabled": "Auto-save enabled"
+    "autoSaveEnabled": "Auto-save enabled",
+    "employeePayslip": "EMPLOYEE PAYSLIP",
+    "employeeName": "Employee Name:",
+    "employeeId": "Employee ID:",
+    "department": "Department:",
+    "position": "Position:",
+    "informationTechnology": "Information Technology",
+    "softwareDeveloper": "Software Developer",
+    "otherAllowances": "Other Allowances",
+    "grossSalary": "GROSS SALARY",
+    "totalDeductions": "TOTAL DEDUCTIONS"
   },
   "app": {
     "features": {
@@ -599,6 +624,37 @@
     },
     "placeholders": {
       "notes": "Add any additional notes about this customer..."
+    }
+  },
+  "employees": {
+    "employmentTypes": {
+      "fullTime": "Full-time",
+      "partTime": "Part-time",
+      "contractor": "Contractor",
+      "intern": "Intern"
+    },
+    "statuses": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "terminated": "Terminated",
+      "onLeave": "On Leave"
+    },
+    "workLocations": {
+      "office": "Office",
+      "remote": "Remote",
+      "hybrid": "Hybrid"
+    },
+    "payFrequencies": {
+      "weekly": "Weekly",
+      "biWeekly": "Bi-weekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "annually": "Annually"
+    },
+    "filingStatuses": {
+      "single": "Single",
+      "married": "Married",
+      "headOfHousehold": "Head of Household"
     }
   }
 }

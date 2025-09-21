@@ -1,5 +1,6 @@
 import React, { memo, useState, useCallback } from 'react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 
 interface OptimizedCellProps {
   value: number;
@@ -54,6 +55,7 @@ const OptimizedCell = memo<OptimizedCellProps>(({
   onCellChange,
   onCellCommit
 }) => {
+  const { t } = useTranslation();
   const [localValue, setLocalValue] = useState(value.toString());
   const [isDirty, setIsDirty] = useState(false);
 
@@ -117,7 +119,7 @@ const OptimizedCell = memo<OptimizedCellProps>(({
         onChange={handleChange}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        placeholder="0.00"
+        placeholder={t('placeholders.numericValue', '0.00')}
       />
     </CellContainer>
   );

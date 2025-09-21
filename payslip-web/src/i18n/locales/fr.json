@@ -29,7 +29,14 @@
     "enhanced": "Amélioré",
     "editor": "Éditeur",
     "notProvided": "Non fourni",
-    "notSet": "Non défini"
+    "notSet": "Non défini",
+    "text": "Texte",
+    "number": "Nombre",
+    "date": "Date",
+    "email": "E-mail",
+    "allDepartments": "Tous les départements",
+    "allStatus": "Tous les statuts",
+    "allTypes": "Tous les types"
   },
   "auth": {
     "email": "Adresse e-mail",
@@ -142,7 +149,15 @@
     "enterNotesComments": "Entrez des notes ou commentaires supplémentaires...",
     "placeholderText": "Texte d'espace réservé",
     "value": "Valeur",
-    "displayLabel": "Libellé d'affichage"
+    "displayLabel": "Libellé d'affichage",
+    "enterName": "Entrez le nom",
+    "enterEmail": "Entrez l'email",
+    "enterPhone": "Entrez le téléphone",
+    "enterAddress": "Entrez l'adresse",
+    "enterNotes": "Entrez les notes",
+    "searchCustomers": "Rechercher des clients...",
+    "formulaExample": "ex: salaireBrut * 0.15",
+    "numericValue": "0,00"
   },
   "persons": {
     "title": "Gestion des personnes",
@@ -218,7 +233,7 @@
     "payPeriod": "Période de paie",
     "grossSalary": "Salaire brut",
     "netSalary": "Salaire net",
-    "deductions": "Déductions",
+    "deductions": "DÉDUCTIONS",
     "taxes": "Impôts",
     "socialSecurity": "Sécurité sociale",
     "pension": "Pension",
@@ -287,7 +302,16 @@
     "exitEditMode": "Quitter le mode édition",
     "saveToBackend": "Enregistrer dans la base",
     "saving": "Enregistrement...",
-    "autoSaveEnabled": "Auto-sauvegarde activée"
+    "autoSaveEnabled": "Auto-sauvegarde activée",
+    "employeePayslip": "FICHE DE PAIE EMPLOYÉ",
+    "employeeName": "Nom de l'Employé:",
+    "employeeId": "ID Employé:",
+    "department": "Département:",
+    "position": "Poste:",
+    "payPeriod": "Période de Paie:",
+    "informationTechnology": "Technologies de l'Information",
+    "softwareDeveloper": "Développeur Logiciel",
+    "otherAllowances": "Autres Allocations"
   },
   "app": {
     "features": {
@@ -795,6 +819,37 @@
     },
     "placeholders": {
       "notes": "Ajoutez des notes supplémentaires sur ce client..."
+    }
+  },
+  "employees": {
+    "employmentTypes": {
+      "fullTime": "Temps plein",
+      "partTime": "Temps partiel",
+      "contractor": "Contractuel",
+      "intern": "Stagiaire"
+    },
+    "statuses": {
+      "active": "Actif",
+      "inactive": "Inactif",
+      "terminated": "Terminé",
+      "onLeave": "En congé"
+    },
+    "workLocations": {
+      "office": "Bureau",
+      "remote": "À distance",
+      "hybrid": "Hybride"
+    },
+    "payFrequencies": {
+      "weekly": "Hebdomadaire",
+      "biWeekly": "Bi-hebdomadaire",
+      "monthly": "Mensuel",
+      "quarterly": "Trimestriel",
+      "annually": "Annuel"
+    },
+    "filingStatuses": {
+      "single": "Célibataire",
+      "married": "Marié(e)",
+      "headOfHousehold": "Chef de famille"
     }
   }
 }

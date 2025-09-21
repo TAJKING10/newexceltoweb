@@ -414,48 +414,48 @@ export const PayslipViewer: React.FC<PayslipViewerProps> = ({
   // Extract real data from payslip or use defaults matching user panel
   const payslipData = {
     // Headers and Labels
-    A1: "EMPLOYEE PAYSLIP",
-    A3: "Employee Name:",
+    A1: t('payslips.employeePayslip'),
+    A3: t('payslips.employeeName'),
     B3: customer.full_name,
-    A4: "Employee ID:",
+    A4: t('payslips.employeeId'),
     B4: customer.person_id,
-    A5: "Department:",
-    B5: customer.department || "Information Technology",
-    A6: "Position:",
-    B6: customer.position || "Software Developer",
-    A7: "Pay Period:",
+    A5: t('payslips.department'),
+    B5: customer.department || t('payslips.informationTechnology'),
+    A6: t('payslips.position'),
+    B6: customer.position || t('payslips.softwareDeveloper'),
+    A7: t('payslips.payPeriod'),
     B7: payslip.payPeriod,
 
     // Earnings
-    A9: "EARNINGS",
-    A10: "Basic Salary",
+    A9: t('payslips.earnings'),
+    A10: t('payslips.basicSalary'),
     B10: 5000,
-    A11: "Housing Allowance",
+    A11: t('payslips.housingAllowance'),
     B11: 1000,
-    A12: "Transport Allowance",
+    A12: t('payslips.transportAllowance'),
     B12: 300,
-    A13: "Overtime",
+    A13: t('payslips.overtime'),
     B13: 250,
-    A14: "Other Allowances",
+    A14: t('payslips.otherAllowances'),
     B14: 150,
-    A15: "GROSS SALARY",
+    A15: t('payslips.grossSalary'),
     B15: 6700, // Calculated
 
     // Deductions
-    A17: "DEDUCTIONS",
-    A18: "Income Tax",
+    A17: t('payslips.deductions'),
+    A18: t('payslips.incomeTax'),
     B18: 900, // 15% of gross
-    A19: "Social Security",
+    A19: t('payslips.socialSecurity'),
     B19: 350, // 7% of basic
-    A20: "Health Insurance",
+    A20: t('payslips.healthInsurance'),
     B20: 200,
-    A21: "Other Deductions",
+    A21: t('payslips.otherDeductions'),
     B21: 50,
-    A22: "TOTAL DEDUCTIONS",
+    A22: t('payslips.totalDeductions'),
     B22: 1500, // Calculated
 
     // Net Salary
-    A24: "NET SALARY",
+    A24: t('payslips.netSalary'),
     B24: 5200, // Calculated
   };
 

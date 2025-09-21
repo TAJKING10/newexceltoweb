@@ -445,10 +445,10 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
                       onChange={(e) => updateEmployment('employmentType', e.target.value)}
                       style={fieldStyle}
                     >
-                      <option value="full-time">Full-time</option>
-                      <option value="part-time">Part-time</option>
-                      <option value="contractor">Contractor</option>
-                      <option value="intern">Intern</option>
+                      <option value="full-time">{t('employees.employmentTypes.fullTime')}</option>
+                      <option value="part-time">{t('employees.employmentTypes.partTime')}</option>
+                      <option value="contractor">{t('employees.employmentTypes.contractor')}</option>
+                      <option value="intern">{t('employees.employmentTypes.intern')}</option>
                     </select>
                   </div>
                   <div>
@@ -458,10 +458,10 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
                       onChange={(e) => updateEmployment('status', e.target.value)}
                       style={fieldStyle}
                     >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                      <option value="terminated">Terminated</option>
-                      <option value="on-leave">On Leave</option>
+                      <option value="active">{t('employees.statuses.active')}</option>
+                      <option value="inactive">{t('employees.statuses.inactive')}</option>
+                      <option value="terminated">{t('employees.statuses.terminated')}</option>
+                      <option value="on-leave">{t('employees.statuses.onLeave')}</option>
                     </select>
                   </div>
                   <div>
@@ -471,9 +471,9 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
                       onChange={(e) => updateEmployment('workLocation', e.target.value)}
                       style={fieldStyle}
                     >
-                      <option value="office">Office</option>
-                      <option value="remote">Remote</option>
-                      <option value="hybrid">Hybrid</option>
+                      <option value="office">{t('employees.workLocations.office')}</option>
+                      <option value="remote">{t('employees.workLocations.remote')}</option>
+                      <option value="hybrid">{t('employees.workLocations.hybrid')}</option>
                     </select>
                   </div>
                 </div>
@@ -517,11 +517,11 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
                       onChange={(e) => updateCompensation('payFrequency', e.target.value)}
                       style={fieldStyle}
                     >
-                      <option value="weekly">Weekly</option>
-                      <option value="bi-weekly">Bi-weekly</option>
-                      <option value="monthly">Monthly</option>
-                      <option value="quarterly">Quarterly</option>
-                      <option value="annually">Annually</option>
+                      <option value="weekly">{t('employees.payFrequencies.weekly')}</option>
+                      <option value="bi-weekly">{t('employees.payFrequencies.biWeekly')}</option>
+                      <option value="monthly">{t('employees.payFrequencies.monthly')}</option>
+                      <option value="quarterly">{t('employees.payFrequencies.quarterly')}</option>
+                      <option value="annually">{t('employees.payFrequencies.annually')}</option>
                     </select>
                   </div>
                 </div>
@@ -579,9 +579,9 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
                       onChange={(e) => updateTaxInfo('filingStatus', e.target.value)}
                       style={fieldStyle}
                     >
-                      <option value="single">Single</option>
-                      <option value="married">Married</option>
-                      <option value="head-of-household">Head of Household</option>
+                      <option value="single">{t('employees.filingStatuses.single')}</option>
+                      <option value="married">{t('employees.filingStatuses.married')}</option>
+                      <option value="head-of-household">{t('employees.filingStatuses.headOfHousehold')}</option>
                     </select>
                   </div>
                   <div>
@@ -715,10 +715,10 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
                   onChange={(e) => updateCustomField(index, 'type', e.target.value)}
                   style={fieldStyle}
                 >
-                  <option value="text">Text</option>
-                  <option value="number">Number</option>
-                  <option value="date">Date</option>
-                  <option value="email">Email</option>
+                  <option value="text">{t('common.text', 'Text')}</option>
+                  <option value="number">{t('common.number', 'Number')}</option>
+                  <option value="date">{t('common.date', 'Date')}</option>
+                  <option value="email">{t('common.email', 'Email')}</option>
                 </select>
                 <button
                   onClick={() => removeCustomField(index)}

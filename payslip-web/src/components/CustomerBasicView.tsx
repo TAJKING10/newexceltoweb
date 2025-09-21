@@ -578,8 +578,8 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
               value={payslipData.hasChildren ? 'yes' : 'no'}
               onChange={(e) => handleFieldChange('hasChildren', e.target.value === 'yes')}
             >
-              <option value="no">No</option>
-              <option value="yes">Yes (Tax Credits Apply)</option>
+              <option value="no">{t('common.no')}</option>
+              <option value="yes">{t('payslips.yesTaxCredits')}</option>
             </Select>
           </InputGroup>
         </FormRow>

@@ -439,7 +439,7 @@ const EmployeeManagement: React.FC<Props> = ({ onEmployeeSelect }) => {
           value={searchFilters.department || ''}
           onChange={(e) => handleSearch('department', e.target.value)}
         >
-          <option value="">All Departments</option>
+          <option value="">{t('common.allDepartments', 'All Departments')}</option>
           <option value="Engineering">{t('departments.engineering')}</option>
           <option value="Marketing">{t('departments.marketing')}</option>
           <option value="Sales">{t('departments.sales')}</option>
@@ -450,21 +450,21 @@ const EmployeeManagement: React.FC<Props> = ({ onEmployeeSelect }) => {
           value={searchFilters.employmentStatus || ''}
           onChange={(e) => handleSearch('employmentStatus', e.target.value)}
         >
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="terminated">Terminated</option>
-          <option value="on-leave">On Leave</option>
+          <option value="">{t('common.allStatus', 'All Status')}</option>
+          <option value="active">{t('employees.statuses.active')}</option>
+          <option value="inactive">{t('employees.statuses.inactive')}</option>
+          <option value="terminated">{t('employees.statuses.terminated')}</option>
+          <option value="on-leave">{t('employees.statuses.onLeave')}</option>
         </Select>
         <Select
           value={searchFilters.employmentType || ''}
           onChange={(e) => handleSearch('employmentType', e.target.value)}
         >
-          <option value="">All Types</option>
-          <option value="full-time">Full Time</option>
-          <option value="part-time">Part Time</option>
-          <option value="contractor">Contractor</option>
-          <option value="intern">Intern</option>
+          <option value="">{t('common.allTypes', 'All Types')}</option>
+          <option value="full-time">{t('employees.employmentTypes.fullTime')}</option>
+          <option value="part-time">{t('employees.employmentTypes.partTime')}</option>
+          <option value="contractor">{t('employees.employmentTypes.contractor')}</option>
+          <option value="intern">{t('employees.employmentTypes.intern')}</option>
         </Select>
         <Button variant="secondary" onClick={clearFilters}>
           Clear

@@ -1880,7 +1880,7 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
                           type="text"
                           value={field.formula || ''}
                           onChange={(e) => updateField(section.id, field.id, { formula: e.target.value })}
-                          placeholder="e.g., basicSalary * 0.15"
+                          placeholder={t('placeholders.formulaExample', 'e.g., basicSalary * 0.15')}
                         />
                       </InputGroup>
                     )}

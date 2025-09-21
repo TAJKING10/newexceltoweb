@@ -351,48 +351,48 @@ export const PayslipEditor: React.FC<PayslipEditorProps> = ({
 
   const [payslipData, setPayslipData] = useState<PayslipState>({
     // Headers and Labels
-    A1: "EMPLOYEE PAYSLIP",
-    A3: "Employee Name:",
+    A1: t('payslips.employeePayslip'),
+    A3: t('payslips.employeeName'),
     B3: customer.full_name,
-    A4: "Employee ID:",
+    A4: t('payslips.employeeId'),
     B4: customer.person_id,
-    A5: "Department:",
-    B5: customer.department || "Information Technology",
-    A6: "Position:",
-    B6: customer.position || "Software Developer",
+    A5: t('payslips.department'),
+    B5: customer.department || t('payslips.informationTechnology'),
+    A6: t('payslips.position'),
+    B6: customer.position || t('payslips.softwareDeveloper'),
     A7: "Pay Period:",
     B7: payslip.payPeriod || new Date().toISOString().substr(0, 7),
 
     // Earnings
-    A9: "EARNINGS",
-    A10: "Basic Salary",
+    A9: t('payslips.earnings'),
+    A10: t('payslips.basicSalary'),
     B10: 5000,
-    A11: "Housing Allowance",
+    A11: t('payslips.housingAllowance'),
     B11: 1000,
-    A12: "Transport Allowance",
+    A12: t('payslips.transportAllowance'),
     B12: 300,
-    A13: "Overtime",
-    B13: 250,
-    A14: "Other Allowances",
-    B14: 150,
-    A15: "GROSS SALARY",
-    B15: 0, // Will be calculated
+    A13: t('payslips.overtime'),
+      B13: 250,
+      A14: t('payslips.otherAllowances'),
+      B14: 150,
+      A15: t('payslips.grossSalary'),
+      B15: 0, // Will be calculated
 
-    // Deductions
-    A17: "DEDUCTIONS",
-    A18: "Income Tax",
-    B18: 0, // Will be calculated
-    A19: "Social Security",
-    B19: 0, // Will be calculated
-    A20: "Health Insurance",
-    B20: 200,
-    A21: "Other Deductions",
-    B21: 50,
-    A22: "TOTAL DEDUCTIONS",
-    B22: 0, // Will be calculated
+      // Deductions
+      A17: t('payslips.deductions'),
+      A18: t('payslips.incomeTax'),
+      B18: 0, // Will be calculated
+      A19: t('payslips.socialSecurity'),
+      B19: 0, // Will be calculated
+      A20: t('payslips.healthInsurance'),
+      B20: 200,
+      A21: t('payslips.otherDeductions'),
+      B21: 50,
+      A22: t('payslips.totalDeductions'),
+      B22: 0, // Will be calculated
 
     // Net Salary
-    A24: "NET SALARY",
+    A24: t('payslips.netPay'),
     B24: 0, // Will be calculated
   });
 
