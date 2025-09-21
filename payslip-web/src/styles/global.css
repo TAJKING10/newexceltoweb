@@ -35,7 +35,7 @@ body {
   background-color: #fcfcfd;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeSpeed;
+  text-rendering: optimizeLegibility;
 }
 
 /* Typography Scale */
@@ -838,6 +838,81 @@ img, picture, video, canvas, svg {
     background-color: var(--bg-primary);
     color: var(--text-primary);
   }
+
+  /* Ensure better contrast in dark mode */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+  }
+
+  .text-primary {
+    color: var(--text-primary) !important;
+  }
+
+  .text-secondary {
+    color: var(--text-secondary) !important;
+  }
+
+  .text-tertiary {
+    color: var(--text-tertiary) !important;
+  }
+}
+
+/* Enhanced text contrast utilities */
+.text-high-contrast {
+  color: #000000;
+  font-weight: 600;
+}
+
+.text-medium-contrast {
+  color: #1d2939;
+  font-weight: 500;
+}
+
+.text-readable {
+  color: #344054;
+  font-weight: 400;
+}
+
+/* Better button text contrast */
+button {
+  font-weight: 500;
+}
+
+button:disabled {
+  color: #667085 !important;
+}
+
+/* Enhanced link contrast */
+a {
+  color: #00226E;
+  font-weight: 500;
+}
+
+a:hover {
+  color: #001347;
+  font-weight: 600;
+}
+
+/* Better form input contrast */
+input, select, textarea {
+  color: #1d2939;
+  font-weight: 400;
+}
+
+input::placeholder, select::placeholder, textarea::placeholder {
+  color: #667085;
+  font-weight: 400;
+}
+
+/* Enhanced table text */
+th {
+  color: #1d2939;
+  font-weight: 600;
+}
+
+td {
+  color: #344054;
+  font-weight: 400;
 }
 
 /* High Contrast Mode */
