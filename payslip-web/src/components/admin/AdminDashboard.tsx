@@ -51,6 +51,36 @@ const HeaderRight = styled.div`
   gap: ${theme.spacing[4]};
 `;
 
+const BrandHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing[4]};
+`;
+
+const BrandIcon = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: ${theme.borderRadius.lg};
+  background: ${theme.colors.gradients.primary};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: ${theme.typography.fontSize.lg};
+  color: ${theme.colors.text.inverse};
+  box-shadow: ${theme.shadows.sm};
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: ${theme.colors.gradients.accent};
+    z-index: -1;
+    opacity: 0.3;
+  }
+`;
+
 const Title = styled.h1`
   margin: 0;
   background: ${theme.colors.gradients.primary};
@@ -58,7 +88,10 @@ const Title = styled.h1`
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-size: ${theme.typography.fontSize['2xl']};
-  font-weight: ${theme.typography.fontWeight.black};
+  font-weight: ${theme.typography.fontWeight.extrabold};
+  font-family: ${theme.typography.fontFamily.primary};
+  letter-spacing: ${theme.typography.letterSpacing.tight};
+  line-height: ${theme.typography.lineHeight.tight};
 `;
 
 const UserInfo = styled.div`
@@ -211,7 +244,10 @@ export const AdminDashboard: React.FC = () => {
       <Header>
         <HeaderContent>
           <HeaderLeft>
-            <Title>⚡ Advensys Payslip - Admin</Title>
+            <BrandHeader>
+              <BrandIcon>⚡</BrandIcon>
+              <Title>Advensys Payslip - Admin</Title>
+            </BrandHeader>
           </HeaderLeft>
           
           <HeaderRight>

@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../supabaseClient';
 import { theme } from '../../styles/theme';
+import { KPI } from '../../ui/KPI';
 
 interface Stats {
   totalEmployees: number;
@@ -48,9 +49,9 @@ const Container = styled.div`
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: ${theme.spacing[4]};
-  margin-bottom: ${theme.spacing[6]};
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: ${theme.spacing[6]};
+  margin-bottom: ${theme.spacing[8]};
 `;
 
 const ChartsContainer = styled.div`
@@ -127,87 +128,6 @@ const MetricValue = styled.span`
   font-weight: ${theme.typography.fontWeight.bold};
 `;
 
-const StatCard = styled.div`
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: ${theme.borderRadius['2xl']};
-  padding: ${theme.spacing[6]};
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: ${theme.shadows.glassmorphism};
-  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: 4px;
-    background: ${theme.colors.gradients.accent};
-    border-radius: 0 2px 2px 0;
-  }
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: ${theme.shadows.glassmorphismLight}, ${theme.shadows.lg};
-    transform: translateY(-4px) scale(1.01);
-  }
-`;
-
-const StatHeader = styled.div`
-  display: flex;
-  justify-content: between;
-  align-items: start;
-  margin-bottom: ${theme.spacing[3]};
-`;
-
-const StatIcon = styled.div`
-  width: 56px;
-  height: 56px;
-  border-radius: ${theme.borderRadius.xl};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: ${theme.typography.fontSize['2xl']};
-  background: ${theme.colors.gradients.primary};
-  color: white;
-  box-shadow: ${theme.shadows.md};
-  position: relative;
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: inherit;
-    background: ${theme.colors.gradients.accent};
-    z-index: -1;
-    opacity: 0.3;
-  }
-`;
-
-const StatValue = styled.div`
-  font-size: ${theme.typography.fontSize['3xl']};
-  font-weight: ${theme.typography.fontWeight.black};
-  color: ${theme.colors.text.primary};
-  line-height: 1;
-`;
-
-const StatLabel = styled.div`
-  font-size: ${theme.typography.fontSize.sm};
-  color: ${theme.colors.text.secondary};
-  font-weight: ${theme.typography.fontWeight.medium};
-  margin-top: ${theme.spacing[2]};
-`;
-
-const StatChange = styled.div<{ positive?: boolean }>`
-  font-size: ${theme.typography.fontSize.xs};
-  color: ${props => props.positive ? theme.colors.success.main : theme.colors.error.main};
-  font-weight: ${theme.typography.fontWeight.semibold};
-  margin-top: ${theme.spacing[1]};
-`;
 
 const ActivitySection = styled.div`
   background: white;
@@ -515,109 +435,82 @@ export const DashboardStats: React.FC = () => {
   return (
     <Container>
       <StatsGrid>
-        <StatCard>
-          <StatHeader>
-            <div>
-              <StatValue>{stats.totalEmployees}</StatValue>
-              <StatLabel>{t('dashboard.totalEmployees')}</StatLabel>
-              <StatChange positive={true}>
-                {t('dashboard.allRegisteredUsers', 'All registered users')}
-              </StatChange>
-            </div>
-            <StatIcon>👥</StatIcon>
-          </StatHeader>
-        </StatCard>
+        <KPI
+          label={t('dashboard.totalEmployees')}
+          value={stats.totalEmployees.toString()}
+          icon="👥"
+          variant="default"
+          size="lg"
+          description={t('dashboard.allRegisteredUsers', 'All registered users')}
+        />
 
-        <StatCard>
-          <StatHeader>
-            <div>
-              <StatValue>{stats.activeEmployees}</StatValue>
-              <StatLabel>{t('dashboard.activeEmployees', 'Active Employees')}</StatLabel>
-              <StatChange positive={true}>
-                {t('dashboard.readyToWork', 'Ready to work')}
-              </StatChange>
-            </div>
-            <StatIcon>✅</StatIcon>
-          </StatHeader>
-        </StatCard>
+        <KPI
+          label={t('dashboard.activeEmployees', 'Active Employees')}
+          value={stats.activeEmployees.toString()}
+          icon="✅"
+          variant="accent"
+          size="lg"
+          description={t('dashboard.readyToWork', 'Ready to work')}
+          changeType="positive"
+        />
 
-        <StatCard>
-          <StatHeader>
-            <div>
-              <StatValue>{stats.pendingEmployees}</StatValue>
-              <StatLabel>{t('dashboard.pendingApproval', 'Pending Approval')}</StatLabel>
-              <StatChange positive={false}>
-                {t('dashboard.awaitingActivation', 'Awaiting activation')}
-              </StatChange>
-            </div>
-            <StatIcon>⏳</StatIcon>
-          </StatHeader>
-        </StatCard>
+        <KPI
+          label={t('dashboard.pendingApproval', 'Pending Approval')}
+          value={stats.pendingEmployees.toString()}
+          icon="⏳"
+          variant="minimal"
+          size="lg"
+          description={t('dashboard.awaitingActivation', 'Awaiting activation')}
+          changeType={stats.pendingEmployees > 0 ? "negative" : "neutral"}
+        />
 
-        <StatCard>
-          <StatHeader>
-            <div>
-              <StatValue>{stats.totalPayslips}</StatValue>
-              <StatLabel>{t('dashboard.totalPayslips')}</StatLabel>
-              <StatChange positive={true}>
-                {t('dashboard.generatedDocuments', 'Generated documents')}
-              </StatChange>
-            </div>
-            <StatIcon>📄</StatIcon>
-          </StatHeader>
-        </StatCard>
+        <KPI
+          label={t('dashboard.totalPayslips')}
+          value={stats.totalPayslips.toString()}
+          icon="📄"
+          variant="default"
+          size="lg"
+          description={t('dashboard.generatedDocuments', 'Generated documents')}
+          changeType="positive"
+        />
 
-        <StatCard>
-          <StatHeader>
-            <div>
-              <StatValue>{stats.totalTemplates}</StatValue>
-              <StatLabel>{t('templates.title', 'Templates')}</StatLabel>
-              <StatChange positive={true}>
-                {t('dashboard.availableDesigns', 'Available designs')}
-              </StatChange>
-            </div>
-            <StatIcon>🎨</StatIcon>
-          </StatHeader>
-        </StatCard>
+        <KPI
+          label={t('templates.title', 'Templates')}
+          value={stats.totalTemplates.toString()}
+          icon="🎨"
+          variant="accent"
+          size="lg"
+          description={t('dashboard.availableDesigns', 'Available designs')}
+        />
 
-        <StatCard>
-          <StatHeader>
-            <div>
-              <StatValue>{stats.monthlyPayslips}</StatValue>
-              <StatLabel>{t('dashboard.thisMonth')}</StatLabel>
-              <StatChange positive={true}>
-                {t('dashboard.currentMonthPayslips', 'Current month payslips')}
-              </StatChange>
-            </div>
-            <StatIcon>📅</StatIcon>
-          </StatHeader>
-        </StatCard>
+        <KPI
+          label={t('dashboard.thisMonth')}
+          value={stats.monthlyPayslips.toString()}
+          icon="📅"
+          variant="default"
+          size="lg"
+          description={t('dashboard.currentMonthPayslips', 'Current month payslips')}
+          changeType="positive"
+        />
 
-        <StatCard>
-          <StatHeader>
-            <div>
-              <StatValue>€{Math.round(stats.avgSalary).toLocaleString()}</StatValue>
-              <StatLabel>{t('dashboard.averageSalary', 'Average Salary')}</StatLabel>
-              <StatChange positive={true}>
-                {t('dashboard.perEmployeeAnnually', 'Per employee annually')}
-              </StatChange>
-            </div>
-            <StatIcon>💰</StatIcon>
-          </StatHeader>
-        </StatCard>
+        <KPI
+          label={t('dashboard.averageSalary', 'Average Salary')}
+          value={`€${Math.round(stats.avgSalary).toLocaleString()}`}
+          icon="💰"
+          variant="accent"
+          size="lg"
+          description={t('dashboard.perEmployeeAnnually', 'Per employee annually')}
+        />
 
-        <StatCard>
-          <StatHeader>
-            <div>
-              <StatValue>€{Math.round(stats.totalRevenue / 1000)}K</StatValue>
-              <StatLabel>{t('dashboard.totalPayroll', 'Total Payroll')}</StatLabel>
-              <StatChange positive={true}>
-                {t('dashboard.annualPayrollCosts', 'Annual payroll costs')}
-              </StatChange>
-            </div>
-            <StatIcon>💳</StatIcon>
-          </StatHeader>
-        </StatCard>
+        <KPI
+          label={t('dashboard.totalPayroll', 'Total Payroll')}
+          value={`€${Math.round(stats.totalRevenue / 1000)}K`}
+          icon="💳"
+          variant="default"
+          size="lg"
+          description={t('dashboard.annualPayrollCosts', 'Annual payroll costs')}
+          changeType="positive"
+        />
       </StatsGrid>
 
       <ChartsContainer>

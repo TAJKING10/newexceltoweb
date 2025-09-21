@@ -3,199 +3,173 @@ import styled from 'styled-components';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../styles/theme';
+import { Button } from '../../ui/Button';
+import { Input } from '../../ui/Input';
+import { Card } from '../../ui/Card';
 import LanguageSwitcher from '../LanguageSwitcher';
 
 const LoginContainer = styled.div`
   min-height: 100vh;
-  background: ${theme.colors.gradients.primary};
+  background: ${theme.colors.gradients.hero};
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${theme.spacing[4]};
+  padding: ${theme.spacing[6]};
   position: relative;
+
+  /* Background pattern */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+      radial-gradient(circle at 20% 50%, rgba(255, 194, 0, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(255, 120, 94, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 40% 80%, rgba(0, 58, 189, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
 `;
 
 const LanguageSwitcherWrapper = styled.div`
   position: absolute;
-  top: ${theme.spacing[4]};
-  right: ${theme.spacing[4]};
+  top: ${theme.spacing[6]};
+  right: ${theme.spacing[6]};
   z-index: 10;
 `;
 
-const LoginCard = styled.div`
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: ${theme.borderRadius['2xl']};
-  box-shadow: ${theme.shadows.glassmorphism};
-  padding: ${theme.spacing[8]};
+const LoginCard = styled(Card)`
   width: 100%;
-  max-width: 420px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
+  max-width: 440px;
+  position: relative;
+  z-index: 1;
+`;
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.98);
-    box-shadow: ${theme.shadows.glassmorphismLight}, ${theme.shadows.lg};
-    transform: translateY(-2px);
+const BrandHeader = styled.div`
+  text-align: center;
+  margin-bottom: ${theme.spacing[10]};
+`;
+
+const BrandLogo = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${theme.spacing[3]};
+  margin-bottom: ${theme.spacing[4]};
+`;
+
+const BrandIcon = styled.div`
+  width: 56px;
+  height: 56px;
+  border-radius: ${theme.borderRadius.xl};
+  background: ${theme.colors.gradients.primary};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: ${theme.typography.fontSize['2xl']};
+  color: ${theme.colors.text.inverse};
+  box-shadow: ${theme.shadows.lg};
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    background: ${theme.colors.gradients.accent};
+    z-index: -1;
+    opacity: 0.3;
   }
 `;
 
-const Logo = styled.div`
-  text-align: center;
-  margin-bottom: ${theme.spacing[8]};
-`;
-
-const LogoText = styled.h1`
+const BrandName = styled.h1`
+  font-family: ${theme.typography.fontFamily.primary};
   font-size: ${theme.typography.fontSize['3xl']};
-  font-weight: ${theme.typography.fontWeight.black};
+  font-weight: ${theme.typography.fontWeight.extrabold};
   background: ${theme.colors.gradients.primary};
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin: 0 0 ${theme.spacing[2]} 0;
-`;
-
-const LogoSubtext = styled.p`
-  color: ${theme.colors.text.secondary};
-  font-size: ${theme.typography.fontSize.sm};
   margin: 0;
+  line-height: ${theme.typography.lineHeight.tight};
+  letter-spacing: ${theme.typography.letterSpacing.tight};
 `;
 
-const Form = styled.form`
+const BrandTagline = styled.p`
+  font-family: ${theme.typography.fontFamily.primary};
+  font-size: ${theme.typography.fontSize.md};
+  font-weight: ${theme.typography.fontWeight.medium};
+  color: ${theme.colors.text.secondary};
+  margin: 0;
+  line-height: ${theme.typography.lineHeight.snug};
+`;
+
+const LoginForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: ${theme.spacing[6]};
 `;
 
-const FormGroup = styled.div`
+const FormSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${theme.spacing[2]};
+  gap: ${theme.spacing[5]};
 `;
 
-const Label = styled.label`
-  font-weight: ${theme.typography.fontWeight.semibold};
-  color: ${theme.colors.text.primary};
-  font-size: ${theme.typography.fontSize.sm};
-`;
-
-const Input = styled.input`
-  padding: ${theme.spacing[4]} ${theme.spacing[5]};
-  border: 2px solid ${theme.colors.gray[300]};
-  border-radius: ${theme.borderRadius.xl};
-  font-size: ${theme.typography.fontSize.base};
-  font-family: ${theme.typography.fontFamily.primary};
-  font-weight: ${theme.typography.fontWeight.medium};
-  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-
-  &:focus {
-    outline: none;
-    border-color: ${theme.colors.primary.main};
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 0 0 4px rgba(0, 34, 110, 0.1), ${theme.shadows.md};
-    transform: translateY(-1px);
-  }
-
-  &:invalid {
-    border-color: ${theme.colors.error.main};
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-  }
-
-  &::placeholder {
-    color: ${theme.colors.gray[500]};
-    font-weight: ${theme.typography.fontWeight.normal};
-  }
-
-  &:hover:not(:focus) {
-    border-color: ${theme.colors.gray[400]};
-    background: rgba(255, 255, 255, 0.9);
-  }
-`;
-
-const LoginButton = styled.button.withConfig({
-  shouldForwardProp: (prop) => prop !== 'loading'
-})<{ loading?: boolean }>`
-  background: ${theme.colors.gradients.primary};
-  color: white;
-  border: none;
-  padding: ${theme.spacing[4]} ${theme.spacing[8]};
-  border-radius: ${theme.borderRadius.xl};
-  font-family: ${theme.typography.fontFamily.primary};
-  font-weight: ${theme.typography.fontWeight.bold};
-  font-size: ${theme.typography.fontSize.lg};
-  cursor: ${props => props.loading ? 'not-allowed' : 'pointer'};
-  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
-  position: relative;
-  opacity: ${props => props.loading ? 0.8 : 1};
-  box-shadow: ${theme.shadows.md};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 56px;
-
-  &:hover:not(:disabled) {
-    background: ${theme.colors.gradients.cool};
-    transform: translateY(-3px);
-    box-shadow: ${theme.shadows.lg}, ${theme.shadows.glow};
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: ${theme.shadows.md};
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-
-  &:focus-visible {
-    outline: 3px solid ${theme.colors.secondary.main};
-    outline-offset: 2px;
-  }
-`;
-
-const ErrorMessage = styled.div`
-  background: ${theme.colors.error.light}20;
-  border: 1px solid ${theme.colors.error.light};
-  color: ${theme.colors.error.dark};
-  padding: ${theme.spacing[3]} ${theme.spacing[4]};
-  border-radius: ${theme.borderRadius.lg};
-  font-size: ${theme.typography.fontSize.sm};
-  text-align: center;
+const LoginButton = styled(Button)`
+  margin-top: ${theme.spacing[2]};
 `;
 
 const StatusMessage = styled.div<{ type: 'warning' | 'info' }>`
-  background: ${props => props.type === 'warning' 
-    ? `${theme.colors.warning.light}20` 
-    : `${theme.colors.primary.light}20`};
-  border: 1px solid ${props => props.type === 'warning' 
-    ? theme.colors.warning.light 
-    : theme.colors.primary.light};
-  color: ${props => props.type === 'warning' 
-    ? theme.colors.warning.dark 
-    : theme.colors.primary.dark};
-  padding: ${theme.spacing[3]} ${theme.spacing[4]};
-  border-radius: ${theme.borderRadius.lg};
+  padding: ${theme.spacing[4]} ${theme.spacing[5]};
+  border-radius: ${theme.borderRadius.xl};
+  border: 2px solid ${props =>
+    props.type === 'warning'
+      ? theme.colors.warning.main
+      : theme.colors.primary.light};
+  background: ${props =>
+    props.type === 'warning'
+      ? `${theme.colors.warning.main}10`
+      : `${theme.colors.primary.light}10`};
+  color: ${props =>
+    props.type === 'warning'
+      ? theme.colors.warning.dark
+      : theme.colors.primary.dark};
+  font-family: ${theme.typography.fontFamily.primary};
   font-size: ${theme.typography.fontSize.sm};
+  font-weight: ${theme.typography.fontWeight.medium};
+  line-height: ${theme.typography.lineHeight.relaxed};
   text-align: center;
+  margin-top: ${theme.spacing[4]};
 `;
 
-const LoadingSpinner = styled.div`
-  width: 20px;
-  height: 20px;
-  border: 2px solid transparent;
-  border-top: 2px solid currentColor;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+const ErrorMessage = styled.div`
+  padding: ${theme.spacing[4]} ${theme.spacing[5]};
+  border-radius: ${theme.borderRadius.xl};
+  border: 2px solid ${theme.colors.error.main};
+  background: ${theme.colors.error.main}10;
+  color: ${theme.colors.error.dark};
+  font-family: ${theme.typography.fontFamily.primary};
+  font-size: ${theme.typography.fontSize.sm};
+  font-weight: ${theme.typography.fontWeight.medium};
+  line-height: ${theme.typography.lineHeight.relaxed};
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing[3]};
+  animation: slideInError 0.3s ease-out;
+
+  @keyframes slideInError {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
+`;
+
+const ErrorIcon = styled.span`
+  font-size: ${theme.typography.fontSize.lg};
+  flex-shrink: 0;
 `;
 
 export const LoginScreen: React.FC = () => {
@@ -213,7 +187,7 @@ export const LoginScreen: React.FC = () => {
 
     try {
       const { error: signInError } = await signIn(email, password);
-      
+
       if (signInError) {
         setError(signInError.message);
       }
@@ -226,7 +200,7 @@ export const LoginScreen: React.FC = () => {
 
   const getStatusMessage = () => {
     if (!profile) return null;
-    
+
     if (profile.status === 'pending') {
       return (
         <StatusMessage type="warning">
@@ -234,7 +208,7 @@ export const LoginScreen: React.FC = () => {
         </StatusMessage>
       );
     }
-    
+
     if (profile.status === 'inactive') {
       return (
         <StatusMessage type="warning">
@@ -242,7 +216,7 @@ export const LoginScreen: React.FC = () => {
         </StatusMessage>
       );
     }
-    
+
     return null;
   };
 
@@ -251,56 +225,67 @@ export const LoginScreen: React.FC = () => {
       <LanguageSwitcherWrapper>
         <LanguageSwitcher />
       </LanguageSwitcherWrapper>
-      
-      <LoginCard>
-        <Logo>
-          <LogoText>⚡ Advensys Payslip</LogoText>
-          <LogoSubtext>Professional Payroll Management</LogoSubtext>
-        </Logo>
-        
-        <Form onSubmit={handleSubmit}>
-          <FormGroup>
-            <Label htmlFor="email">{t('auth.login.emailLabel')}</Label>
+
+      <LoginCard variant="glassmorphism" padding="xl">
+        <BrandHeader>
+          <BrandLogo>
+            <BrandIcon>⚡</BrandIcon>
+          </BrandLogo>
+          <BrandName>Advensys Payslip</BrandName>
+          <BrandTagline>Professional Payroll Management</BrandTagline>
+        </BrandHeader>
+
+        <LoginForm onSubmit={handleSubmit}>
+          <FormSection>
             <Input
-              id="email"
+              label={t('auth.login.emailLabel', 'Email Address')}
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={t('auth.login.emailPlaceholder')}
+              placeholder={t('auth.login.emailPlaceholder', 'Enter your email address')}
               required
               disabled={loading}
+              size="lg"
+              fullWidth
+              icon={<span>✉</span>}
             />
-          </FormGroup>
-          
-          <FormGroup>
-            <Label htmlFor="password">{t('auth.login.passwordLabel')}</Label>
+
             <Input
-              id="password"
+              label={t('auth.login.passwordLabel', 'Password')}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={t('auth.login.passwordPlaceholder')}
+              placeholder={t('auth.login.passwordPlaceholder', 'Enter your password')}
               required
               disabled={loading}
+              size="lg"
+              fullWidth
+              icon={<span>🔒</span>}
             />
-          </FormGroup>
-          
+          </FormSection>
+
           {error && (
             <ErrorMessage>
-              {error === 'Failed to fetch' ? t('auth.login.failedToFetch') : error}
+              <ErrorIcon>⚠️</ErrorIcon>
+              <span>
+                {error === 'Failed to fetch' ? t('auth.login.failedToFetch', 'Network error. Please check your connection.') : error}
+              </span>
             </ErrorMessage>
           )}
-          
+
           {getStatusMessage()}
-          
-          <LoginButton type="submit" loading={loading} disabled={loading}>
-            {loading ? (
-              <LoadingSpinner />
-            ) : (
-              t('auth.login.signInButton')
-            )}
+
+          <LoginButton
+            type="submit"
+            variant="primary"
+            size="lg"
+            loading={loading}
+            fullWidth
+            icon={loading ? undefined : <span>🚀</span>}
+          >
+            {loading ? 'Signing In...' : t('auth.login.signInButton', 'Sign In')}
           </LoginButton>
-        </Form>
+        </LoginForm>
       </LoginCard>
     </LoginContainer>
   );

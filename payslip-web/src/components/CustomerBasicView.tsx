@@ -7,117 +7,125 @@ import { supabasePayslipService } from '../utils/supabasePayslipService';
 import { personSync } from '../utils/personSyncService';
 import { PayslipTemplate } from '../types/PayslipTypes';
 import { Customer } from '../utils/customerManager';
+import { theme } from '../styles/theme';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Card } from '../ui/Card';
 import * as XLSX from 'xlsx';
 
 const Container = styled.div`
-  padding: 20px;
-  font-family: 'Calibri', Arial, sans-serif;
-  max-width: 100%;
+  padding: ${theme.spacing[8]};
+  font-family: ${theme.typography.fontFamily.primary};
+  max-width: ${theme.container['3xl']};
   margin: 0 auto;
-  background-color: #f8f9fa;
+  background: ${theme.colors.background.secondary};
+  min-height: 100vh;
 `;
 
 const Title = styled.h2`
   text-align: center;
-  color: #1565c0;
-  margin-bottom: 30px;
-  font-size: 28px;
-  font-weight: bold;
+  background: ${theme.colors.gradients.primary};
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: ${theme.spacing[8]};
+  font-size: ${theme.typography.fontSize['3xl']};
+  font-weight: ${theme.typography.fontWeight.extrabold};
+  font-family: ${theme.typography.fontFamily.primary};
+  letter-spacing: ${theme.typography.letterSpacing.tight};
 `;
 
-const ControlPanel = styled.div`
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
+const ControlPanel = styled(Card)`
+  padding: ${theme.spacing[8]};
+  margin-bottom: ${theme.spacing[6]};
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: ${theme.spacing[6]};
 `;
 
 const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: ${theme.spacing[2]};
   width: 100%;
 `;
 
 const FormRow = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: ${theme.spacing[6]};
   align-items: start;
-  
-  @media (max-width: 768px) {
+
+  @media (max-width: ${theme.breakpoints.md}) {
     grid-template-columns: 1fr;
   }
 `;
 
 const Label = styled.label`
-  font-weight: bold;
-  margin-bottom: 5px;
-  color: #333;
-  font-size: 14px;
+  font-weight: ${theme.typography.fontWeight.semibold};
+  margin-bottom: ${theme.spacing[1]};
+  color: ${theme.colors.text.primary};
+  font-size: ${theme.typography.fontSize.sm};
 `;
 
 const Select = styled.select`
-  padding: 12px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: ${theme.spacing[3]} ${theme.spacing[4]};
+  border: 1px solid ${theme.colors.border.main};
+  border-radius: ${theme.borderRadius.lg};
+  font-size: ${theme.typography.fontSize.sm};
   width: 100%;
-  background: white;
-  
+  background: ${theme.colors.background.primary};
+  font-family: ${theme.typography.fontFamily.primary};
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
+
   &:focus {
     outline: none;
-    border-color: #1976d2;
-    box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+    border-color: ${theme.colors.primary.main};
+    box-shadow: 0 0 0 3px ${theme.colors.primary.main}20;
   }
-`;
 
-const Input = styled.input`
-  padding: 12px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  width: 100%;
-  
-  &:focus {
-    outline: none;
-    border-color: #1976d2;
-    box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
-  }
-`;
-
-const Button = styled.button`
-  padding: 12px 24px;
-  background-color: #1976d2;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: bold;
-  
   &:hover {
-    background-color: #1565c0;
-  }
-  
-  &:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
+    border-color: ${theme.colors.primary.light};
   }
 `;
 
-const PayslipSheet = styled.div`
-  background-color: white;
-  border: 2px solid #d1d5db;
-  border-radius: 8px;
-  padding: 30px;
-  margin: 20px 0;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+const StyledInput = styled.input`
+  padding: ${theme.spacing[3]} ${theme.spacing[4]};
+  border: 1px solid ${theme.colors.border.main};
+  border-radius: ${theme.borderRadius.lg};
+  font-size: ${theme.typography.fontSize.sm};
+  width: 100%;
+  font-family: ${theme.typography.fontFamily.primary};
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
+
+  &:focus {
+    outline: none;
+    border-color: ${theme.colors.primary.main};
+    box-shadow: 0 0 0 3px ${theme.colors.primary.main}20;
+  }
+
+  &:hover {
+    border-color: ${theme.colors.primary.light};
+  }
+`;
+
+
+const PayslipSheet = styled(Card)`
+  padding: ${theme.spacing[10]};
+  margin: ${theme.spacing[6]} 0;
   position: relative;
+  border: 1px solid ${theme.colors.border.light};
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: ${theme.colors.gradients.accent};
+    border-radius: ${theme.borderRadius['2xl']} ${theme.borderRadius['2xl']} 0 0;
+  }
 `;
 
 const LoadingOverlay = styled.div`
@@ -126,78 +134,73 @@ const LoadingOverlay = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  z-index: 1000;
-  font-size: 18px;
-  font-weight: bold;
-  color: #1976d2;
+  border-radius: ${theme.borderRadius['2xl']};
+  z-index: ${theme.zIndex.modal};
+  font-size: ${theme.typography.fontSize.lg};
+  font-weight: ${theme.typography.fontWeight.semibold};
+  color: ${theme.colors.primary.main};
 `;
 
 const FieldGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-  margin: 20px 0;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: ${theme.spacing[6]};
+  margin: ${theme.spacing[6]} 0;
 `;
 
-const FieldGroup = styled.div`
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 15px;
+const FieldGroup = styled(Card)`
+  padding: ${theme.spacing[6]};
+  background: ${theme.colors.background.tertiary};
+  border: 1px solid ${theme.colors.border.light};
 `;
 
 const FieldLabel = styled.label`
   display: block;
-  font-weight: bold;
-  margin-bottom: 8px;
-  color: #333;
+  font-weight: ${theme.typography.fontWeight.semibold};
+  margin-bottom: ${theme.spacing[2]};
+  color: ${theme.colors.text.primary};
+  font-size: ${theme.typography.fontSize.sm};
 `;
 
 const FieldInput = styled.input`
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  
+  padding: ${theme.spacing[3]};
+  border: 1px solid ${theme.colors.border.main};
+  border-radius: ${theme.borderRadius.lg};
+  font-size: ${theme.typography.fontSize.sm};
+  font-family: ${theme.typography.fontFamily.primary};
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.spring};
+
   &:focus {
     outline: none;
-    border-color: #1976d2;
-    box-shadow: 0 0 3px rgba(25, 118, 210, 0.3);
+    border-color: ${theme.colors.primary.main};
+    box-shadow: 0 0 0 3px ${theme.colors.primary.main}20;
   }
-  
+
   &:disabled {
-    background-color: #f5f5f5;
-    color: #666;
+    background: ${theme.colors.gray[100]};
+    color: ${theme.colors.text.tertiary};
+    border-color: ${theme.colors.border.light};
   }
 `;
 
 const SaveButton = styled(Button)`
   position: absolute;
-  top: 20px;
-  right: 20px;
-  background-color: #2196f3;
-  
-  &:hover {
-    background-color: #1976d2;
-  }
+  top: ${theme.spacing[6]};
+  right: ${theme.spacing[6]};
 `;
 
 const RefreshButton = styled(Button)`
   position: absolute;
-  top: 20px;
+  top: ${theme.spacing[6]};
   right: 140px;
-  background-color: #4caf50;
-  
-  &:hover {
-    background-color: #45a049;
-  }
 `;
 
 interface CustomerBasicViewProps {
@@ -549,7 +552,7 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
 
           <InputGroup>
             <Label>Year</Label>
-            <Input
+            <StyledInput
               type="number"
               value={payslipData.year}
               onChange={(e) => handleFieldChange('year', parseInt(e.target.value))}
@@ -593,19 +596,53 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
             </LoadingOverlay>
           )}
 
-          <SaveButton onClick={handleSave} disabled={isSaving || isLoading}>
-            {isSaving ? 'Saving...' : '💾 Save'}
+          <SaveButton
+            variant="primary"
+            size="md"
+            icon="💾"
+            onClick={handleSave}
+            disabled={isSaving || isLoading}
+            loading={isSaving}
+          >
+            {isSaving ? 'Saving...' : 'Save'}
           </SaveButton>
-          <RefreshButton onClick={handleRefresh} disabled={isLoading}>
-            {isLoading ? 'Loading...' : '🔄 Refresh'}
+          <RefreshButton
+            variant="secondary"
+            size="md"
+            icon="🔄"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            loading={isLoading}
+          >
+            {isLoading ? 'Loading...' : 'Refresh'}
           </RefreshButton>
 
           {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: '30px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-            <h1 style={{ margin: '0 0 10px 0', color: '#1976d2', fontSize: '32px' }}>
-              CUSTOMER PAYSLIP
+          <div style={{
+            textAlign: 'center',
+            marginBottom: theme.spacing[8],
+            padding: theme.spacing[6],
+            background: theme.colors.gradients.primary + '10',
+            borderRadius: theme.borderRadius.xl,
+            position: 'relative'
+          }}>
+            <h1 style={{
+              margin: '0 0 10px 0',
+              background: theme.colors.gradients.primary,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              fontSize: theme.typography.fontSize['4xl'],
+              fontWeight: theme.typography.fontWeight.extrabold
+            }}>
+              ⚡ ADVENSYS PAYSLIP
             </h1>
-            <h2 style={{ margin: '0 0 15px 0', color: '#666', fontSize: '18px' }}>
+            <h2 style={{
+              margin: '0 0 15px 0',
+              color: theme.colors.text.secondary,
+              fontSize: theme.typography.fontSize.lg,
+              fontWeight: theme.typography.fontWeight.medium
+            }}>
               Basic View - {payslipData.year}
             </h2>
           </div>
@@ -613,8 +650,13 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
           {/* Employee Information */}
           <FieldGrid>
             <FieldGroup>
-              <h3 style={{ margin: '0 0 15px 0', color: '#1976d2' }}>Employee Information</h3>
-              <div style={{ marginBottom: '15px' }}>
+              <h3 style={{
+                margin: `0 0 ${theme.spacing[4]} 0`,
+                color: theme.colors.primary.main,
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.semibold
+              }}>👤 Employee Information</h3>
+              <div style={{ marginBottom: theme.spacing[4] }}>
                 <FieldLabel>Full Name</FieldLabel>
                 <FieldInput
                   type="text"
@@ -622,7 +664,7 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
                   onChange={(e) => handleFieldChange('personName', e.target.value)}
                 />
               </div>
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: theme.spacing[4] }}>
                 <FieldLabel>Department</FieldLabel>
                 <FieldInput
                   type="text"
@@ -641,8 +683,13 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
             </FieldGroup>
 
             <FieldGroup>
-              <h3 style={{ margin: '0 0 15px 0', color: '#1976d2' }}>Salary Components</h3>
-              <div style={{ marginBottom: '15px' }}>
+              <h3 style={{
+                margin: `0 0 ${theme.spacing[4]} 0`,
+                color: theme.colors.primary.main,
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.semibold
+              }}>💰 Salary Components</h3>
+              <div style={{ marginBottom: theme.spacing[4] }}>
                 <FieldLabel>Basic Salary (€)</FieldLabel>
                 <FieldInput
                   type="number"
@@ -651,7 +698,7 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
                   onChange={(e) => handleFieldChange('basicSalary', parseFloat(e.target.value) || 0)}
                 />
               </div>
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: theme.spacing[4] }}>
                 <FieldLabel>Allowances (€)</FieldLabel>
                 <FieldInput
                   type="number"
@@ -660,7 +707,7 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
                   onChange={(e) => handleFieldChange('allowances', parseFloat(e.target.value) || 0)}
                 />
               </div>
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: theme.spacing[4] }}>
                 <FieldLabel>Overtime (€)</FieldLabel>
                 <FieldInput
                   type="number"
@@ -669,7 +716,7 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
                   onChange={(e) => handleFieldChange('overtime', parseFloat(e.target.value) || 0)}
                 />
               </div>
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: theme.spacing[4] }}>
                 <FieldLabel>Bonus (€)</FieldLabel>
                 <FieldInput
                   type="number"
@@ -678,7 +725,7 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
                   onChange={(e) => handleFieldChange('bonus', parseFloat(e.target.value) || 0)}
                 />
               </div>
-              <div>
+              <div style={{ marginBottom: theme.spacing[4] }}>
                 <FieldLabel>Commission (€)</FieldLabel>
                 <FieldInput
                   type="number"
@@ -690,8 +737,13 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
             </FieldGroup>
 
             <FieldGroup>
-              <h3 style={{ margin: '0 0 15px 0', color: '#1976d2' }}>Calculated Values</h3>
-              <div style={{ marginBottom: '15px' }}>
+              <h3 style={{
+                margin: `0 0 ${theme.spacing[4]} 0`,
+                color: theme.colors.primary.main,
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.semibold
+              }}>📊 Calculated Values</h3>
+              <div style={{ marginBottom: theme.spacing[4] }}>
                 <FieldLabel>Gross Salary (€)</FieldLabel>
                 <FieldInput
                   type="number"
@@ -700,7 +752,7 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
                   disabled
                 />
               </div>
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: theme.spacing[4] }}>
                 <FieldLabel>Income Tax (€)</FieldLabel>
                 <FieldInput
                   type="number"
@@ -709,7 +761,7 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
                   disabled
                 />
               </div>
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: theme.spacing[4] }}>
                 <FieldLabel>Social Security (€)</FieldLabel>
                 <FieldInput
                   type="number"
@@ -718,7 +770,7 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
                   disabled
                 />
               </div>
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: theme.spacing[4] }}>
                 <FieldLabel>Total Deductions (€)</FieldLabel>
                 <FieldInput
                   type="number"
@@ -727,38 +779,56 @@ const CustomerBasicView: React.FC<CustomerBasicViewProps> = ({ analysisData }) =
                   disabled
                 />
               </div>
-              <div>
+              <div style={{ marginBottom: theme.spacing[4] }}>
                 <FieldLabel>Net Salary (€)</FieldLabel>
                 <FieldInput
                   type="number"
                   step="0.01"
                   value={payslipData.netSalary}
                   disabled
-                  style={{ fontWeight: 'bold', backgroundColor: '#e8f5e9' }}
+                  style={{
+                    fontWeight: theme.typography.fontWeight.bold,
+                    backgroundColor: theme.colors.success.light + '20',
+                    borderColor: theme.colors.success.light
+                  }}
                 />
               </div>
             </FieldGroup>
           </FieldGrid>
 
-          <div style={{ marginTop: '30px', fontSize: '12px', color: '#666', textAlign: 'center' }}>
-            <p>This payslip is computer generated and does not require signature.</p>
-            <p>Generated on: {new Date().toLocaleDateString()}</p>
-            <p>Customer: {selectedCustomer.full_name} | Year: {payslipData.year}</p>
+          <div style={{
+            marginTop: theme.spacing[8],
+            fontSize: theme.typography.fontSize.xs,
+            color: theme.colors.text.tertiary,
+            textAlign: 'center',
+            padding: theme.spacing[4],
+            backgroundColor: theme.colors.background.tertiary,
+            borderRadius: theme.borderRadius.lg
+          }}>
+            <p style={{ margin: 0 }}>This payslip is computer generated and does not require signature.</p>
+            <p style={{ margin: `${theme.spacing[1]} 0` }}>Generated on: {new Date().toLocaleDateString()}</p>
+            <p style={{ margin: 0 }}>Customer: {selectedCustomer.full_name} | Year: {payslipData.year}</p>
           </div>
         </PayslipSheet>
       )}
 
       {!selectedCustomer && (
-        <div style={{
+        <Card variant="glassmorphism" padding="xl" style={{
           textAlign: 'center',
-          padding: '40px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '8px',
-          margin: '20px 0'
+          margin: `${theme.spacing[6]} 0`
         }}>
-          <h3 style={{ color: '#666', marginBottom: '10px' }}>👤 Select a Person</h3>
-          <p style={{ color: '#999' }}>Choose a person from the dropdown above to view and edit their payslip data.</p>
-        </div>
+          <h3 style={{
+            color: theme.colors.text.secondary,
+            marginBottom: theme.spacing[3],
+            fontSize: theme.typography.fontSize.lg,
+            fontWeight: theme.typography.fontWeight.semibold
+          }}>👤 Select a Person</h3>
+          <p style={{
+            color: theme.colors.text.tertiary,
+            margin: 0,
+            fontSize: theme.typography.fontSize.sm
+          }}>Choose a person from the dropdown above to view and edit their payslip data.</p>
+        </Card>
       )}
     </Container>
   );

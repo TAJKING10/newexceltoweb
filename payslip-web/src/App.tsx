@@ -95,7 +95,10 @@ const AppContent: React.FC = () => {
     <AppContainer>
       <Header>
         <HeaderContent>
-          <Title>⚡ Advensys Payslip</Title>
+          <BrandHeader>
+            <BrandIcon>⚡</BrandIcon>
+            <Title>Advensys Payslip</Title>
+          </BrandHeader>
           <UserSection>
             <LanguageSwitcher />
             <UserWelcome>{t('dashboard.welcome')}, {profile.full_name || profile.email}</UserWelcome>
@@ -155,7 +158,7 @@ const AppContent: React.FC = () => {
         </HeaderContent>
       </Header>
       
-      <MainContent className="animate-fadeIn">
+      <MainContent className="animate-slideUp">
         {error && (
           <ErrorMessage>
             <ErrorIcon>⚠️</ErrorIcon>
@@ -347,23 +350,67 @@ const HeaderContent = styled.div`
   margin: 0 auto;
 `;
 
+const BrandHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing[4]};
+  margin-bottom: ${theme.spacing[6]};
+`;
+
+const BrandIcon = styled.div`
+  width: 48px;
+  height: 48px;
+  border-radius: ${theme.borderRadius.xl};
+  background: ${theme.colors.gradients.primary};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: ${theme.typography.fontSize.xl};
+  color: ${theme.colors.text.inverse};
+  box-shadow: ${theme.shadows.md};
+  position: relative;
+  transition: all ${theme.animation.duration.normal} ${theme.animation.easing.smoothBounce};
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: ${theme.colors.gradients.accent};
+    z-index: -1;
+    opacity: 0.3;
+    transition: all ${theme.animation.duration.normal} ${theme.animation.easing.smoothBounce};
+  }
+
+  &:hover {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: ${theme.shadows.lg}, ${theme.shadows.glow};
+  }
+
+  &:hover::after {
+    opacity: 0.6;
+    inset: -4px;
+  }
+`;
+
 const Title = styled.h1`
-  margin: 0 0 ${theme.spacing[6]} 0;
+  margin: 0;
   background: ${theme.colors.gradients.primary};
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  font-size: ${theme.typography.fontSize['4xl']};
-  font-weight: ${theme.typography.fontWeight.black};
-  font-family: ${theme.typography.fontFamily.secondary};
+  font-size: ${theme.typography.fontSize['3xl']};
+  font-weight: ${theme.typography.fontWeight.extrabold};
+  font-family: ${theme.typography.fontFamily.primary};
   letter-spacing: ${theme.typography.letterSpacing.tight};
-  
+  line-height: ${theme.typography.lineHeight.tight};
+
   @media (max-width: ${theme.breakpoints.md}) {
-    font-size: ${theme.typography.fontSize['3xl']};
-  }
-  
-  @media (max-width: ${theme.breakpoints.sm}) {
     font-size: ${theme.typography.fontSize['2xl']};
+  }
+
+  @media (max-width: ${theme.breakpoints.sm}) {
+    font-size: ${theme.typography.fontSize.xl};
   }
 `;
 
