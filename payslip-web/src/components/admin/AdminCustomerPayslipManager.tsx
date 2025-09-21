@@ -584,18 +584,21 @@ export const AdminCustomerPayslipManager: React.FC = () => {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '12px 20px',
-                background: viewMode === 'basic' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                background: payslipFilter === 'basic' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px 8px 0 0',
                 fontSize: '14px',
-                fontWeight: viewMode === 'basic' ? '600' : '500',
+                fontWeight: payslipFilter === 'basic' ? '600' : '500',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 minWidth: '120px',
                 justifyContent: 'center'
               }}
-              onClick={() => setViewMode('basic')}
+              onClick={() => {
+                setViewMode('basic');
+                handleFilterPayslips('basic');
+              }}
               title="Basic payslip view like user panel"
             >
               <span style={{ fontSize: '18px' }}>📝</span>
@@ -608,18 +611,21 @@ export const AdminCustomerPayslipManager: React.FC = () => {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '12px 20px',
-                background: viewMode === 'excel' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                background: payslipFilter === 'annual' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px 8px 0 0',
                 fontSize: '14px',
-                fontWeight: viewMode === 'excel' ? '600' : '500',
+                fontWeight: payslipFilter === 'annual' ? '600' : '500',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 minWidth: '120px',
                 justifyContent: 'center'
               }}
-              onClick={() => setViewMode('excel')}
+              onClick={() => {
+                setViewMode('excel');
+                handleFilterPayslips('annual');
+              }}
               title="Excel-style payslip view like user panel"
             >
               <span style={{ fontSize: '18px' }}>📊</span>
@@ -828,7 +834,7 @@ export const AdminCustomerPayslipManager: React.FC = () => {
           }}
           customer={selectedCustomer}
           isOpen={showPayslipViewer}
-          initialViewMode={viewMode}
+          initialViewMode={selectedPayslip.view_type === 'annual' ? 'excel' : 'basic'}
           onClose={() => {
             setShowPayslipViewer(false);
             setSelectedPayslip(null);
