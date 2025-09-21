@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../supabaseClient';
 import { theme } from '../../styles/theme';
 import { KPI } from '../../ui/KPI';
+import { customerManager } from '../../utils/customerManager';
 
 interface Stats {
   totalEmployees: number;
@@ -17,6 +18,10 @@ interface Stats {
   recentActivity: DashboardActivityItem[];
   monthlyStats: MonthlyStats[];
   departmentStats: DepartmentStats[];
+  totalCustomers: number;
+  activeCustomers: number;
+  inactiveCustomers: number;
+  customersByType: Record<string, number>;
 }
 
 interface MonthlyStats {
@@ -302,6 +307,21 @@ export const DashboardStats: React.FC = () => {
         avgSalary: stats.employees > 0 ? stats.totalSalary / stats.employees : 0
       }));
 
+      // Fetch customer statistics
+      let customerStats = {
+        total: 0,
+        active: 0,
+        inactive: 0,
+        byType: {} as Record<string, number>
+      };
+
+      try {
+        customerStats = await customerManager.getCustomerStats();
+      } catch (error) {
+        console.warn('Error fetching customer stats:', error);
+        // Continue with default values
+      }
+
       // Generate monthly statistics for the last 6 months
       const monthlyStats: MonthlyStats[] = [];
       for (let i = 5; i >= 0; i--) {
@@ -367,7 +387,11 @@ export const DashboardStats: React.FC = () => {
         avgSalary,
         recentActivity,
         monthlyStats,
-        departmentStats
+        departmentStats,
+        totalCustomers: customerStats.total,
+        activeCustomers: customerStats.active,
+        inactiveCustomers: customerStats.inactive,
+        customersByType: customerStats.byType
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -383,7 +407,11 @@ export const DashboardStats: React.FC = () => {
         avgSalary: 0,
         recentActivity: [],
         monthlyStats: [],
-        departmentStats: []
+        departmentStats: [],
+        totalCustomers: 0,
+        activeCustomers: 0,
+        inactiveCustomers: 0,
+        customersByType: {}
       });
     } finally {
       setLoading(false);
@@ -511,6 +539,35 @@ export const DashboardStats: React.FC = () => {
           description={t('dashboard.annualPayrollCosts', 'Annual payroll costs')}
           changeType="positive"
         />
+
+        <KPI
+          label={t('dashboard.totalCustomers', 'Total Customers')}
+          value={stats.totalCustomers.toString()}
+          icon="🎯"
+          variant="accent"
+          size="lg"
+          description={t('dashboard.allCustomersRegistered', 'All registered customers')}
+        />
+
+        <KPI
+          label={t('dashboard.activeCustomers', 'Active Customers')}
+          value={stats.activeCustomers.toString()}
+          icon="🟢"
+          variant="default"
+          size="lg"
+          description={t('dashboard.activeCustomersDesc', 'Currently active customers')}
+          changeType="positive"
+        />
+
+        <KPI
+          label={t('dashboard.inactiveCustomers', 'Inactive Customers')}
+          value={stats.inactiveCustomers.toString()}
+          icon="🔴"
+          variant="minimal"
+          size="lg"
+          description={t('dashboard.inactiveCustomersDesc', 'Currently inactive customers')}
+          changeType={stats.inactiveCustomers > 0 ? "negative" : "neutral"}
+        />
       </StatsGrid>
 
       <ChartsContainer>
@@ -543,6 +600,26 @@ export const DashboardStats: React.FC = () => {
           </MetricsList>
         </ChartCard>
       </ChartsContainer>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: theme.spacing[6], marginBottom: theme.spacing[6] }}>
+        <ChartCard>
+          <ChartTitle>🎯 {t('dashboard.customersByType', 'Customers by Type')}</ChartTitle>
+          <MetricsList>
+            {Object.entries(stats.customersByType).map(([type, count]) => (
+              <MetricItem key={type}>
+                <MetricName>{type.charAt(0).toUpperCase() + type.slice(1)}</MetricName>
+                <MetricValue>{count} {t('customers.title', 'customers').toLowerCase()}</MetricValue>
+              </MetricItem>
+            ))}
+            {Object.keys(stats.customersByType).length === 0 && (
+              <MetricItem>
+                <MetricName>{t('dashboard.noCustomerData', 'No customer data available')}</MetricName>
+                <MetricValue>0</MetricValue>
+              </MetricItem>
+            )}
+          </MetricsList>
+        </ChartCard>
+      </div>
 
       <ActivitySection>
         <ActivityHeader>{t('dashboard.recentActivity', 'Recent Activity')}</ActivityHeader>
