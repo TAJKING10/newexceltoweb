@@ -11,6 +11,7 @@ import { DashboardStats } from './DashboardStats';
 // import { TemplateManagement } from './TemplateManagement'; // Commented out - template management disabled
 import { ReportsAnalytics } from './ReportsAnalytics';
 import CustomerManagement from '../CustomerManagement';
+import { AdminCustomerPayslipManager } from './AdminCustomerPayslipManager';
 
 const DashboardContainer = styled.div`
   min-height: 100vh;
@@ -192,7 +193,7 @@ const MainContent = styled.main`
   padding: ${theme.spacing[8]};
 `;
 
-type TabType = 'overview' | 'employees' | 'customers' | /* 'templates' | */ 'reports' | 'settings' | 'audit'; // templates disabled
+type TabType = 'overview' | 'employees' | 'customers' | 'payslips' | /* 'templates' | */ 'reports' | 'settings' | 'audit'; // templates disabled
 
 export const AdminDashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -229,6 +230,8 @@ export const AdminDashboard: React.FC = () => {
         return <EmployeeManagement />;
       case 'customers':
         return <CustomerManagement />;
+      case 'payslips':
+        return <AdminCustomerPayslipManager />;
       // case 'templates':
       //   return <TemplateManagement />; // Template management disabled
       case 'reports':
@@ -296,6 +299,12 @@ export const AdminDashboard: React.FC = () => {
             onClick={() => setActiveTab('customers')}
           >
             🎯 {t('admin.customers', 'Customers')}
+          </NavTab>
+          <NavTab
+            isActive={activeTab === 'payslips'}
+            onClick={() => setActiveTab('payslips')}
+          >
+            📄 {t('admin.payslips', 'Super Admin Payslips')}
           </NavTab>
           {/* Template Management tab disabled
           <NavTab
