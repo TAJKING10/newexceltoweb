@@ -147,7 +147,10 @@
       "Bash(start http://localhost:5779)",
       "Bash(PORT=5671 npm start)",
       "Bash(start http://localhost:5671)",
-      "Bash(PORT=1121 npm start)"
+      "Bash(PORT=1121 npm start)",
+      "Bash(PORT=9122 npm start)",
+      "Bash(start http://localhost:9122)",
+      "Bash(PORT=6444 npm start)"
     ],
     "deny": [],
     "ask": []
