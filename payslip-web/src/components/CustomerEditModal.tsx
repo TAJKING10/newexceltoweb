@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { customerManager, Customer, CreateCustomerData, UpdateCustomerData } from '../utils/customerManager';
 import { useAuth } from '../contexts/AuthContext';
+import { theme } from '../styles/theme';
 
 interface CustomerEditModalProps {
   customer?: Customer | null;
@@ -194,7 +195,7 @@ const CustomerEditModal: React.FC<CustomerEditModalProps> = ({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1000
+      zIndex: theme.zIndex.modal
     }}>
       <div style={{
         backgroundColor: 'white',

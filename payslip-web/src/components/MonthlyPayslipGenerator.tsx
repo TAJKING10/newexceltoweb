@@ -1164,11 +1164,11 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     }
   }, [safeArray, selectedPerson, payslipData]);
 
-  // Create empty personalized template with zero values (for people without database records)
+  // Create empty personalized template with zero values and auto-populated customer info
   const createEmptyPersonalizedTemplate = (person: Customer): MonthlyPayslipState => {
     const emptyMonths: any = {};
     const emptyTotals: any = {};
-    
+
     // Initialize all months with 0 values
     for (let i = 0; i < 12; i++) {
       emptyMonths[i] = {};
@@ -1176,18 +1176,51 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
         emptyMonths[i][row] = 0; // Everything starts at 0
       });
     }
-    
+
     // All totals start at 0
     defaultRows.forEach(row => {
       emptyTotals[row] = 0;
     });
 
+
+    console.log(`💼 Excel View: Auto-populated customer info for ${person.full_name}`, {
+      name: person.full_name,
+      id: person.person_id,
+      department: person.department,
+      position: person.position,
+      email: person.email,
+      phone: person.phone
+    });
+
     return {
-      // Basic person info but empty financial data
+      // Enhanced person info with all available customer data
       personName: person.full_name || '',
       personId: person.person_id || '',
       department: person.department || '',
       position: person.position || '',
+      email: person.email || '', // Added email auto-population
+      phone: person.phone || '', // Added phone auto-population
+      personType: person.person_type?.charAt(0).toUpperCase() + person.person_type?.slice(1) || 'Employee',
+      address: (() => {
+        // Handle address object or string
+        if (person.address) {
+          if (typeof person.address === 'string') {
+            return person.address;
+          } else {
+            // Combine address object into a string
+            const addressParts = [
+              person.address.street,
+              person.address.city,
+              person.address.state,
+              person.address.zipCode,
+              person.address.country
+            ].filter(part => part && part.trim());
+            return addressParts.join(', ');
+          }
+        }
+        return '';
+      })(), // Added address if available
+      hireDate: (person as any).hire_date || '', // Added hire date if available
       year: new Date().getFullYear(),
       months: emptyMonths,
       totals: emptyTotals,
@@ -2679,6 +2712,46 @@ const MonthlyPayslipGenerator: React.FC<Props> = ({ analysisData }) => {
               />
             ) : (
               <span style={{ marginLeft: '10px' }}>{payslipData.position}</span>
+            )}
+          </div>
+          <div>
+            <strong>Email:</strong>
+            {editMode ? (
+              <input
+                type="email"
+                value={payslipData.email || ''}
+                onChange={(e) => setPayslipData(prev => ({ ...prev, email: e.target.value }))}
+                style={{
+                  marginLeft: '10px',
+                  padding: '4px 8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '3px',
+                  fontSize: '14px'
+                }}
+                placeholder="employee@company.com"
+              />
+            ) : (
+              <span style={{ marginLeft: '10px' }}>{payslipData.email || 'Not provided'}</span>
+            )}
+          </div>
+          <div>
+            <strong>Phone:</strong>
+            {editMode ? (
+              <input
+                type="tel"
+                value={payslipData.phone || ''}
+                onChange={(e) => setPayslipData(prev => ({ ...prev, phone: e.target.value }))}
+                style={{
+                  marginLeft: '10px',
+                  padding: '4px 8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '3px',
+                  fontSize: '14px'
+                }}
+                placeholder="+352 123 456 789"
+              />
+            ) : (
+              <span style={{ marginLeft: '10px' }}>{payslipData.phone || 'Not provided'}</span>
             )}
           </div>
         </div>

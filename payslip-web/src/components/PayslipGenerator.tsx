@@ -375,8 +375,10 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
           fields: [
             { id: 'emp_name', label: t('persons.firstName', 'Employee Name'), type: 'text', required: true },
             { id: 'emp_id', label: t('persons.employeeId', 'Employee ID'), type: 'text', required: true },
-            { id: 'department', label: t('persons.department'), type: 'text' },
-            { id: 'position', label: t('persons.position'), type: 'text' }
+            { id: 'department', label: t('persons.department', 'Department'), type: 'text' },
+            { id: 'position', label: t('persons.position', 'Position'), type: 'text' },
+            { id: 'email', label: t('common.email', 'Email'), type: 'text' },
+            { id: 'phone', label: t('common.phone', 'Phone'), type: 'text' }
           ],
           canAddFields: true,
           canRemove: false
@@ -439,6 +441,8 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
             { id: 'emp_id', label: 'Employee ID', type: 'text', required: true },
             { id: 'department', label: 'Department', type: 'text' },
             { id: 'position', label: 'Position', type: 'text' },
+            { id: 'email', label: 'Email', type: 'text' },
+            { id: 'phone', label: 'Phone', type: 'text' },
             { id: 'hire_date', label: 'Hire Date', type: 'date' },
             { id: 'emp_status', label: 'Employment Status', type: 'text' }
           ],
@@ -679,28 +683,114 @@ const PayslipGenerator: React.FC<Props> = ({ analysisData }) => {
     console.log(`💾 Basic View: Saved fresh template data for ${template.name}`);
   };
 
-  // Populate ONLY editable common person data (rest stays at 0/empty)
+  // Enhanced populate person data - automatically match customer info to available fields
   const populatePersonData = (person: Customer) => {
-    setPayslipData(prev => ({
-      ...prev,
-      // Pre-populate common editable fields from person data
-      employeeName: person.full_name || '',
-      employeeId: person.person_id || '',
-      department: person.department || '',
-      position: person.position || '',
-      email: person.email || '',
-      phone: person.phone || '',
-      // Keep financial fields at 0 for fresh start
-      basicSalary: 0,
-      allowances: 0,
-      overtime: 0,
-      bonus: 0,
-      deductions: 0,
-      tax: 0,
-      netSalary: 0,
-      grossSalary: 0,
+    if (!selectedTemplate || !person) return;
+
+    const updateData: any = {
+      // Basic tax configuration
       taxClass: 1,
       hasChildren: false
+    };
+
+    // Auto-populate based on template fields and customer data
+    safeArray(selectedTemplate.sections).forEach(section => {
+      safeArray(section.fields).forEach(field => {
+        const fieldLabel = field.label.toLowerCase().trim();
+        const fieldId = field.id.toLowerCase();
+
+        // Skip financial/calculated fields - keep them at 0
+        if (fieldLabel.includes('salary') || fieldLabel.includes('tax') ||
+            fieldLabel.includes('deduction') || fieldLabel.includes('allowance') ||
+            fieldLabel.includes('overtime') || fieldLabel.includes('bonus') ||
+            fieldLabel.includes('commission') || fieldLabel.includes('net') ||
+            fieldLabel.includes('gross') || field.type === 'formula') {
+          updateData[field.id] = field.type === 'number' ? 0 : '';
+          return;
+        }
+
+        // Match customer fields to template fields intelligently
+        if ((fieldLabel.includes('employee name') || fieldLabel.includes('full name') ||
+             fieldLabel.includes('name') || fieldId.includes('emp_name') ||
+             fieldId.includes('employee_name') || fieldId.includes('name')) &&
+            !fieldLabel.includes('company')) {
+          updateData[field.id] = person.full_name || '';
+          console.log(`📝 Matched name field: ${field.id} (${field.label}) = "${person.full_name}"`);
+        }
+        else if (fieldLabel.includes('employee id') || fieldLabel.includes('emp id') ||
+                 fieldId.includes('emp_id') || fieldId.includes('employee_id') ||
+                 fieldLabel.includes('person id') || fieldLabel.includes('id')) {
+          updateData[field.id] = person.person_id || '';
+          console.log(`🆔 Matched ID field: ${field.id} (${field.label}) = "${person.person_id}"`);
+        }
+        else if (fieldLabel.includes('department') || fieldId.includes('department')) {
+          updateData[field.id] = person.department || '';
+          console.log(`🏢 Matched department field: ${field.id} (${field.label}) = "${person.department}"`);
+        }
+        else if (fieldLabel.includes('position') || fieldLabel.includes('job title') ||
+                 fieldLabel.includes('role') || fieldId.includes('position')) {
+          updateData[field.id] = person.position || '';
+          console.log(`💼 Matched position field: ${field.id} (${field.label}) = "${person.position}"`);
+        }
+        else if (fieldLabel.includes('email') || fieldLabel.includes('e-mail') ||
+                 fieldId.includes('email')) {
+          updateData[field.id] = person.email || '';
+          console.log(`📧 Matched email field: ${field.id} (${field.label}) = "${person.email}"`);
+        }
+        else if (fieldLabel.includes('phone') || fieldLabel.includes('telephone') ||
+                 fieldLabel.includes('mobile') || fieldId.includes('phone') ||
+                 fieldId.includes('tel')) {
+          updateData[field.id] = person.phone || '';
+          console.log(`📱 Matched phone field: ${field.id} (${field.label}) = "${person.phone}"`);
+        }
+        else if (fieldLabel.includes('address')) {
+          // Handle address object or string
+          if (person.address) {
+            if (typeof person.address === 'string') {
+              updateData[field.id] = person.address;
+            } else {
+              // Combine address object into a string
+              const addressParts = [
+                person.address.street,
+                person.address.city,
+                person.address.state,
+                person.address.zipCode,
+                person.address.country
+              ].filter(part => part && part.trim());
+              updateData[field.id] = addressParts.join(', ');
+            }
+          } else {
+            updateData[field.id] = '';
+          }
+        }
+        else if (fieldLabel.includes('hire date') || fieldLabel.includes('start date') ||
+                 fieldLabel.includes('employment date')) {
+          updateData[field.id] = (person as any).hire_date || '';
+        }
+        else if (fieldLabel.includes('person type') || fieldLabel.includes('employee type') ||
+                 fieldLabel.includes('worker type')) {
+          updateData[field.id] = person.person_type?.charAt(0).toUpperCase() + person.person_type?.slice(1) || 'Employee';
+        }
+        else if (field.type === 'text' && !updateData[field.id]) {
+          // For other text fields, leave empty by default
+          updateData[field.id] = '';
+        }
+      });
+    });
+
+    // Also populate legacy field names for backwards compatibility
+    updateData.employeeName = person.full_name || '';
+    updateData.employeeId = person.person_id || '';
+    updateData.department = person.department || '';
+    updateData.position = person.position || '';
+    updateData.email = person.email || '';
+    updateData.phone = person.phone || '';
+
+    console.log(`💼 Auto-populated ${Object.keys(updateData).length} fields for ${person.full_name}:`, updateData);
+
+    setPayslipData(prev => ({
+      ...prev,
+      ...updateData
     }));
   };
 

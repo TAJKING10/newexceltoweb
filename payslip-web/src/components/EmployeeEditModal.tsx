@@ -170,7 +170,7 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1000
+      zIndex: 1500
     }}>
       <div style={{
         backgroundColor: 'white',
