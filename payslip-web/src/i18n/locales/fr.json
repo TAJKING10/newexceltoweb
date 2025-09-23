@@ -36,7 +36,8 @@
     "email": "E-mail",
     "allDepartments": "Tous les départements",
     "allStatus": "Tous les statuts",
-    "allTypes": "Tous les types"
+    "allTypes": "Tous les types",
+    "retry": "Réessayer"
   },
   "auth": {
     "email": "Adresse e-mail",
@@ -116,12 +117,22 @@
     "avg": "Moy",
     "recentActivity": "Activité récente",
     "noRecentActivity": "Aucune activité récente",
-    "systemReady": "Le système est prêt à être utilisé"
+    "systemReady": "Le système est prêt à être utilisé",
+    "totalCustomers": "Total des clients",
+    "allCustomersRegistered": "Tous les clients enregistrés",
+    "activeCustomers": "Clients actifs",
+    "activeCustomersDesc": "Clients actuellement actifs",
+    "inactiveCustomers": "Clients inactifs",
+    "inactiveCustomersDesc": "Clients actuellement inactifs",
+    "customersByType": "Clients par type",
+    "noCustomerData": "Aucune donnée client disponible"
   },
   "admin": {
     "title": "Tableau de bord administrateur",
     "overview": "Aperçu",
     "employees": "Employés",
+    "customers": "Clients",
+    "payslips": "Bulletins de paie super admin",
     "templates": "Modèles",
     "reports": "Rapports",
     "settings": "Paramètres",

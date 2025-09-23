@@ -9,12 +9,14 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import LoadingScreen from './components/LoadingScreen';
 import { theme } from './styles/theme';
 import LanguageSwitcher from './components/LanguageSwitcher';
 
-const AppContent: React.FC = () => {
+// Employee Dashboard Component
+const EmployeeDashboard: React.FC = () => {
   const { t } = useTranslation();
-  const { user, profile, loading, isAdmin, isActive, signOut } = useAuth();
+  const { profile, signOut } = useAuth();
   const [currentView, setCurrentView] = useState<'basic' | 'excel' | 'template' | 'persons'>('persons');
   const [viewLoading, setViewLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,43 +56,6 @@ const AppContent: React.FC = () => {
     return t(`app.features.${view}`, '');
   };
 
-  if (loading) {
-    return (
-      <LoadingContainer>
-        <LoadingSpinner />
-        <LoadingText>{t('common.loading')} {t('auth.login.title')}...</LoadingText>
-      </LoadingContainer>
-    );
-  }
-
-  // Not authenticated - show login
-  if (!user || !profile) {
-    return <LoginScreen />;
-  }
-
-  // Admin user - show admin dashboard
-  if (isAdmin) {
-    return <AdminDashboard />;
-  }
-
-  // Employee user but not active - show pending/inactive message
-  if (!isActive) {
-    return (
-      <StatusContainer>
-        <StatusCard>
-          <StatusIcon>⏳</StatusIcon>
-          <StatusTitle>{t('profile.account', 'Account')} {profile.status}</StatusTitle>
-          <StatusMessage>
-            {profile.status === 'pending' 
-              ? t('auth.login.accountPending')
-              : t('auth.login.accountInactive')}
-          </StatusMessage>
-        </StatusCard>
-      </StatusContainer>
-    );
-  }
-
-  // Active employee - show regular app interface
   return (
     <AppContainer>
       <Header>
@@ -101,14 +66,14 @@ const AppContent: React.FC = () => {
           </BrandHeader>
           <UserSection>
             <LanguageSwitcher />
-            <UserWelcome>{t('dashboard.welcome')}, {profile.full_name || profile.email}</UserWelcome>
+            <UserWelcome>{t('dashboard.welcome')}, {profile?.full_name || profile?.email}</UserWelcome>
             <SignOutButton onClick={handleSignOut}>
               🚪 {t('auth.signOut')}
             </SignOutButton>
           </UserSection>
           <NavigationTabs>
-            <NavTab 
-              isActive={currentView === 'persons'}
+            <NavTab
+              $isActive={currentView === 'persons'}
               onClick={() => handleViewChange('persons')}
               disabled={viewLoading}
               title={t('app.tooltips.personsTab')}
@@ -116,10 +81,10 @@ const AppContent: React.FC = () => {
               <span>👥</span>
               <span>{t('persons.title')}</span>
             </NavTab>
-            
+
             {/* Template Builder tab disabled
-            <NavTab 
-              isActive={currentView === 'template'}
+            <NavTab
+              $isActive={currentView === 'template'}
               onClick={() => handleViewChange('template')}
               disabled={viewLoading}
               title="Build custom payslip templates with drag & drop"
@@ -128,9 +93,9 @@ const AppContent: React.FC = () => {
               <span>Template Builder</span>
             </NavTab>
             */}
-            
-            <NavTab 
-              isActive={currentView === 'excel'}
+
+            <NavTab
+              $isActive={currentView === 'excel'}
               onClick={() => handleViewChange('excel')}
               disabled={viewLoading}
               title={t('app.tooltips.excelTab')}
@@ -138,9 +103,9 @@ const AppContent: React.FC = () => {
               <span>📊</span>
               <span>{t('payslips.annualExcelView')}</span>
             </NavTab>
-            
-            <NavTab 
-              isActive={currentView === 'basic'}
+
+            <NavTab
+              $isActive={currentView === 'basic'}
               onClick={() => handleViewChange('basic')}
               disabled={viewLoading}
               title={t('app.tooltips.basicTab')}
@@ -149,7 +114,7 @@ const AppContent: React.FC = () => {
               <span>{t('payslips.basicView')}</span>
             </NavTab>
           </NavigationTabs>
-          
+
           <FeatureBanner>
             <FeatureText>
               <strong>✨ {t('dashboard.keyFeatures', 'Key Features')}:</strong> {getFeatureText(currentView)}
@@ -157,7 +122,7 @@ const AppContent: React.FC = () => {
           </FeatureBanner>
         </HeaderContent>
       </Header>
-      
+
       <MainContent className="animate-slideUp">
         {error && (
           <ErrorMessage>
@@ -168,15 +133,15 @@ const AppContent: React.FC = () => {
             </ErrorButton>
           </ErrorMessage>
         )}
-        
+
         {viewLoading && (
           <LoadingOverlay>
             <LoadingSpinner />
             <LoadingText>{t('common.loading')}...</LoadingText>
           </LoadingOverlay>
         )}
-        
-        <ErrorBoundary 
+
+        <ErrorBoundary
           onError={(error, errorInfo) => {
             console.error('App Error Boundary:', error, errorInfo);
             setError(t('app.errors.unexpectedErrorRefresh'));
@@ -185,17 +150,17 @@ const AppContent: React.FC = () => {
           {currentView === 'persons' && (
             <CustomerManagement />
           )}
-          
+
           {/* Template builder disabled
           {currentView === 'template' && (
             <EnhancedTemplateBuilder />
           )}
           */}
-          
+
           {currentView === 'excel' && (
             <MonthlyPayslipGenerator />
           )}
-          
+
           {currentView === 'basic' && (
             <PayslipGenerator />
           )}
@@ -205,13 +170,68 @@ const AppContent: React.FC = () => {
   );
 };
 
-function App() {
+// Status Screen Component for Inactive Users
+const InactiveUserScreen: React.FC = () => {
+  const { t } = useTranslation();
+  const { profile } = useAuth();
+
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <StatusContainer>
+      <StatusCard>
+        <StatusIcon>⏳</StatusIcon>
+        <StatusTitle>{t('profile.account', 'Account')} {profile?.status}</StatusTitle>
+        <StatusMessage>
+          {profile?.status === 'pending'
+            ? t('auth.login.accountPending')
+            : t('auth.login.accountInactive')}
+        </StatusMessage>
+      </StatusCard>
+    </StatusContainer>
   );
-}
+};
+
+// Main App Content
+const AppContent: React.FC = () => {
+  const { t } = useTranslation();
+  const { user, profile, loading, isAdmin, isActive } = useAuth();
+  const [authCheckComplete, setAuthCheckComplete] = useState(false);
+
+  // Track when auth loading is actually complete
+  React.useEffect(() => {
+    if (!loading) {
+      setAuthCheckComplete(true);
+    }
+  }, [loading]);
+
+  // Show loading only during initial auth check
+  if (loading && !authCheckComplete) {
+    return (
+      <LoadingScreen
+        message={t('auth.authenticating', 'Authenticating...')}
+        subtext={t('auth.verifyingCredentials', 'Please wait while we verify your credentials')}
+      />
+    );
+  }
+
+  // Authentication check complete - determine what to show
+  if (!user || !profile) {
+    // No user session or profile - show login
+    return <LoginScreen />;
+  }
+
+  // Admin user - show admin dashboard
+  if (isAdmin) {
+    return <AdminDashboard />;
+  }
+
+  // Employee user but not active - show pending/inactive message
+  if (!isActive) {
+    return <InactiveUserScreen />;
+  }
+
+  // Active employee - show regular app interface
+  return <EmployeeDashboard />;
+};
 
 // Loading components
 const LoadingContainer = styled.div`
@@ -231,7 +251,7 @@ const LoadingSpinner = styled.div`
   border-top: 4px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  
+
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -243,6 +263,21 @@ const LoadingText = styled.div`
   font-size: ${theme.typography.fontSize.lg};
   font-weight: ${theme.typography.fontWeight.semibold};
 `;
+
+const LoadingSubtext = styled.div`
+  color: rgba(255, 255, 255, 0.8);
+  font-size: ${theme.typography.fontSize.sm};
+  font-weight: ${theme.typography.fontWeight.medium};
+  margin-top: ${theme.spacing[2]};
+`;
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
 
 // Status components
 const StatusContainer = styled.div`
@@ -425,7 +460,7 @@ const NavigationTabs = styled.div`
   }
 `;
 
-const NavTab = styled.button<{ isActive: boolean; disabled?: boolean }>`
+const NavTab = styled.button<{ $isActive: boolean; disabled?: boolean }>`
   padding: ${theme.spacing[3]} ${theme.spacing[5]};
   border: none;
   border-radius: ${theme.borderRadius.xl};
@@ -445,19 +480,19 @@ const NavTab = styled.button<{ isActive: boolean; disabled?: boolean }>`
   user-select: none;
   opacity: ${props => props.disabled ? 0.6 : 1};
   
-  background: ${props => props.isActive
+  background: ${props => props.$isActive
     ? theme.colors.gradients.primary
     : 'rgba(255, 255, 255, 0.8)'};
-  color: ${props => props.isActive
+  color: ${props => props.$isActive
     ? theme.colors.text.inverse
     : theme.colors.gray[700]};
-  border: 2px solid ${props => props.isActive
+  border: 2px solid ${props => props.$isActive
     ? 'transparent'
     : theme.colors.gray[200]};
-  box-shadow: ${props => props.isActive
+  box-shadow: ${props => props.$isActive
     ? `${theme.shadows.md}, ${theme.shadows.glow}`
     : theme.shadows.sm};
-  backdrop-filter: ${props => props.isActive ? 'none' : 'blur(10px)'};
+  backdrop-filter: ${props => props.$isActive ? 'none' : 'blur(10px)'};
   
   &::before {
     content: '';
@@ -466,26 +501,26 @@ const NavTab = styled.button<{ isActive: boolean; disabled?: boolean }>`
     left: 0;
     right: 0;
     bottom: 0;
-    background: ${props => props.isActive 
-      ? 'transparent' 
+    background: ${props => props.$isActive
+      ? 'transparent'
       : 'linear-gradient(135deg, transparent 0%, rgba(91, 124, 255, 0.05) 50%, transparent 100%)'};
     opacity: 0;
     transition: opacity ${theme.animation.duration.normal} ${theme.animation.easing.easeInOut};
     pointer-events: none;
   }
-  
+
   &:hover:not(:disabled) {
-    background: ${props => props.isActive
+    background: ${props => props.$isActive
       ? theme.colors.gradients.primary
       : 'rgba(255, 255, 255, 0.95)'};
-    color: ${props => props.isActive
+    color: ${props => props.$isActive
       ? theme.colors.text.inverse
       : theme.colors.primary.main};
-    border-color: ${props => props.isActive
+    border-color: ${props => props.$isActive
       ? 'transparent'
       : theme.colors.primary.light};
     transform: translateY(-3px) scale(1.02);
-    box-shadow: ${props => props.isActive
+    box-shadow: ${props => props.$isActive
       ? `${theme.shadows.lg}, ${theme.shadows.glowLg}`
       : `${theme.shadows.lg}, 0 0 20px rgba(0, 34, 110, 0.15)`};
     backdrop-filter: blur(15px);
@@ -494,11 +529,11 @@ const NavTab = styled.button<{ isActive: boolean; disabled?: boolean }>`
       opacity: 1;
     }
   }
-  
+
   &:active:not(:disabled) {
     transform: translateY(-1px) scale(1.01);
-    box-shadow: ${props => props.isActive 
-      ? `${theme.shadows.md}, ${theme.shadows.glow}` 
+    box-shadow: ${props => props.$isActive
+      ? `${theme.shadows.md}, ${theme.shadows.glow}`
       : `${theme.shadows.base}, 0 0 10px rgba(91, 124, 255, 0.15)`};
     transition-duration: ${theme.animation.duration.fast};
   }
@@ -521,8 +556,8 @@ const NavTab = styled.button<{ isActive: boolean; disabled?: boolean }>`
   @media (hover: none) {
     &:hover:not(:disabled) {
       transform: none;
-      box-shadow: ${props => props.isActive 
-        ? `${theme.shadows.md}, ${theme.shadows.glow}` 
+      box-shadow: ${props => props.$isActive
+        ? `${theme.shadows.md}, ${theme.shadows.glow}`
         : theme.shadows.xs};
     }
   }

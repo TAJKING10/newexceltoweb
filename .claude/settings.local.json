@@ -161,7 +161,13 @@
       "Bash(dir:*)",
       "Bash(powershell:*)",
       "Bash(PORT=8622 npm start)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(PORT=3000 npm start)",
+      "Bash(PORT=8177 npm start)",
+      "Bash(PORT=8178 npm start)",
+      "Bash(cat:*)",
+      "Bash(PORT=8179 npm start)",
+      "Bash(PORT=8720 npm start)"
     ],
     "deny": [],
     "ask": []

@@ -169,18 +169,18 @@ const NavContent = styled.div`
   min-width: max-content;
 `;
 
-const NavTab = styled.button<{ isActive: boolean }>`
+const NavTab = styled.button<{ $isActive: boolean }>`
   padding: ${theme.spacing[4]} ${theme.spacing[6]};
   border: none;
   background: transparent;
-  color: ${props => props.isActive ? theme.colors.primary.main : theme.colors.text.secondary};
+  color: ${props => props.$isActive ? theme.colors.primary.main : theme.colors.text.secondary};
   font-weight: ${theme.typography.fontWeight.semibold};
   font-size: ${theme.typography.fontSize.sm};
   cursor: pointer;
-  border-bottom: 2px solid ${props => props.isActive ? theme.colors.primary.main : 'transparent'};
+  border-bottom: 2px solid ${props => props.$isActive ? theme.colors.primary.main : 'transparent'};
   transition: all ${theme.animation.duration.normal};
   white-space: nowrap;
-  
+
   &:hover {
     color: ${theme.colors.primary.main};
     background: ${theme.colors.primary.light}10;
@@ -283,51 +283,51 @@ export const AdminDashboard: React.FC = () => {
       <Navigation>
         <NavContent>
           <NavTab
-            isActive={activeTab === 'overview'}
+            $isActive={activeTab === 'overview'}
             onClick={() => setActiveTab('overview')}
           >
             📊 {t('admin.overview')}
           </NavTab>
           <NavTab
-            isActive={activeTab === 'employees'}
+            $isActive={activeTab === 'employees'}
             onClick={() => setActiveTab('employees')}
           >
             👥 {t('admin.employees')}
           </NavTab>
           <NavTab
-            isActive={activeTab === 'customers'}
+            $isActive={activeTab === 'customers'}
             onClick={() => setActiveTab('customers')}
           >
             🎯 {t('admin.customers', 'Customers')}
           </NavTab>
           <NavTab
-            isActive={activeTab === 'payslips'}
+            $isActive={activeTab === 'payslips'}
             onClick={() => setActiveTab('payslips')}
           >
             📄 {t('admin.payslips', 'Super Admin Payslips')}
           </NavTab>
           {/* Template Management tab disabled
           <NavTab
-            isActive={activeTab === 'templates'}
+            $isActive={activeTab === 'templates'}
             onClick={() => setActiveTab('templates')}
           >
             🎨 {t('admin.templates')}
           </NavTab>
           */}
           <NavTab
-            isActive={activeTab === 'reports'}
+            $isActive={activeTab === 'reports'}
             onClick={() => setActiveTab('reports')}
           >
             📊 {t('admin.reports')}
           </NavTab>
           <NavTab
-            isActive={activeTab === 'settings'}
+            $isActive={activeTab === 'settings'}
             onClick={() => setActiveTab('settings')}
           >
             ⚙️ {t('admin.settings')}
           </NavTab>
           <NavTab
-            isActive={activeTab === 'audit'}
+            $isActive={activeTab === 'audit'}
             onClick={() => setActiveTab('audit')}
           >
             📋 {t('admin.audit')}
@@ -341,3 +341,5 @@ export const AdminDashboard: React.FC = () => {
     </DashboardContainer>
   );
 };
+
+// Thank you for using Advensys Payslip!

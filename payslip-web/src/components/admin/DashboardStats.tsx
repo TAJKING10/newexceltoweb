@@ -5,6 +5,7 @@ import { supabase } from '../../supabaseClient';
 import { theme } from '../../styles/theme';
 import { KPI } from '../../ui/KPI';
 import { customerManager } from '../../utils/customerManager';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Stats {
   totalEmployees: number;
@@ -214,31 +215,199 @@ const LoadingSpinner = styled.div`
 
 export const DashboardStats: React.FC = () => {
   const { t } = useTranslation();
+  const { user, profile, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
 
   useEffect(() => {
-    fetchStats();
-  }, []);
+    let isMounted = true;
+
+    const initializeStats = async () => {
+      // Wait for authentication to be complete
+      if (authLoading) {
+        console.log('📊 DashboardStats: Waiting for auth to complete...');
+        return;
+      }
+
+      if (!user || !profile) {
+        console.warn('📊 DashboardStats: No user or profile available');
+        if (isMounted) {
+          setLoading(false);
+          setError('Authentication required');
+        }
+        return;
+      }
+
+      console.log('📊 DashboardStats: Auth complete, starting stats fetch...');
+
+      // Add a delay and check for session readiness before fetching
+      const checkSessionAndFetch = async () => {
+        let attempts = 0;
+        const maxAttempts = 10; // Try for up to 10 seconds
+
+        const waitForSession = async (): Promise<boolean> => {
+          attempts++;
+          console.log(`🔄 Checking session readiness (attempt ${attempts}/${maxAttempts})...`);
+
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              console.log('✅ Session ready with valid token');
+              return true;
+            } else {
+              console.log('⏳ Session not ready, waiting...');
+              if (attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return waitForSession();
+              }
+              return false;
+            }
+          } catch (error) {
+            console.warn('⚠️ Session check error:', error);
+            if (attempts < maxAttempts) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              return waitForSession();
+            }
+            return false;
+          }
+        };
+
+        const sessionReady = await waitForSession();
+        if (isMounted) {
+          if (sessionReady) {
+            console.log('🚀 Session ready, starting data fetch...');
+          } else {
+            console.log('⚠️ Session not ready after waiting, proceeding anyway...');
+          }
+          fetchStats();
+        }
+      };
+
+      setTimeout(checkSessionAndFetch, 1000); // Initial 1 second delay
+    };
+
+    initializeStats();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authLoading, user, profile]);
 
   const fetchStats = async () => {
     try {
       setLoading(true);
+      setError(null);
+      console.log('📊 DashboardStats: Starting to fetch stats...');
 
-      // Fetch employee stats
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, status, role')
-        .eq('role', 'employee');
+      // Ensure we have a valid session before making API calls
+      let sessionValid = false;
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.log('🔍 Current session status:', session ? 'Found' : 'None', sessionError ? `Error: ${sessionError.message}` : 'No error');
 
-      if (profilesError) {
-        console.warn('Error fetching profiles:', profilesError);
-        // Continue with empty data instead of throwing
+        if (!session && !sessionError) {
+          console.warn('⚠️ No active session, attempting refresh...');
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            console.warn('⚠️ Session refresh failed:', refreshError.message);
+            console.log('📋 Continuing with cached user data, API calls may fail gracefully');
+            sessionValid = false;
+          } else if (refreshData?.session) {
+            console.log('✅ Session refreshed successfully for API calls');
+            sessionValid = true;
+          } else {
+            console.warn('⚠️ No session returned from refresh');
+            sessionValid = false;
+          }
+        } else if (session) {
+          console.log('✅ Valid session found for API calls');
+          sessionValid = true;
+        } else {
+          console.warn('⚠️ Session error:', sessionError?.message);
+          sessionValid = false;
+        }
+      } catch (error) {
+        console.warn('⚠️ Session validation error:', error);
+        console.log('📋 Continuing without session validation, will attempt API calls anyway');
+        sessionValid = false;
+      }
+
+      // Set a more reasonable timeout for individual queries
+      const timeoutId = setTimeout(() => {
+        console.warn('⚠️ DashboardStats: Fetch timeout, using default values');
+        // Don't show error, just use default values and continue
+        setStats({
+          totalEmployees: 0,
+          activeEmployees: 0,
+          pendingEmployees: 0,
+          totalPayslips: 0,
+          totalTemplates: 0,
+          monthlyPayslips: 0,
+          totalRevenue: 0,
+          avgSalary: 0,
+          recentActivity: [],
+          monthlyStats: [],
+          departmentStats: [],
+          totalCustomers: 0,
+          activeCustomers: 0,
+          inactiveCustomers: 0,
+          customersByType: {}
+        });
+        setLoading(false);
+        console.log('📊 DashboardStats: Using default values due to timeout');
+      }, 25000); // 25 second timeout (increased for better reliability)
+
+      // Fetch employee stats with timeout protection and retry
+      let profiles: any[] = [];
+      const maxRetries = 2;
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`📊 Fetching employee profiles... (attempt ${attempt}/${maxRetries})`);
+          const profilesPromise = supabase
+            .from('profiles')
+            .select('id, status, role')
+            .eq('role', 'employee');
+
+          const profilesResult: any = await Promise.race([
+            profilesPromise,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Profiles query timeout')), 12000) // Increased from 5s to 12s
+            )
+          ]);
+
+          profiles = profilesResult.data || [];
+          if (profilesResult.error) {
+            console.warn(`❌ Profiles query error (attempt ${attempt}/${maxRetries}):`, {
+              message: profilesResult.error.message,
+              code: profilesResult.error.code,
+              details: profilesResult.error.details,
+              hint: profilesResult.error.hint
+            });
+            if (attempt === maxRetries) {
+              profiles = []; // Final fallback
+            }
+          } else {
+            console.log('✅ Successfully fetched profiles:', profiles?.length || 0);
+            break; // Success, exit retry loop
+          }
+        } catch (error) {
+          console.warn(`⚠️ Profiles fetch failed or timed out (attempt ${attempt}/${maxRetries}):`, error);
+          if (attempt === maxRetries) {
+            profiles = []; // Final fallback
+          } else {
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
       }
 
       const totalEmployees = profiles?.length || 0;
-      const activeEmployees = profiles?.filter(p => p.status === 'active').length || 0;
-      const pendingEmployees = profiles?.filter(p => p.status === 'pending').length || 0;
+      const activeEmployees = profiles?.filter((p: any) => p.status === 'active').length || 0;
+      const pendingEmployees = profiles?.filter((p: any) => p.status === 'pending').length || 0;
 
       // Fetch payslip stats
       const { count: payslipCount, error: payslipError } = await supabase
@@ -393,9 +562,22 @@ export const DashboardStats: React.FC = () => {
         inactiveCustomers: customerStats.inactive,
         customersByType: customerStats.byType
       });
+
+      // Clear timeout if we reach here successfully
+      clearTimeout(timeoutId);
     } catch (error) {
-      console.error('Error fetching stats:', error);
-      // Set default values if everything fails
+      console.error('❌ DashboardStats: Error fetching stats:', error);
+
+      // Retry logic
+      if (retryCount < maxRetries) {
+        console.log(`🔄 DashboardStats: Retrying... (${retryCount + 1}/${maxRetries})`);
+        setRetryCount(prev => prev + 1);
+        setTimeout(() => fetchStats(), 2000); // Retry after 2 seconds
+        return; // Don't set error or default stats yet
+      }
+
+      // Max retries reached - use default values
+      console.warn('⚠️ DashboardStats: Max retries reached, using default values');
       setStats({
         totalEmployees: 0,
         activeEmployees: 0,
@@ -414,7 +596,11 @@ export const DashboardStats: React.FC = () => {
         customersByType: {}
       });
     } finally {
-      setLoading(false);
+      // Only set loading to false if we're not retrying
+      if (retryCount >= maxRetries || !error) {
+        setLoading(false);
+        console.log('✅ DashboardStats: Fetch stats completed');
+      }
     }
   };
 
@@ -452,8 +638,41 @@ export const DashboardStats: React.FC = () => {
     return date.toLocaleDateString();
   };
 
-  if (loading) {
+  // Show loading during auth check or data fetch
+  if (authLoading || loading) {
     return <LoadingSpinner>{t('common.loading')} {t('dashboard.statistics', 'dashboard stats')}...</LoadingSpinner>;
+  }
+
+  // Show error if there was a problem
+  if (error) {
+    return (
+      <div style={{
+        padding: theme.spacing[8],
+        textAlign: 'center',
+        color: theme.colors.error.main
+      }}>
+        ⚠️ {error}
+        <div style={{ marginTop: theme.spacing[4] }}>
+          <button
+            onClick={() => {
+              setRetryCount(0);
+              setError(null);
+              fetchStats();
+            }}
+            style={{
+              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+              background: theme.colors.primary.main,
+              color: 'white',
+              border: 'none',
+              borderRadius: theme.borderRadius.md,
+              cursor: 'pointer'
+            }}
+          >
+            {t('common.retry', 'Retry')}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (!stats) {

@@ -16,4 +16,40 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'undefined');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+    storage: window.sessionStorage,
+    storageKey: 'payslip-supabase-session-token',
+    flowType: 'pkce',
+    debug: process.env.NODE_ENV === 'development'
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
+  global: {
+    headers: {
+      'x-client-info': 'payslip-web'
+    }
+  }
+})
+
+// Add auth state change listener for better debugging
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('🔄 Supabase Auth Event:', event);
+  if (event === 'TOKEN_REFRESHED') {
+    console.log('✅ Token refreshed automatically');
+  }
+  if (event === 'SIGNED_OUT') {
+    console.log('🚪 User signed out');
+  }
+  if (event === 'SIGNED_IN' && session) {
+    console.log('✅ User session established:', session.user?.email);
+  }
+  if (event === 'INITIAL_SESSION' && session) {
+    console.log('📋 Initial session restored:', session.user?.email);
+  }
+})

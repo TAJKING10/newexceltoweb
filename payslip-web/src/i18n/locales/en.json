@@ -36,7 +36,8 @@
     "email": "Email",
     "allDepartments": "All Departments",
     "allStatus": "All Status",
-    "allTypes": "All Types"
+    "allTypes": "All Types",
+    "retry": "Retry"
   },
   "auth": {
     "email": "Email Address",
@@ -116,12 +117,22 @@
     "avg": "Avg",
     "recentActivity": "Recent Activity",
     "noRecentActivity": "No recent activity",
-    "systemReady": "System is ready for use"
+    "systemReady": "System is ready for use",
+    "totalCustomers": "Total Customers",
+    "allCustomersRegistered": "All registered customers",
+    "activeCustomers": "Active Customers",
+    "activeCustomersDesc": "Currently active customers",
+    "inactiveCustomers": "Inactive Customers",
+    "inactiveCustomersDesc": "Currently inactive customers",
+    "customersByType": "Customers by Type",
+    "noCustomerData": "No customer data available"
   },
   "admin": {
     "title": "Admin Dashboard",
     "overview": "Overview",
     "employees": "Employees",
+    "customers": "Customers",
+    "payslips": "Super Admin Payslips",
     "templates": "Templates",
     "reports": "Reports",
     "settings": "Settings",

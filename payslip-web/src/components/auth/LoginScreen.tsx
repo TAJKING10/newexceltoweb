@@ -180,6 +180,18 @@ export const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Safety timeout for login process
+  React.useEffect(() => {
+    if (loading) {
+      const timeout = setTimeout(() => {
+        setLoading(false);
+        setError('Login timeout. Please try again.');
+      }, 10000); // 10 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [loading]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
