@@ -668,6 +668,189 @@
       "headOfHousehold": "Head of Household"
     }
   },
+  "personModal": {
+    "editPerson": "Edit Person",
+    "addNewPerson": "Add New Person",
+    "selectPersonType": "Select Person Type",
+    "basicInfo": "Basic Information",
+    "workDetails": "Work Details",
+    "compensation": "Compensation",
+    "notes": "Notes",
+    "firstNameLabel": "First Name *",
+    "lastNameLabel": "Last Name *",
+    "emailLabel": "Email *",
+    "phoneLabel": "Phone",
+    "streetAddressLabel": "Address",
+    "cityLabel": "City",
+    "stateLabel": "State/Province",
+    "zipCodeLabel": "Zip Code",
+    "personIdLabel": "Person ID *",
+    "departmentLabel": "Department",
+    "positionLabel": "Position/Title",
+    "workTypeLabel": "Work Type",
+    "statusLabel": "Status",
+    "baseSalaryLabel": "Base Salary",
+    "hourlyRateLabel": "Hourly Rate",
+    "currencyLabel": "Currency",
+    "paymentMethodLabel": "Payment Method",
+    "additionalNotesLabel": "Additional Notes",
+    "cancel": "Cancel",
+    "updatePerson": "Update Person",
+    "createPerson": "Create Person",
+    "workTypes": {
+      "fullTime": "Full-time",
+      "partTime": "Part-time",
+      "contractor": "Contractor",
+      "freelance": "Freelance",
+      "consultant": "Consultant",
+      "customer": "Customer",
+      "vendor": "Vendor"
+    },
+    "statuses": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "suspended": "Suspended",
+      "terminated": "Terminated",
+      "completed": "Completed"
+    },
+    "paymentMethods": {
+      "directDeposit": "Direct Deposit",
+      "check": "Check",
+      "paypal": "PayPal",
+      "wireTransfer": "Wire Transfer",
+      "cash": "Cash",
+      "crypto": "Cryptocurrency"
+    },
+    "countries": {
+      "usa": "United States",
+      "canada": "Canada",
+      "uk": "United Kingdom",
+      "australia": "Australia",
+      "other": "Other"
+    }
+  },
+  "employeeModal": {
+    "editEmployee": "Edit Employee",
+    "address": "Address",
+    "streetAddress": "Street Address",
+    "city": "City",
+    "state": "State",
+    "zipCode": "Zip Code",
+    "country": "Country",
+    "tabs": {
+      "personal": "👤 Personal Information",
+      "employment": "💼 Employment",
+      "compensation": "💰 Compensation",
+      "benefits": "🎁 Benefits",
+      "documents": "📄 Documents"
+    },
+    "personalInfo": "👤 Personal Information",
+    "employmentInfo": "💼 Employment Information",
+    "compensationBenefits": "💰 Compensation and Benefits",
+    "benefits": "🎁 Benefits",
+    "documents": "📄 Documents",
+    "employeeId": "Employee ID",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "phone": "Phone",
+    "dateOfBirth": "Date of Birth",
+    "nationalId": "National ID",
+    "department": "Department",
+    "position": "Position",
+    "manager": "Manager",
+    "hireDate": "Hire Date",
+    "employmentType": "Employment Type",
+    "status": "Status",
+    "workLocation": "Work Location",
+    "baseSalary": "Base Salary",
+    "currency": "Currency",
+    "payFrequency": "Pay Frequency",
+    "healthInsurance": "Health Insurance",
+    "dentalInsurance": "Dental Insurance",
+    "visionInsurance": "Vision Insurance",
+    "retirement401k": "401k Retirement",
+    "paidTimeOff": "Paid Time Off",
+    "employmentTypes": {
+      "fullTime": "Full-time",
+      "partTime": "Part-time",
+      "contract": "Contract",
+      "intern": "Intern",
+      "temporary": "Temporary"
+    },
+    "statuses": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "onLeave": "On Leave",
+      "terminated": "Terminated"
+    },
+    "payFrequencies": {
+      "weekly": "Weekly",
+      "biweekly": "Bi-weekly",
+      "monthly": "Monthly",
+      "annual": "Annual"
+    }
+  },
+  "customFields": {
+    "title": "Custom Fields Creator",
+    "createField": "Create Field",
+    "manageFields": "Manage Fields",
+    "templates": "Templates",
+    "createNewField": "Create New Custom Field",
+    "fieldNameLabel": "Field Name (internal)",
+    "fieldLabelLabel": "Field Label (display)",
+    "fieldTypeLabel": "Field Type",
+    "placeholderLabel": "Placeholder Text",
+    "optionsLabel": "Options",
+    "addOption": "Add Option",
+    "requiredField": "Required Field",
+    "createFieldButton": "Create Field",
+    "editField": "Edit Field",
+    "activeField": "Active Field",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "useTemplate": "Use Template",
+    "noFieldsMessage": "No custom fields created for this category.",
+    "systemField": "SYSTEM FIELD",
+    "quickTemplates": "Quick Templates",
+    "fieldNamePlaceholder": "e.g., custom_allowance",
+    "fieldLabelPlaceholder": "e.g., Custom Allowance",
+    "fieldTypes": {
+      "text": "Text",
+      "number": "Number",
+      "date": "Date",
+      "email": "Email",
+      "phone": "Phone",
+      "url": "URL",
+      "textarea": "Text Area",
+      "select": "Dropdown",
+      "checkbox": "Checkbox",
+      "radio": "Radio Buttons"
+    }
+  },
+  "departments": {
+    "engineering": "Engineering",
+    "marketing": "Marketing",
+    "sales": "Sales",
+    "hr": "Human Resources",
+    "finance": "Finance"
+  },
+  "search": {
+    "searchEmployees": "Search by name, email, employee ID, department...",
+    "searchTemplates": "Search templates..."
+  },
+  "misc": {
+    "fieldName": "Field Name",
+    "value": "Value",
+    "label": "Label",
+    "enterRowName": "Enter row name...",
+    "useEditButton": "Use the edit button to rename this row",
+    "clickToEditRowName": "Click to edit row name",
+    "deleteRowCompletely": "Delete row completely",
+    "yes": "Yes",
+    "no": "No"
+  },
   "basicView": {
     "title": "Basic View - Enhanced Editor",
     "luxembourgTaxConfig": "Luxembourg Tax Configuration",
@@ -678,6 +861,7 @@
     "saveToBackend": "Save to Backend",
     "saving": "Saving...",
     "autoSaveEnabled": "Auto-save enabled",
-    "autoCalculated": "Auto-calculated"
+    "autoCalculated": "Auto-calculated",
+    "autoCalculatedInfo": "= Luxembourg tax auto-calculated field (read-only) | ✏️ = Editable input field"
   }
 }

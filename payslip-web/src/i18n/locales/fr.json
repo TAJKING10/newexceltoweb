@@ -319,10 +319,11 @@
     "employeeId": "ID Employé:",
     "department": "Département:",
     "position": "Poste:",
-    "payPeriod": "Période de Paie:",
     "informationTechnology": "Technologies de l'Information",
     "softwareDeveloper": "Développeur Logiciel",
-    "otherAllowances": "Autres Allocations"
+    "otherAllowances": "Autres Allocations",
+    "grossSalary": "SALAIRE BRUT",
+    "totalDeductions": "TOTAL DES DÉDUCTIONS"
   },
   "app": {
     "features": {
