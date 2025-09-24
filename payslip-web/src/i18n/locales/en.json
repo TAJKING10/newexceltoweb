@@ -667,5 +667,17 @@
       "married": "Married",
       "headOfHousehold": "Head of Household"
     }
+  },
+  "basicView": {
+    "title": "Basic View - Enhanced Editor",
+    "luxembourgTaxConfig": "Luxembourg Tax Configuration",
+    "freshStart": "Fresh Start",
+    "resetToFreshTemplate": "Reset to Fresh Template",
+    "editMode": "Edit Mode",
+    "exitEditMode": "Exit Edit Mode",
+    "saveToBackend": "Save to Backend",
+    "saving": "Saving...",
+    "autoSaveEnabled": "Auto-save enabled",
+    "autoCalculated": "Auto-calculated"
   }
 }

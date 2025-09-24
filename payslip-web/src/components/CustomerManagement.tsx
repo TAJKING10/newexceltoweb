@@ -66,8 +66,10 @@ const Title = styled.h1`
 const Subtitle = styled.p`
   margin: 0;
   font-size: ${theme.typography.fontSize.lg};
-  opacity: 0.9;
+  color: white;
+  opacity: 0.95;
   font-weight: ${theme.typography.fontWeight.medium};
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 `;
 
 const Controls = styled.div`
