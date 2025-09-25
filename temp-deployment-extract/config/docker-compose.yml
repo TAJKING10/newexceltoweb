@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # Frontend React Application
+  frontend:
+    build:
+      context: ./payslip-web
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/ssl/certs:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - payslip-network
+
+  # Backend API (if needed)
+  backend:
+    build:
+      context: ./supabase/functions
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+    restart: unless-stopped
+    networks:
+      - payslip-network
+
+  # PostgreSQL Database (optional - can use Supabase cloud)
+  database:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=payslip_db
+      - POSTGRES_USER=${DB_USER:-payslip_user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - payslip-network
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - payslip-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  payslip-network:
+    driver: bridge

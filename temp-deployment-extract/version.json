@@ -1,0 +1,14 @@
+{
+  "version": "2.1.0",
+  "build_date": "2025-09-24T21:04:41+03:00",
+  "description": "Updated OVHcloud deployment package with latest improvements",
+  "features": [
+    "Complete translation system (733 keys EN/FR)",
+    "Fixed text color visibility issues",
+    "Optimized build (362KB gzipped)",
+    "Customer & admin management",
+    "Super admin payslip management",
+    "All latest UI/UX improvements"
+  ],
+  "deployment_ready": true
+}
